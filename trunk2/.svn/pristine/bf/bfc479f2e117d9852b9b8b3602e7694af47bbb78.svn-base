@@ -1,0 +1,44 @@
+package operation.repo.push;
+
+public class ZtiaoPush {
+	private String title;
+	
+	private String content;
+	
+	private String pushType;
+	
+	public ZtiaoPush(){
+		super();
+	}
+	
+	public ZtiaoPush(String title,String content,String pushType){
+		this.title=title;
+		this.content=content;
+		this.pushType=pushType;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+	public String getPushType() {
+		return pushType;
+	}
+
+	public void setPushType(String pushType) {
+		this.pushType = pushType;
+	}
+	
+}

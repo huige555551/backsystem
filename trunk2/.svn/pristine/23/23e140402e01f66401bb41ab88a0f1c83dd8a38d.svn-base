@@ -1,0 +1,162 @@
+package operation.controller.oss;
+
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.GroupShareKnowledge;
+import operation.pojo.course.Knowledge;
+import operation.pojo.pub.QueryModel;
+import operation.service.course.GroupShareKnowledgeService;
+import operation.service.course.KnowledgeService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+@RestController
+@RequestMapping("/oss/knowledge")
+@Configuration
+public class OssKnowledgeController extends OssController {
+	@Autowired
+	private KnowledgeService knowledgeService;
+	@Autowired
+	private GroupShareKnowledgeService groupshareKnowledgeService;
+	
+//	/**
+//	 * 
+//	 * @Title: getKnowledgeByTagPc
+//	 * @Description: 按标签查找分享（在群组中的分享）
+//	 * @param tagName
+//	 * @param dm
+//	 * @return ResponseContainer
+//	 * @throws
+//	 */
+//	@SuppressWarnings("unchecked")
+//	@RequestMapping("getKnowledgeByTagPc")
+//	public @ResponseBody ResponseContainer getKnowledgeByTagPc(String tagName,QueryModel dm){
+//		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+//		try {
+//			Map<String,Object> knowledges = knowledgeService.getKnowledgeByTagPc(tagName, pageable);
+//			ReponseDataTools.getClientReponseData(getReponseData(), (Page<GroupCourse>)knowledges.get("page"));
+//			getReponseData().setResult(knowledges.get("result"));
+//			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+//		}
+//	}
+	
+	/**
+	 * 
+	 * @Title: getKnowledgeByKeyWordsPc
+	 * @Description: 按条件查找分享（在群组中的分享）
+	 * @param tagName
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@SuppressWarnings("unchecked")
+	@RequestMapping("getKnowledgeByKeyWordsPc")
+	public @ResponseBody ResponseContainer getKnowledgeByKeyWordsPc(String keyWords,QueryModel dm){
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		try {
+			Map<String,Object> knowledges = knowledgeService.getKnowledgeByKeyWordsPc(keyWords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), (Page<Knowledge>)knowledges.get("page"));
+			getReponseData().setResult(knowledges.get("result"));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 
+	 * @Title: getKngByGroupId
+	 * @Description:获取群组的知识列表
+	 * @param groupId
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value = "getKnowledgeByGid")
+	public @ResponseBody ResponseContainer getKngByGroupId(String groupId,QueryModel dm) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			List<GroupShareKnowledge> ks = groupshareKnowledgeService.getByGroupId(groupId);		
+			Page<Knowledge> result = knowledgeService.getKnowledgeList(ks,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), result);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), null,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: getKngByGroupId
+	 * @Description:搜索群组的知识列表
+	 * @param groupId
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value = "searchGroupKnowledge")
+	public @ResponseBody ResponseContainer getKngByGroupId(String groupId,QueryModel dm,String keywords) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<GroupShareKnowledge> ks = groupshareKnowledgeService.findByGroupIdAndkngNameLike(groupId,keywords,pageable);		
+			ReponseDataTools.getClientReponseData(getReponseData(), ks);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), null,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: Knowledge
+	 * @Description: 获取单个知识
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value = "getKnowledge")
+	public @ResponseBody ResponseContainer getKnowledge(String id) {
+		try {
+			JSONObject jsonObject = knowledgeService.getKnowledgeAndUser(id);
+			return addResponse(Config.STATUS_200, Config.MSG_200, jsonObject, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addPageResponse(e.getCode(), e.getMessage(), null,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: getTop10
+	 * @Description: 根据热度获取top10
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value = "getTop10")
+	public @ResponseBody ResponseContainer getTop10() {
+		List<JSONObject> kngs = knowledgeService.gettop10();
+		return addResponse(Config.STATUS_200, Config.MSG_200, kngs,
+				Config.RESP_MODE_10, "");
+	}
+
+}

@@ -1,0 +1,9 @@
+package operation.repo.activity;
+
+import operation.pojo.activity.NewActivity;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface NewActivityRepo extends MongoRepository<NewActivity, String>{
+
+}

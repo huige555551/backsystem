@@ -1,0 +1,156 @@
+package operation.repo.drycargo;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.topics.SubPost;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/** 
+* @ClassName: DrycargoTemplate
+* @Description: 干货分享查某个用户分享数量
+* @author yangquanliang
+* @date 2014年12月10日 下午2:53:56
+* 
+*/ 
+@Service
+@Component
+public class DrycargoTemplate {
+	
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	
+	/** 
+	* @author yangquanliang
+	* @Description: 通过shareids查找用户分享了干货数量
+	* @param @param listkey
+	* @param @return
+	* @param @throws XueWenServiceException
+	* @return long
+	* @throws 
+	*/ 
+//	public long getCountsByShareidsIn(List<String> listkey) {
+//
+//		Criteria criteria2 = Criteria.where("Shareids").in(listkey);
+//		Query query = new Query();
+//		query.addCriteria(criteria2);
+//		
+//		return mongoTemplate.count(query, Drycargo.class);
+//
+//	}
+	/**
+	 * 
+	 * @Title: getCountsByGroupId
+	 * @Description: 通过群组id获取干活的数量
+	 * @param groupId
+	 * @return long
+	 * @throws
+	 */
+	public long getCountsByGroupId(String groupId){
+		Criteria criteria2 = Criteria.where("group").is(groupId);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		return mongoTemplate.count(query, Drycargo.class);
+	}
+	/**
+	 * 根据群组ID删除该群组下的课程
+	 * @author hjn
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupId(String groupId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").in(groupId));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+	
+//	public long getCountsByDryFlagAndShareidsIn(List<String> listkey,int dryFlag) {
+//
+//		Criteria criteria2 = Criteria.where("Shareids").in(listkey).and("dryFlag").is(dryFlag);
+//		Query query = new Query();
+//		query.addCriteria(criteria2);
+//		
+//		return mongoTemplate.count(query, Drycargo.class);
+//
+//	}
+//	
+	/**
+	 * 根据干货ID删除该群组下的干货
+	 * @author hjn
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByDrycargoId(String drycargoId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(drycargoId));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+	/**
+	 * 根据干货IDs删除该群组下的干货
+	 * @author shenb
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByDrycargoIds(List<Object> drycargoIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(drycargoIds));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+	
+	public long getCountsByDryFlagAndUser(String userId ,int dryFlag) {
+
+		Criteria criteria2 = Criteria.where("authorId").is(userId);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		
+		return mongoTemplate.count(query, Drycargo.class);
+
+	}
+	/**
+	 * 修改干货创建人，从fromUser 到  toUser
+	 * @param fromUserId
+	 * @param toUserId
+	 * @param toUserNickName
+	 * @param toUserLogoUrl
+	 * @throws XueWenServiceException
+	 */
+	public void mergeDrycargo(String fromUserId,String toUserId,String toUserNickName,String toUserLogoUrl)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("authorId").is(fromUserId));
+		Update update=new Update();
+		update.set("authorId", toUserId);
+		update.set("authorName", toUserNickName);
+		update.set("authorLogoUrl", toUserLogoUrl);
+		mongoTemplate.updateMulti(query,update,Drycargo.class);
+	}
+	/**
+	 * 
+	 * @Title: updateFavCount
+	 * @auther tangli
+	 * @Description: 更新收藏数量
+	 * @param id
+	 * @param inc 
+	 * @throws
+	 */
+	public void updateFavCount(String id, int inc) {
+		Query query=new Query(Criteria.where("id").is(id));
+		Update update=new Update();		
+		update.inc("favCount", inc);
+		mongoTemplate.updateMulti(query, update, Drycargo.class);
+	}
+	/**
+	 * 修改干货的回复数
+	 * @param id
+	 * @param inc
+	 */
+	public void updatePostCount(String id, int inc) {
+		Query query=new Query(Criteria.where("id").is(id));
+		Update update=new Update();		
+		update.inc("replyCount", inc);
+		mongoTemplate.updateMulti(query, update, Drycargo.class);
+	}
+}

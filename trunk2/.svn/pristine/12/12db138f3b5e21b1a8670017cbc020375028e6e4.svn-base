@@ -1,0 +1,48 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.Knowledge;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+
+@Service
+@Component
+public class KnowledgeTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public KnowledgeTemplate(){
+		
+	}
+	/**
+	 * 根据知识Id查询出来知识ID和appItems节点
+	 * @param knowledge
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Knowledge findByIdRspIdAndappItems(String knowledge)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(knowledge));
+		query.fields().include("id").include("appItems");
+		return mongoTemplate.findOne(query, Knowledge.class);
+	}
+	/**
+	 * 根据知识Id集合删除所有知识记录
+	 * @param knowledge
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByIds(List<Object> knowledgeIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(knowledgeIds));
+		mongoTemplate.remove(query, Knowledge.class);
+	}
+	
+}

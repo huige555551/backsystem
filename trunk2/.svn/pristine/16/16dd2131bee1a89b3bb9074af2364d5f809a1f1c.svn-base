@@ -1,0 +1,75 @@
+package operation.repo.activity;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.NewActivity;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class NewActivityTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	/**
+	 * 根据群组Id查询出来群组下的活动
+	 * @param able
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewActivity> findByGroupId(Pageable able,String groupId)throws XueWenServiceException{
+		Query q=new Query(Criteria.where("group.groupId").is(groupId));
+		//获取总条数  
+        long totalCount = this.mongoTemplate.count(q,NewActivity.class);  
+        int skip = able.getPageNumber()*able.getPageSize();  
+        q.skip(skip);// skip相当于从那条记录开始  
+        q.limit(able.getPageSize());// 从skip开始,取多少条记录  
+        List<NewActivity> as=mongoTemplate.find(q,NewActivity.class);
+        Page<NewActivity> aspage=new PageImpl<NewActivity>(as, able, totalCount);
+        return aspage;  
+	}
+	
+	/**
+	 * 判断该活动是否存在
+	 * @param activityId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExit(String activityId)throws XueWenServiceException{
+		Query q=new Query(Criteria.where("id").is(activityId));
+		return mongoTemplate.exists(q, NewActivity.class);
+	}
+	
+	/**
+	 * 判断报名时间是否在报名时间有效期内
+	 * @param activityId
+	 * @param time
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isSignUpTime(String activityId,long time)throws XueWenServiceException{
+		Query q=new Query(Criteria.where("id").is(activityId).and("optionStartTime").lte(time).and("optionEndTime").gte(time));
+		return mongoTemplate.exists(q, NewActivity.class);
+	}
+	/**
+	 * 增加购买量
+	 * @param courseId
+	 */
+	public void addBuyCount(String activityId) {
+		Query query=new Query(Criteria.where("id").is(activityId));
+		Update update = new Update().inc("registrationCount", 1).set("utime", System.currentTimeMillis());
+		mongoTemplate.updateMulti(query, update, NewActivity.class);
+	}
+}

@@ -1,0 +1,138 @@
+package operation.service.category;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.pojo.category.Category;
+import operation.repo.category.CategoryRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class CategoryService {
+	@Autowired
+	public CategoryRepository categoryRepo;
+
+	/**
+	 * 创建群分类
+	 * 
+	 * @param category
+	 * @return
+	 */
+	public Category create(Category category) {
+		Category cate = categoryRepo.findOneByCategoryNameAndParentId(
+				category.getCategoryName(), category.getParentId());
+		if (cate == null) {
+			category = categoryRepo.save(category);
+		}
+
+		// // TODO Auto-generated method stub
+		// List<Object> list = new ArrayList<Object>();
+		// List<Object> list1 = new ArrayList<Object>();
+		// Category one = categoryRepo.findOneByCategoryName(category
+		// .getCategoryName());
+		// if (null == one || (null != one && null != one.getParentId())) {
+		//
+		// if (StringUtils.isNullOrEmpty(category.getParentId())) {
+		// one = categoryRepo.save(category);
+		// } else {
+		//
+		// one = categoryRepo.save(category);
+		// Category parentOne = categoryRepo.findOneById(category
+		// .getParentId());
+		//
+		// list1.add(one.getId());
+		// parentOne.setChildCategory(list1);
+		// categoryRepo.save(parentOne);
+		// }
+		//
+		// List<Object> childCategory = one.getChildCategory();
+		// if (null != childCategory) {
+		// for (int i = 0; i < childCategory.size(); i++) {
+		// Category categoryOne = categoryRepo
+		// .findOneById(childCategory.get(i).toString());
+		// list.add(categoryOne);
+		// }
+		// }
+		// }
+		//
+		// else {
+		// one = null;
+		// }
+		// one.setChildCategory(list);
+		return category;
+	}
+
+	/**
+	 * 查询所有群分类，支持分页
+	 * 
+	 * @param pageable
+	 * @return
+	 */
+//	public Page<Category> all(Pageable pageable) {
+//		Page<Category> category = categoryRepo.findAll(pageable);
+//		Category one = null;
+//		if (category.getTotalElements() > 0) {
+//			List<Category> categoryList = category.getContent();
+//			for (int i = 0; i < categoryList.size(); i++) {
+//				List<Object> list = new ArrayList<Object>();
+//				one = categoryList.get(i);
+//				List<Object> childCategoryList = one.getChildCategory();
+//				if (null != childCategoryList) {
+//					for (int j = 0; j < childCategoryList.size(); j++) {
+//						Category categoryOne = categoryRepo
+//								.findOne(childCategoryList.get(j).toString());
+//						if (null != categoryOne) {
+//							list.add(categoryOne);
+//						}
+//					}
+//				}
+//				one.setChildCategory(list);
+//			}
+//
+//		}
+//
+//		return category;
+//	}
+
+	/**
+	 * 查询话题列表，不支持分页功能
+	 * 
+	 * @param p
+	 * @return
+	 */
+	public List<Category> all() {
+		return this.getChildrenCategory(null);
+	}
+
+	private List<Category> getChildrenCategory(String categoryId) {
+		List<Category> childrenCategory =  categoryRepo.findAllByParentId(categoryId);
+		for (int i = 0; i < childrenCategory.size(); i++) {
+			childrenCategory.get(i).setChildCategory(this.getChildrenCategory(childrenCategory.get(i).getId()));
+		}
+		return childrenCategory;
+	}
+	
+	
+	
+	public List<Category> one(String pId,String cId) {
+		return this.getOneChildrenCategory(pId,cId);
+	}
+	
+	private List<Category> getOneChildrenCategory(String pId,String cId) {
+		List<Category> childrenCategory =  categoryRepo.findAllByParentId(null);
+		List<Category> ll = new ArrayList<Category>();
+		for (int i = 0; i < childrenCategory.size(); i++) {
+			if(pId.equals(childrenCategory.get(i).getId()))
+				ll.add(categoryRepo.findOneById(cId));
+			childrenCategory.get(i).setChildCategory(ll);
+			//	childrenCategory.get(i).setChildCategory(categoryRepo.findOneById(childrenCategory.get(i).getId()));
+		}
+		return childrenCategory;
+	}
+
+}

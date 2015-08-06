@@ -1,0 +1,216 @@
+package operation.pojo.subject;
+
+import java.util.List;
+
+import operation.pojo.user.ResponseUser;
+import operation.pojo.user.User;
+
+public class ResponseSubject {
+	private String id;
+	private String groupId;
+	private String title;
+	private String description;
+	private long ctime;
+	private long utime;
+	private int likeCount;
+	private int unLikeCount;
+	private int shareCount;
+	private int talkCount;
+	private int attentionCount;
+	private int isAttention;
+	private double [] position;
+	
+	 /**
+	   * 纬度
+	   */
+	  public double lat;
+	  
+	  /**
+	   * 经度
+	   */
+	  public double lng;
+	
+
+	private Object author;
+	
+	/**
+	 * 增加话题讨论列表
+	 */
+	private int  joinCount;
+	private int temperature;
+	
+
+
+
+	public int getJoinCount() {
+		return joinCount;
+	}
+
+	public void setJoinCount(int joinCount) {
+		this.joinCount = joinCount;
+	}
+
+	public int getTemperature() {
+		return temperature;
+	}
+
+	public void setTemperature(int temperature) {
+		this.temperature = temperature;
+	}
+
+	public ResponseSubject(Subject subject) {
+		super();
+		this.setId(subject.getId());
+		this.setGroupId(subject.getGroupId());
+		this.setTitle(subject.getTitle());
+		this.setDescription(subject.getDescription());
+		this.setCtime(subject.getCtime());
+		this.setUtime(subject.getUtime());
+		this.setLikeCount(subject.getLikeCount());
+		this.setUnLikeCount(subject.getUnLikeCount());
+		this.setShareCount(subject.getShareCount());
+		this.setTalkCount(subject.getTalkCount());
+		this.setAttentionCount(subject.getAttentionCount());
+		this.setIsAttention(subject.getIsAttention());
+		ResponseUser user = new ResponseUser((User)(subject.getAuthor()));
+		this.setAuthor(user);
+		this.setLat(subject.getLat());
+		this.setLng(subject.getLng());
+		this.setPosition(subject.getPosition());
+		this.setJoinCount(subject.getJoinCount());
+		this.setTemperature(subject.getTemperature());
+		
+	}
+
+	public ResponseSubject() {
+		super();
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public int getLikeCount() {
+		return likeCount;
+	}
+
+	public void setLikeCount(int likeCount) {
+		this.likeCount = likeCount;
+	}
+
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+
+	public int getShareCount() {
+		return shareCount;
+	}
+
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+
+	public int getTalkCount() {
+		return talkCount;
+	}
+
+	public void setTalkCount(int talkCount) {
+		this.talkCount = talkCount;
+	}
+
+	public int getAttentionCount() {
+		return attentionCount;
+	}
+
+	public void setAttentionCount(int attentionCount) {
+		this.attentionCount = attentionCount;
+	}
+
+	public int getIsAttention() {
+		return isAttention;
+	}
+
+	public void setIsAttention(int isAttention) {
+		this.isAttention = isAttention;
+	}
+	public Object getAuthor() {
+		return author;
+	}
+
+	public void setAuthor(Object author) {
+		this.author = author;
+	}
+
+	public double[] getPosition() {
+		return position;
+	}
+
+	public void setPosition(double[] position) {
+		this.position = position;
+	}
+
+	public double getLat() {
+		return lat;
+	}
+
+	public void setLat(double lat) {
+		this.lat = lat;
+	}
+
+	public double getLng() {
+		return lng;
+	}
+
+	public void setLng(double lng) {
+		this.lng = lng;
+	}
+	
+}

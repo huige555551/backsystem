@@ -1,0 +1,120 @@
+package operation.pojo.push;
+
+public class ZtiaoPush {
+	private String title;
+	
+	private String content;
+	
+	private String pushType;
+	
+	private String fromUserId;
+	
+	private String fromUserNickName;
+	
+	private String fromuserLogoUrl;
+	
+	private String toUserId;
+	
+	private String sourceId;
+	
+	private String sourceName;
+	
+	private String sourceLogoUrl;
+	public ZtiaoPush(){
+		super();
+	}
+	
+	public ZtiaoPush(String title,String content,String pushType,String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			String toUserId,String sourceId,String sourceName,String sourceLogoUrl){
+		this.title=title;
+		this.content=content;
+		this.pushType=pushType;
+		this.fromUserId=fromUserId;
+		this.fromUserNickName=fromUserNickName;
+		this.fromuserLogoUrl=fromUserLogoUrl;
+		this.toUserId=toUserId;
+		this.sourceId=sourceId;
+		this.sourceName=sourceName;
+		this.sourceLogoUrl=sourceLogoUrl;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+	public String getPushType() {
+		return pushType;
+	}
+
+	public void setPushType(String pushType) {
+		this.pushType = pushType;
+	}
+
+	public String getFromUserId() {
+		return fromUserId;
+	}
+
+	public void setFromUserId(String fromUserId) {
+		this.fromUserId = fromUserId;
+	}
+
+	public String getFromUserNickName() {
+		return fromUserNickName;
+	}
+
+	public void setFromUserNickName(String fromUserNickName) {
+		this.fromUserNickName = fromUserNickName;
+	}
+
+	public String getFromuserLogoUrl() {
+		return fromuserLogoUrl;
+	}
+
+	public void setFromuserLogoUrl(String fromuserLogoUrl) {
+		this.fromuserLogoUrl = fromuserLogoUrl;
+	}
+
+	public String getToUserId() {
+		return toUserId;
+	}
+
+	public void setToUserId(String toUserId) {
+		this.toUserId = toUserId;
+	}
+
+	public String getSourceId() {
+		return sourceId;
+	}
+
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+
+	public String getSourceName() {
+		return sourceName;
+	}
+
+	public void setSourceName(String sourceName) {
+		this.sourceName = sourceName;
+	}
+
+	public String getSourceLogoUrl() {
+		return sourceLogoUrl;
+	}
+
+	public void setSourceLogoUrl(String sourceLogoUrl) {
+		this.sourceLogoUrl = sourceLogoUrl;
+	}
+}

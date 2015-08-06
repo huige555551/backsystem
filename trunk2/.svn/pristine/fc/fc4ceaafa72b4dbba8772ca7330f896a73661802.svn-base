@@ -1,0 +1,10 @@
+package operation.repo.vo;
+import operation.vo.SearchGroupVo;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface SearchGroupVoReposity  extends MongoRepository<SearchGroupVo, String>{
+
+	SearchGroupVo findOneByGroupId(String id);
+
+}

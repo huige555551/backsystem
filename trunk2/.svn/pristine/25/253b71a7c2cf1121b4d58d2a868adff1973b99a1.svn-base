@@ -1,0 +1,153 @@
+package operation.service.category;
+
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.category.Category;
+import operation.repo.category.CategoryRepository;
+import operation.service.util.ObjCopyPropsService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+
+@Service
+@Component
+public class CategoryService {
+	@Autowired
+	public CategoryRepository categoryRepo;
+	@Autowired
+	private ObjCopyPropsService objCopyPropsService;
+
+	/**
+	 * 创建一级分类
+	 * @param categoryName
+	 * @param logoUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category createPrimary(String categoryName,String logoUrl)throws XueWenServiceException{
+		if(StringUtil.isBlank(categoryName) || StringUtil.isBlank(logoUrl)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return categoryRepo.save(new Category(categoryName, logoUrl));
+	}
+	
+	/**
+	 * 创建二级分类
+	 * @param categoryName
+	 * @param logoUrl
+	 * @param parentId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category createSecond(String categoryName,String logoUrl,String parentId)throws XueWenServiceException{
+		if(StringUtil.isBlank(categoryName) || StringUtil.isBlank(logoUrl) || StringUtil.isBlank(parentId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return categoryRepo.save(new Category(categoryName, logoUrl,parentId));
+	}
+	
+	/**
+	 * 修改分类信息，只能修改分类的中文描述，和默认图片
+	 * @param category
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category update(Category category)throws XueWenServiceException{
+		if(category == null || StringUtil.isBlank(category.getId())){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		Category old=categoryRepo.findOne(category.getId());
+		if(old  == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		objCopyPropsService.copyPropertiesInclude(category, old,new String[] { "categoryName", "logoUrl"});
+		return categoryRepo.save(old);
+	}
+	
+	/**
+	 * 根据Id查询分类
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category findOneCategoryById(String id)throws XueWenServiceException{
+		if(StringUtil.isBlank(id)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return categoryRepo.findOne(id);
+	}
+	
+	/**
+	 * 查询所有的一级分类
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Category> findAllPrimary()throws XueWenServiceException{
+		return categoryRepo.findByCategoryType(Config.CATEGORY_PRIMARY);
+	}
+	
+	/**
+	 * 查询某一个一级分类下所有的二级分类
+	 * @param parentId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Category> findSecondByPrimaryId(String parentId)throws XueWenServiceException{
+		return categoryRepo.findByCategoryTypeAndParentId(Config.CATEGORY_SENCOND, parentId);
+	}
+	
+	/**
+	 * 获取所有分类信息
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> findCategory()throws XueWenServiceException{
+		List<Category> primarys=findAllPrimary();
+		if(primarys !=null  && primarys.size()>0){
+			List<Object> objs=new ArrayList<Object>();
+			for(Category category:primarys){
+				objs.add(formatePrimary(category));
+			}
+			return objs;
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		
+	}
+	
+	/**
+	 * 格式化分类
+	 * @param category
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Object formatePrimary(Category category)throws XueWenServiceException{
+		if(category.getCategoryType().equals(Config.CATEGORY_PRIMARY)){
+			List<Category> childcategory=findSecondByPrimaryId(category.getId());
+			if(childcategory !=null ){
+				String[] exclude = {"parentId"};
+				Map<String,Object> addAndModifyMap=new HashMap<String, Object>();
+				addAndModifyMap.put("childCategory", childcategory);
+				return  YXTJSONHelper.getExObjectAttrJsonObject(category,addAndModifyMap,exclude);
+			}else{
+				String[] exclude = {"parentId"};
+				return  YXTJSONHelper.excludeAttrJsonObject(category,exclude);
+			}
+		}else{
+			return category;
+		}
+	}
+	
+	
+
+}

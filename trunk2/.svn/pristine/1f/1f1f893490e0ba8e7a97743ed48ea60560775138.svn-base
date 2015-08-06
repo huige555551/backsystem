@@ -1,0 +1,54 @@
+package operation.repo.topics;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.topics.SubPost;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+
+@Service
+@Component
+/**
+ * 副楼回复的template数据库操作方法
+ * @author hjn
+ *
+ */
+
+public class SubPostTemplate {
+
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	
+	public SubPostTemplate(){
+		
+	}
+	
+	/**
+	 * 根据主楼Id删除所有的副楼回复
+	 * @param PostId
+	 * @return
+	 */
+	public void deleteSubPostByPostId(String postId)throws XueWenServiceException{
+		mongoTemplate.remove(new Query(Criteria.where("parentId").is(postId)), SubPost.class);
+	}
+	
+	public void deleteSubPostBySubPostId(String subPostId)throws XueWenServiceException{
+		mongoTemplate.remove(new Query(Criteria.where("post_id").in(subPostId)), SubPost.class);
+	}
+	
+	/**
+	 * 根据主楼Id集合删除所有的副楼回复
+	 * @param postIds
+	 */
+	public void deleteSubPostByPostIds(List<Object> postIds){
+		mongoTemplate.remove(new Query(Criteria.where("parentId").in(postIds)), SubPost.class);
+	}
+	
+}

@@ -1,0 +1,118 @@
+package operation.service.drycargo;
+
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.drycargo.UserDrycargoBean;
+import operation.repo.drycargo.UserDrycargoRepository;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+
+@Service
+@Component
+public class UserDrycargoService {
+	private static final Logger logger = Logger.getLogger(UserDrycargoService.class);
+	@Autowired
+	public UserDrycargoRepository userDrycargoRepository;
+	@Autowired
+	public DrycargoBeanService drycargoBeanService;
+	@Autowired
+	public DrycargoService drycargoService;
+	
+	public UserDrycargoService(){
+		super();
+	}
+	
+	/**
+	 * 将课程加入用户收藏列表
+	 * @param courseId
+	 * @param userId
+	 * @throws XueWenServiceException
+	 */
+	public void addFav(String id,String userId,String fromGroupId)throws XueWenServiceException{
+		
+		UserDrycargoBean udb=userDrycargoRepository.findByUserAndDryCargoBean(userId, id);
+		Drycargo dc = drycargoService.findOneById(id);
+		if(udb == null){
+			udb=new UserDrycargoBean(userId,id);
+			
+			drycargoBeanService.countOperationFav(userId, dc.getDrycargoId().toString());
+		}else{
+			if(udb.getIsFav()==0){
+				drycargoBeanService.countOperationFav(userId, dc.getDrycargoId().toString());
+			}
+			else{
+				if(StringUtil.isBlank(fromGroupId)){
+				throw new XueWenServiceException(Config.STATUS_201,
+						Config.MSG_FAVDAY_201, null);
+				}
+			}
+			udb.setUtime(System.currentTimeMillis());
+		}
+		udb.setIsFav(1);
+		userDrycargoRepository.save(udb);
+		
+	}
+	
+	/**
+	 * 查询我的干货收藏
+	 * @param courseId
+	 * @param userId
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserDrycargoBean> findDryCollect(String userId,Pageable page)throws XueWenServiceException{
+		Page<UserDrycargoBean> udb = userDrycargoRepository.findByUserAndIsFav(userId, 1,page);
+		if(udb != null && udb.getTotalElements() > 0){
+			if(udb.getTotalElements() > 0){
+				List<UserDrycargoBean> userDrycargoBean = udb.getContent();
+				UserDrycargoBean one = null;
+				if(userDrycargoBean != null){
+					for(int i=0 ;i< userDrycargoBean.size(); i++){
+						one = userDrycargoBean.get(i);
+						String dryId = (String)one.getDryCargoBean();
+						Drycargo co = drycargoService.findOneById(dryId);
+						one.setDryCargoBean(co);
+					}
+				}
+			}
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,
+					null);
+		}
+		return udb;
+	}
+	
+	/**
+	 * 删除干货收藏
+	 * @param courseId
+	 * @param userId
+	 * @throws XueWenServiceException
+	 */
+	public void deleFav(String drycargoId,String userId)throws XueWenServiceException{
+		UserDrycargoBean udb = userDrycargoRepository.findByUserAndDryCargoBean(userId, drycargoId);
+		if(udb == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,
+					null);
+		}else{
+			if(udb.getIsFav()==1){
+				udb.setIsFav(0);
+				udb.setUtime(System.currentTimeMillis());
+			}
+			
+		}
+		userDrycargoRepository.save(udb);
+		
+	}
+	
+}

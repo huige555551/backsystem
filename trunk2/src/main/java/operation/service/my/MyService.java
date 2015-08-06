@@ -1,0 +1,272 @@
+package operation.service.my;
+
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import love.cq.util.StringUtil;
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.NewCourse;
+import operation.pojo.course.NewGroupCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.dynamic.GroupDynamic;
+import operation.pojo.fav.Fav;
+import operation.pojo.topics.Topic;
+import operation.repo.group.GroupTemplate;
+import operation.service.course.NewCourseService;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.dynamic.GroupDynamicService;
+import operation.service.fav.FavService;
+import operation.service.topics.TopicService;
+import operation.service.user.UserService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.YXTJSONHelper;
+
+@Service
+@Component
+public class MyService {
+	private static final Logger logger = Logger.getLogger(MyService.class);
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	private DrycargoService drycargoService;
+	@Autowired
+	private NewCourseService newCourseService;
+	
+	@Autowired
+	private FavService favService;
+	
+	@Autowired
+	private GroupDynamicService groupDynamicService;
+	
+	@Autowired
+	private UserService userService;
+	
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	
+	@Autowired
+	private TopicService topservice;
+	
+	@Autowired
+	private  GroupTemplate groupTemplate;
+	/**
+	 * 获得我创建的话题
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Topic> myCreatedTopic(String userId, Pageable pageable) throws XueWenServiceException {
+		Page<Topic> topics = topicService.myCreatedTopic(userId,pageable);
+		return topics;
+	}
+	/**
+	 * 获得我创建的干货
+	 * @param userId
+	 * @param dryFlag
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Drycargo> myCreatedDrycargo(String userId, int dryFlag,Pageable pageable) throws XueWenServiceException {
+		Page<Drycargo> drycargos = drycargoService.getUserCreateDrycargoByDryFlag(userId,dryFlag,pageable);
+		return drycargos;
+	}
+	/**
+	 * 获得我创建的课程
+	 * @param userId
+	 * @param dryFlag
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewCourse> myCreatedCourse(String userId, Pageable pageable) throws XueWenServiceException {
+		Page<NewCourse> newCourse = newCourseService.getMyCourses(userId,pageable);
+		return newCourse;
+	}
+	
+	/**
+	 * 格式化newCourse对象，只包含返回前端需要属性
+	 * @author hjn
+	 * @param lesson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject formateCourse(NewCourse newCourse)throws XueWenServiceException{
+		//参数校验
+		if(newCourse == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//去掉无需返回前端的属性,只包含以下属性
+		String[] include = {"id","title","intro","tags","logoUrl","price","createUser","pricemodel","favProp","buyCount"};
+		return  YXTJSONHelper.includeAttrJsonObject(newCourse, include);
+		
+	} 
+	/**
+	 * 解析多条课程
+	 * @param newCourses
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> formateCourseList(List<NewCourse> newCourses)throws XueWenServiceException{
+		if(newCourses != null && newCourses.size()>0){
+			List<Object> objs=new ArrayList<Object>();
+			for(NewCourse newCourse:newCourses){
+				objs.add(formateCourse(newCourse));
+			}
+			return objs;
+		}else{
+			return null;
+		}
+	}
+	/**
+	 * 查询我的创建
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 */
+	public Page<GroupDynamic> findMyCreated(String userId, Pageable pageable) throws XueWenServiceException{
+		return groupDynamicService.myCreate(userId,"45",pageable);
+	}
+	
+	/**
+	 * 查询我的创建
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 */
+	public Page<GroupDynamic> findMyCreated137(String userId, Pageable pageable) throws XueWenServiceException{
+		return groupDynamicService.myCreate(userId,"50",pageable);
+	}
+	
+	
+	public Page<GroupDynamic> findMyCreatedCourse(String userId, String type,Pageable pageable) throws XueWenServiceException{
+		return groupDynamicService.myCreateCourse(userId,type,pageable);
+	}
+	public Page<GroupDynamic> findMyCreatedCourse137(String userId, String type,String liveType,Pageable pageable) throws XueWenServiceException{
+		return groupDynamicService.myCreateCourse137(userId,type,liveType,pageable);
+	}
+	
+	public Page<GroupDynamic> findMyCreatedDrycargo(String userId, String type,String type1,Pageable pageable) throws XueWenServiceException{
+		return groupDynamicService.myCreateDrycargo(userId,type,type1,pageable);
+	}
+	
+	/**
+	 * @throws XueWenServiceException
+	 * 
+	 * @Title: getMyFav
+	 * @Description: 获取用户收藏
+	 * @param userId
+	 * @param pageable
+	 * @return Object
+	 * @throws
+	 */
+	public Map<String, Object> getMyFav(String userId, Pageable pageable) throws XueWenServiceException {
+		Map<String, Object> res = new HashMap<String, Object>();
+		Page<Fav> favs = favService.findFavByUserId(userId, pageable);
+		List<JSONObject> jObjects = new ArrayList<JSONObject>();
+		for (Fav fav : favs.getContent()) {
+			Map<String, Object> map = new HashMap<String, Object>();
+			if (Config.TYPE_COURSE_GROUP.equals(fav.getFavType())) {
+				NewCourse newCourse = newCourseService.findOne(fav.getSourceId());
+				if (newCourse != null) {
+					map.put("itemId", newCourse.getId());
+					map.put("title", newCourse.getTitle());
+					map.put("intro", newCourse.getIntro());
+					JSONObject obj = newCourseService.getCourseJson(newCourse, "");
+					map.put("groupId", (String) obj.get("groupId"));
+					map.put("groupName", (String) obj.get("groupName"));
+					map.put("praiseCount", newCourse.getPraiseCount());
+					map.put("coverLogoUrl", newCourse.getLogoUrl());
+					map.put("searchType", Config.TYPE_COURSE_GROUP);
+					map.put("groupLogoUrl", (String)obj.get("groupLogoUrl"));//增加群图标
+					map.put("ctime", fav.getCtime());//增加收藏时间
+					map.put("groupCourseId", obj.get("groupLogoUrl"));//群组课程id
+					map.put("favCount", newCourse.getFavCount());//收藏数量
+					
+				}
+				else{
+					NewGroupCourse newGroupCourse = newGroupCourseService.findOneByid(fav.getSourceId());
+					if(newGroupCourse!=null){
+						NewCourse course = newCourseService.findOne(newGroupCourse.getCourse().toString());
+						map.put("itemId", newGroupCourse.getCourse().toString());
+						map.put("title", course.getTitle());
+						map.put("intro", course.getIntro());
+						map.put("groupId", newGroupCourse.getGroup());
+						map.put("groupName",newGroupCourse.getGroupName());
+						map.put("praiseCount", course.getPraiseCount());
+						map.put("coverLogoUrl", course.getLogoUrl());
+						map.put("searchType", Config.TYPE_COURSE_GROUP);
+						map.put("groupLogoUrl", newGroupCourse.getLogoUrl());//增加群图标
+						map.put("ctime", fav.getCtime());//增加收藏时间
+						map.put("groupCourseId", newGroupCourse.getId());//群组课程id
+						map.put("favCount", newGroupCourse.getFavCount());//收藏数量
+						
+					}
+				}
+				
+//			} else if (Config.TYPE_TOPIC_GROUP.equals(fav.getFavType())) {
+//				Topic topic = topservice.findOneById(fav.getSourceId());
+//				if (topic != null) {
+//					map.put("itemId", topic.getTopicId());
+//					map.put("title", topic.getTitle());
+//					map.put("intro", topic.getContent());
+//					map.put("groupId", topic.getSourceId());
+//					map.put("groupName", topic.getSourceName());
+//					map.put("praiseCount", topic.getLikesCount());
+//					map.put("logoURL",topic.getAuthorLogoUrl());
+//					map.put("uId",topic.getAuthorId());
+//					map.put("searchType", Config.TYPE_TOPIC_GROUP);
+//					map.put("images", topic.getImages());
+//					
+//				}
+			} else if (Config.TYPE_DRYCARGO_GROUP.equals(fav.getFavType()) || Config.TYPE_XUANYE_GROUP.equals(fav.getFavType())) {
+				Drycargo drycargo = drycargoService.findOneById(fav.getSourceId());
+				if (drycargo != null) {
+					map.put("itemId", drycargo.getId());
+					map.put("title", drycargo.getMessage());
+					map.put("intro", drycargo.getDescription());
+					map.put("groupId",drycargo.getGroup());
+					map.put("groupName", drycargo.getGroupName());
+					map.put("praiseCount", drycargo.getLikesCount());
+					map.put("logoURL",drycargo.getAuthorLogoUrl());
+					map.put("uId",drycargo.getAuthorId());
+					map.put("coverLogoUrl", drycargo.getFileUrl());
+					map.put("searchType",Config.TYPE_DRYCARGO_GROUP);
+					if(!StringUtil.isBlank(drycargo.getGroupLogoUrl())){
+						map.put("groupLogoUrl", drycargo.getGroupLogoUrl());
+					}else{
+						map.put("groupLogoUrl", "");
+					}
+					map.put("ctime", fav.getCtime());//增加收藏时间
+					map.put("favCount", drycargo.getFavCount());//增加收藏数量
+					map.put("url", drycargo.getUrl());//增加干货外链地址
+					map.put("picHeight", drycargo.getPicHeight());//增加图片高度
+					map.put("picWidth", drycargo.getPicWidth());//增加图片宽度
+					
+				}
+			} 
+			jObjects.add(YXTJSONHelper.addAndModifyAttrJsonObject(fav, map));
+		}
+		res.put("page", favs);
+		res.put("items", jObjects);
+		return res;
+	}
+	
+	
+	
+	
+}

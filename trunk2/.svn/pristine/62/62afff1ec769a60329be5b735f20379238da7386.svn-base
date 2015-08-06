@@ -1,0 +1,9 @@
+package operation.repo.box;
+
+import operation.pojo.box.Box;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface BoxRepository extends MongoRepository<Box, String>{
+	int countByPost(String boxPostId);
+}

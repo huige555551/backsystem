@@ -1,0 +1,14 @@
+package operation.repo.course;
+
+
+import java.util.List;
+
+import operation.pojo.course.Lesson;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface LessonRepository extends MongoRepository<Lesson, String>  {
+
+	List<Lesson> findByIdIn(List<String> ids);
+        
+}

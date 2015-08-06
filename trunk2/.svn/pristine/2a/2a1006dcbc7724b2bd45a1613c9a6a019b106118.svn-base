@@ -1,0 +1,55 @@
+package operation.service.rabbitmq;
+
+import operation.exception.XueWenServiceException;
+
+import org.springframework.amqp.core.Message;
+//import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+
+@Service
+@Component
+@Configuration
+@EnableAutoConfiguration
+public class RabbitmqService {
+	@Autowired
+	private RabbitTemplate rabbitTemplate;
+	
+	/**
+	 * 向rabbitmq中发送消息
+	 * @param queueName 队列名称
+	 * @param message 字符串消息
+	 * @throws XueWenServiceException
+	 */
+	public void sendMessage(String queueName,String message)throws XueWenServiceException{
+		rabbitTemplate.convertAndSend(queueName, message);
+//			Channel channel = connection.createChannel();
+//			channel.basicPublish("", "hello", null, message.getBytes());  
+//			System.out.println(" [x] Sent '" + message + "'");  
+//			channel.close();  
+//			connection.close();
+	}
+	
+	/**
+	 * 向rabbitmq中发送可序列化对象
+	 * @param queueName
+	 * @param obj
+	 * @throws XueWenServiceException
+	 */
+	public void sendObject(String queueName,Object obj)throws XueWenServiceException{
+		rabbitTemplate.convertAndSend(queueName, obj);
+	}
+	
+	
+//	@RabbitListener(queues = "hello")
+	public void reciveMessage(String msg)throws XueWenServiceException{
+//		rabbitTemplate.receive("")
+//		Message msg=rabbitTemplate.receive("hello");
+		System.out.println(msg);
+	}
+}

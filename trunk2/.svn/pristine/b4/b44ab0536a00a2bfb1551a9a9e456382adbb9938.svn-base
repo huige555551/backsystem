@@ -1,0 +1,285 @@
+package tools;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+public class JSON2ObjUtil {
+
+	/**
+     * 从一个JSON 对象字符格式中得到一个java对象，形如：   
+     * {"id" : idValue, "name" : nameValue, "aBean" : {"aBeanId" : aBeanIdValue, ...}}   
+     * @param object   
+     * @param clazz   
+     * @return   
+     */   
+    public static Object getDTO(String jsonString, Class clazz){    
+        JSONObject jsonObject = null;    
+        try{    
+//            setDataFormat2JAVA();     
+            jsonObject = JSONObject.fromObject(jsonString);    
+        }catch(Exception e){    
+            e.printStackTrace();    
+        }    
+        return JSONObject.toBean(jsonObject, clazz);    
+    }    
+        
+    /**   
+     * 从一个JSON 对象字符格式中得到一个java对象，其中beansList是一类的集合，形如：   
+     * {"id" : idValue, "name" : nameValue, "aBean" : {"aBeanId" : aBeanIdValue, ...},   
+     * beansList:[{}, {}, ...]}   
+     * @param jsonString   
+     * @param clazz   
+     * @param map 集合属性的类型 (key : 集合属性名, value : 集合属性类型class) eg: ("beansList" : Bean.class)   
+     * @return   
+     */   
+    public static Object getDTO(String jsonString, Class clazz, Map map){    
+        JSONObject jsonObject = null;    
+        try{    
+//            setDataFormat2JAVA();     
+            jsonObject = JSONObject.fromObject(jsonString);    
+        }catch(Exception e){    
+            e.printStackTrace();    
+        }    
+        return JSONObject.toBean(jsonObject, clazz, map);    
+    }    
+        
+    /**   
+     * 从一个JSON数组得到一个java对象数组，形如：   
+     * [{"id" : idValue, "name" : nameValue}, {"id" : idValue, "name" : nameValue}, ...]   
+     * @param object   
+     * @param clazz   
+     * @return   
+     */   
+    public static Object[] getDTOArray(String jsonString, Class clazz){    
+//        setDataFormat2JAVA();    
+        JSONArray array = JSONArray.fromObject(jsonString);    
+        Object[] obj = new Object[array.size()];    
+        for(int i = 0; i < array.size(); i++){    
+            JSONObject jsonObject = array.getJSONObject(i);    
+            obj[i] = JSONObject.toBean(jsonObject, clazz);    
+        }    
+        return obj;    
+    }    
+        
+    /**   
+     * 从一个JSON数组得到一个java对象数组，形如：   
+     * [{"id" : idValue, "name" : nameValue}, {"id" : idValue, "name" : nameValue}, ...]   
+     * @param object   
+     * @param clazz   
+     * @param map   
+     * @return   
+     */   
+    public static Object[] getDTOArray(String jsonString, Class clazz, Map map){    
+//        setDataFormat2JAVA();    
+        JSONArray array = JSONArray.fromObject(jsonString);    
+        Object[] obj = new Object[array.size()];    
+        for(int i = 0; i < array.size(); i++){    
+            JSONObject jsonObject = array.getJSONObject(i);    
+            obj[i] = JSONObject.toBean(jsonObject, clazz, map);    
+        }    
+        return obj;    
+    }    
+        
+    /**   
+     * 从一个JSON数组得到一个java对象集合   
+     * @param object   
+     * @param clazz   
+     * @return   
+     */   
+    public static List getDTOList(String jsonString, Class clazz){    
+//        setDataFormat2JAVA();    
+        JSONArray array = JSONArray.fromObject(jsonString);    
+        List list = new ArrayList();    
+        for(Iterator iter = array.iterator(); iter.hasNext();){    
+            JSONObject jsonObject = (JSONObject)iter.next();    
+            list.add(JSONObject.toBean(jsonObject, clazz));    
+        }    
+        return list;    
+    }    
+        
+    /**   
+     * 从一个JSON数组得到一个java对象集合，其中对象中包含有集合属性   
+     * @param object   
+     * @param clazz   
+     * @param map 集合属性的类型   
+     * @return   
+     */   
+    public static List getDTOList(String jsonString, Class clazz, Map map){    
+//        setDataFormat2JAVA();    
+        JSONArray array = JSONArray.fromObject(jsonString);    
+        List list = new ArrayList();    
+        for(Iterator iter = array.iterator(); iter.hasNext();){    
+            JSONObject jsonObject = (JSONObject)iter.next();    
+            list.add(JSONObject.toBean(jsonObject, clazz, map));    
+        }    
+        return list;    
+    }    
+        
+    /**   
+     * 从json HASH表达式中获取一个map，该map支持嵌套功能   
+     * 形如：{"id" : "johncon", "name" : "小强"}   
+     * 注意commons-collections版本，必须包含org.apache.commons.collections.map.MultiKeyMap   
+     * @param object   
+     * @return   
+     */   
+    public static Map getMapFromJson(String jsonString) {    
+//        setDataFormat2JAVA();    
+        JSONObject jsonObject = JSONObject.fromObject(jsonString);    
+        Map map = new HashMap();    
+        for(Iterator iter = jsonObject.keys(); iter.hasNext();){    
+            String key = (String)iter.next();    
+            map.put(key, jsonObject.get(key));    
+        }    
+        return map;    
+    }    
+        
+    /**   
+     * 从json数组中得到相应java数组   
+     * json形如：["123", "456"]   
+     * @param jsonString   
+     * @return   
+     */   
+    public static Object[] getObjectArrayFromJson(String jsonString) {    
+        JSONArray jsonArray = JSONArray.fromObject(jsonString);    
+        return jsonArray.toArray();    
+    }    
+   
+    public static String getArrayFromString(String jsonString){
+    	JSONArray array = JSONArray.fromObject(jsonString); 
+    	String strR = "";
+    	if(array!=null && array.size() > 0 ){
+    	for(int i = 0; i < array.size();i++){
+    		if(i<array.size()-1){
+    			strR = strR +array.get(i)+",";
+    		}else{
+    			strR = strR +array.get(i);
+    		}
+    	}
+    	}
+    	return strR;
+    }
+    /**
+     * 将对象转换为json格式的字符串，如果对象为空，则返回空
+     * @param obj
+     * @return
+     */
+    public static String getObjectToJsonString(Object obj){
+    	if(obj == null){
+    		return null;
+    	}
+    	JSONObject jsonObj=JSONObject.fromObject(obj);
+    	return jsonObj.toString();
+    }
+    /**   
+     * 把数据对象转换成json字符串   
+     * DTO对象形如：{"id" : idValue, "name" : nameValue, ...}   
+     * 数组对象形如：[{}, {}, {}, ...]   
+     * map对象形如：{key1 : {"id" : idValue, "name" : nameValue, ...}, key2 : {}, ...}   
+     * @param object   
+     * @return   
+     */   
+//    public static String getJSONString(Object object) throws Exception{    
+//        String jsonString = null;    
+//        //日期值处理器    
+//        JsonConfig jsonConfig = new JsonConfig();    
+//        jsonConfig.registerJsonValueProcessor(java.util.Date.class, new JsonDateValueProcessor());    
+//        if(object != null){    
+//            if(object instanceof Collection || object instanceof Object[]){    
+//                jsonString = JSONArray.fromObject(object, jsonConfig).toString();    
+//            }else{    
+//                jsonString = JSONObject.fromObject(object, jsonConfig).toString();    
+//            }    
+//        }    
+//        return jsonString == null ? "{}" : jsonString;    
+//    }
+
+    public static void main(String[] args) {
+    	
+//    	String str = "[\"dd\"]";
+//    	JSONArray array = JSONArray.fromObject(str); 
+//    	String aa = "";
+//    	for(int i = 0; i < array.size();i++){
+//    		if(i<array.size()-1){
+//    		aa = aa +array.get(i)+",";
+//    		}else{
+//    			aa = aa +array.get(i);
+//    		}
+//    	}
+//    	System.out.println(aa);
+//		Contact ct1=new Contact();
+//		ct1.setFirstName("Li");
+//		ct1.setMidName("yi");
+//		ct1.setLastName("yang");
+//		List<String> nums1=new ArrayList<String>();
+//		nums1.add("13800000000");
+//		ct1.setPhoneNumbers(nums1);
+//		
+//		Contact ct2=new Contact();
+//		ct2.setFirstName("H");
+//		ct2.setMidName("");
+//		ct2.setLastName("N");
+//		List<String> nums2=new ArrayList<String>();
+//		nums2.add("13800000001");
+//		nums2.add("13800000002");
+//		ct2.setPhoneNumbers(nums2);
+//		
+//		Contact ct3=new Contact();
+//		ct3.setFirstName("H");
+//		ct3.setMidName("");
+//		ct3.setLastName("");
+//		List<String> nums3=new ArrayList<String>();
+//		nums3.add("13800000003");
+//		nums3.add("13800000004");
+//		nums3.add("13800000005");
+//		ct3.setPhoneNumbers(nums3);
+//		
+//		List<Object> cts=new ArrayList<Object>();
+//		cts.add(ct1);
+//		cts.add(ct2);
+//		cts.add(ct3);
+//		JSONArray ja=JSONArray.fromObject(cts);
+//		System.out.println(ja.toString());
+    	
+//    	String json="[{\"firstName\":\"Li\",\"lastName\":\"yang\",\"midName\":\"yi\",\"phoneNumbers\":[\"13800000000\"]},{\"firstName\":\"H\",\"lastName\":\"N\",\"midName\":\"\",\"phoneNumbers\":[\"13800000001\",\"13800000002\"]},{\"firstName\":\"H\",\"lastName\":\"\",\"midName\":\"\",\"phoneNumbers\":[\"13800000003\",\"13800000004\",\"13800000005\"]}]";
+//    	String json="[]";
+//    	List array= getDTOList(json,Contact.class);
+//    	System.out.println(array.size());
+//    	int i=0;
+//    	for(Object c:array){
+//    		i++;
+//    		System.out.println("=============================第"+i+"组数据开始=============================");
+//    		Contact ct=(Contact)c;
+//    		System.out.println("***************FIRST****************");
+//    		System.out.println(ct.getFirstName());
+//    		System.out.println("***************MID****************");
+//    		System.out.println(ct.getMidName());
+//    		System.out.println("***************LAST****************");
+//    		System.out.println(ct.getLastName());
+//    		System.out.println("***************NUMS****************");
+//    		for(String str:ct.getPhoneNumbers()){
+//    			System.out.println(str);
+//    			System.out.println("*******************************");
+//    		}
+//    		System.out.println("=============================第"+i+"组数据结束=============================");
+//    	}
+    	
+    	List<String> strs1=new ArrayList<String>();
+    	strs1.add("1");
+    	strs1.add("3");
+    	strs1.add("4");
+    	List<String> strs2=new ArrayList<String>();
+    	strs2.add("2");
+    	strs2.add("4");
+    	strs2.add("3");
+    	boolean b=strs1.retainAll(strs2);
+    	System.out.println(b+"==============="+strs1.size());
+		
+	}
+	
+}

@@ -1,0 +1,196 @@
+/**   
+* @Title: ColudConfigService.java
+* @Package operation.service.common
+* @Description: 
+* @author yaoj
+* @date 2014年12月17日 下午4:37:52
+* @version V1.0
+*/ 
+package operation.service.common;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.json.JSONArray;
+import operation.exception.XueWenServiceException;
+import operation.pojo.common.ColudConfig;
+import operation.pojo.common.ConfigChange;
+import operation.repo.common.ColudConfigRepository;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+/** 
+ * @ClassName: ColudConfigService
+ * @Description: 云存储服务器的配置信息Service
+ * @author yaoj
+ * @date 2014年12月17日 下午4:37:52
+ * 
+ */
+@Service
+public class ColudConfigService {
+	
+	@Autowired
+	private ColudConfigRepository coludConfigRepository;
+
+	@Autowired
+	private ConfigChangeService configChangeService;
+	
+	/**
+	 * 
+	 * @Title: getBaseUrl
+	 * @Description: 获取baseUrl
+	 * @param key
+	 * @return String
+	 * @throws XueWenServiceException
+	 */
+	public ColudConfig getColudConfig(String ckey) throws XueWenServiceException {
+		if (StringUtils.isBlank(ckey)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return coludConfigRepository.findOneByCkey(ckey);
+	}
+	
+	/**
+	 * @throws XueWenServiceException 
+	 * 
+	 * @Title: getBaseUrl
+	 * @Description: 分页
+	 * @param key
+	 * @param pageable 
+	 * @return String
+	 * @throws
+	 */
+	public Page<ColudConfig> findByCkey(String ckey, Pageable pageable) throws XueWenServiceException{
+		if (StringUtils.isBlank(ckey)) {
+			return coludConfigRepository.findAll(pageable);
+		}
+		return coludConfigRepository.findByCkey(ckey, pageable);
+	}
+	
+	/**
+	 * 
+	 * @Title: add
+	 * @Description: 添加
+	 * @param cloudConfig
+	 * @param baseUrlList
+	 * @return
+	 * @throws XueWenServiceException ColudConfig
+	 * @throws
+	 */
+	public ColudConfig add(ColudConfig cloudConfig,String baseUrlList) throws XueWenServiceException {
+		if (StringUtils.isBlank(cloudConfig.getCkey()) || StringUtils.isBlank(baseUrlList)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if (coludConfigRepository.findOneByCkey(cloudConfig.getCkey()) != null) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		
+		//解析传过来的baseUrlList Json
+		List<String> baseUrls = new ArrayList<String>();
+		JSONArray array = JSONArray.fromObject(baseUrlList);
+		for (Object object : array) {
+			baseUrls.add(object.toString());
+		}
+		
+		cloudConfig.setBaseUrls(baseUrls);
+		long time = System.currentTimeMillis();
+		cloudConfig.setCtime(time);
+		cloudConfig.setUtime(time);
+		return coludConfigRepository.save(cloudConfig);
+	}
+	
+	/**
+	 * 
+	 * @Title: modify
+	 * @Description: 修改 不包含baseUrl,ckey
+	 * @param cloudConfig
+	 * @return
+	 * @throws XueWenServiceException ColudConfig
+	 * @throws
+	 */
+	public void modify(ColudConfig cloudConfig,String baseUrlList) throws XueWenServiceException {
+		if (StringUtils.isBlank(cloudConfig.getId()) || StringUtils.isBlank(baseUrlList)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		ColudConfig config = coludConfigRepository.findOneById(cloudConfig.getId());
+		if (config == null) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		//解析传过来的baseUrlList Json
+		List<String> newBaseUrls = new ArrayList<String>();
+		JSONArray array = JSONArray.fromObject(baseUrlList);
+		for (Object object : array) {
+			newBaseUrls.add(object.toString());
+		}
+		List<String> oldBaseurls = config.getBaseUrls();
+		cloudConfig.setCkey(config.getCkey());
+		cloudConfig.setBaseUrls(newBaseUrls);
+		cloudConfig.setCtime(config.getCtime());
+		cloudConfig.setUtime(System.currentTimeMillis());
+		//对比新老urls 存表  oldBaseurls..newBaseUrls  
+		List<ConfigChange> configChange = new ArrayList<ConfigChange>();
+		for (String url : oldBaseurls) {
+			if (!newBaseUrls.contains(url)) {
+				//保存   ：   url   --- config的id
+				ConfigChange change = new ConfigChange();
+				change.setUrl(url);
+				change.setConfigId(cloudConfig.getId());
+				configChange.add(change);
+			}
+		}
+		if (configChange.size() != 0) {
+			configChangeService.add(configChange);
+		}
+		coludConfigRepository.save(cloudConfig);
+	}
+	
+	/**
+	 * @throws XueWenServiceException 
+	 * 
+	 * @Title: remove
+	 * @Description: 删除
+	 * @param key
+	 * @return String
+	 * @throws
+	 */
+	public void remove(String id) throws XueWenServiceException {
+		if (StringUtils.isBlank(id)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		coludConfigRepository.delete(id);
+	}
+
+	/**
+	 * @throws XueWenServiceException 
+	 * 
+	 * @Title: findOneById
+	 * @Description: 查找
+	 * @param id
+	 * @return ColudConfig
+	 * @throws
+	 */
+	public ColudConfig findOneById(String id) throws XueWenServiceException {
+		if (StringUtils.isBlank(id)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return coludConfigRepository.findOneById(id);
+	}
+
+	/**
+	 * 
+	 * @Title: findAll
+	 * @Description: 所有
+	 * @return ColudConfig
+	 * @throws
+	 */
+	public List<ColudConfig> findAll() {
+		return coludConfigRepository.findAll();
+	}
+	
+}

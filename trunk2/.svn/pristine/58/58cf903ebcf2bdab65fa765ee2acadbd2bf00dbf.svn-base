@@ -1,0 +1,71 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.pojo.course.Knowledge;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+
+public interface KnowledgeRepository extends MongoRepository<Knowledge, String> {
+	Knowledge findOneByCid(String cid);
+	
+	Knowledge findOneByIdAndStatus(String id,int status);
+	
+	List<Knowledge>findByIdInAndStatusAndCcode(List<String> ids,int status,int ccode);
+	Page<Knowledge>findByIdInAndStatusAndCcode(List<String> ids,int status,int ccode,Pageable pageable);
+
+	List<Knowledge> findByCcode(int ccode,Sort sort);
+	
+	List<Knowledge> findByKngTypeAndCcode(int kngType,int ccode);
+	
+	Page<Knowledge>findByCuser(String userId,Pageable pageable);
+	
+	Page<Knowledge>findByCuserAndNameLikeAndCtimeBetween(String userId,String name,long ctime,long ltime,Pageable pageable);
+	
+	Page<Knowledge>findByCuserAndNameLike(String userId,String name,Pageable pageable);
+
+	Page<Knowledge>findByCuserAndCtimeBetween(String userId,long ctime,long ltime,Pageable pageable);
+
+//	List<Knowledge> findByStatusAndCcode(int knowledgeStatPass,
+//			int knowledgeCcodeOk);
+	@Query("{'arc':{$gt:?0},'status':?1,'ccode':?2,'$or':[{'name':{'$regex':?3,$options:'i'}},{'desc':{'$regex':?3,$options:'i'}},{'tagNames':{'$regex':?3,$options:'i'}}]}")
+	Page<Knowledge> findByArcGreaterThanAndStatusAndCcodeAndNameRegexOrDescRegexOrTagNamesRegex(
+			int i, int knowledgeStatPass, int knowledgeCcodeOk,
+			String keyWords, String keyWords2, String keyWords3,Pageable pageable);
+
+	Page<Knowledge> findByArcGreaterThanAndStatusAndCcode(int i,
+			int knowledgeStatPass, int knowledgeCcodeOk,Pageable pageable);
+
+	Page<Knowledge> findByStatusAndCcodeAndNameLike(int status, int ccode,String name,Pageable pageable);
+	
+	//带关键词搜索所有公开知识
+	@Query("{'status':?0,'ccode':?1,'$or':[{'name':{'$regex':?2}},{'desc':{'$regex':?2}},{'tagNames':{'$regex':?2}}],'isPublic':?3}")
+	Page<Knowledge> searchAllPublicKngs(int status,int ccode,String keyword,boolean ispublic,Pageable pageable);
+    //分页获取所有公开知识
+	@Query("{'status':?0,'ccode':?1,'isPublic':?2}")
+	Page<Knowledge> findAllPublicKngs(int status,int ccode,boolean ispublic,Pageable pageable);
+	
+	//带关键词搜索用户公开知识
+	@Query("{'status':?0,'ccode':?1,'$or':[{'name':{'$regex':?2}},{'desc':{'$regex':?2}},{'tagNames':{'$regex':?2}}],'cuser':?3}")
+	Page<Knowledge> searchUserKngs(int status,int ccode,String keyword,String cuser,Pageable pageable);
+	
+	//分页获取户公开知识
+	@Query("{'status':?0,'ccode':?1,'cuser':?2}")
+	Page<Knowledge> findAllUserKngs(int status,int ccode,String cuser,Pageable pageable);
+
+	Page<Knowledge> findByIdIn(List<String> kids, Pageable pageable);
+
+	Page<Knowledge> findByCuserAndCcodeAndStatus(String userId,
+			int knowledgeCcodeOk, int knowledgeStatPass,Pageable pageable);
+
+	Page<Knowledge> findByIdInAndStatusAndCcodeAndKngType(List<String> kids,
+			int knowledgeStatPass, int knowledgeCcodeOk, Pageable pageable,
+			int i);
+	
+	
+		
+}

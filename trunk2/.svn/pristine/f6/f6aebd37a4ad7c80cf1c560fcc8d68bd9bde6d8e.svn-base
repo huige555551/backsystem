@@ -1,0 +1,580 @@
+package operation.service.topics;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.file.FileStoreInfo;
+import operation.pojo.topics.Post;
+import operation.pojo.topics.PostResponse;
+import operation.pojo.topics.SubPost;
+import operation.pojo.user.User;
+import operation.repo.topics.PostRepository;
+import operation.repo.topics.PostTemplate;
+import operation.repo.topics.SubPostRepository;
+import operation.repo.topics.SubPostTemplate;
+import operation.service.drycargo.DrycargoService;
+import operation.service.file.MyFileService;
+import operation.service.praise.PraiseService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import tools.Config;
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+
+@Service
+@Component
+public class PostService {
+	@Autowired
+	public PostRepository postRepository;
+	@Autowired
+	public MyFileService myFileService;
+	@Autowired
+	public SubPostRepository subPostRepository;
+	@Autowired
+	public PraiseService praiseService;
+
+	@Autowired
+	public TopicService topicService;
+
+	@Autowired
+	public DrycargoService drycargoService;
+	@Autowired
+	public PostTemplate postTemplate;
+	@Autowired
+	public SubPostTemplate subPostTemplate;
+
+	public PostService() {
+
+	}
+
+	/**
+	 * 分页获取主题回复
+	 * 
+	 * @param topicId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Post> getTopicPost(String topicId, Pageable pageable) throws XueWenServiceException {
+		if (StringUtil.isBlank(topicId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (topicService.findOneById(topicId) == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		return postRepository.findByTopicId(topicId, pageable);
+	}
+
+	/**
+	 * 获取主题回复 话题
+	 * 
+	 * @param topicId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Post> getAllTopicPost(String topicId) throws XueWenServiceException {
+		if (StringUtil.isBlank(topicId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (topicService.findOneById(topicId) == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		return postRepository.findByTopicId(topicId);
+	}
+
+	/**
+	 * 获取主题回复 干货
+	 * 
+	 * @param topicId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Post> getAllDryPost(String topicId) throws XueWenServiceException {
+		if (StringUtil.isBlank(topicId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (drycargoService.findOneById(topicId) == null) {
+
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+
+		}
+		return postRepository.findByTopicId(topicId);
+	}
+
+	/**
+	 * 获取副楼回复
+	 * 
+	 * @param postId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<SubPost> getAllSubPost(String postId) throws XueWenServiceException {
+		if (StringUtil.isBlank(postId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		List<SubPost> subPost = subPostRepository.findByParentId(postId);
+		return subPost;
+	}
+
+	/**
+	 * 分页获取副楼回复
+	 * 
+	 * @param postId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<SubPost> getSubPost(String postId, Pageable pageable) throws XueWenServiceException {
+		if (StringUtil.isBlank(postId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		Page<SubPost> subPost = subPostRepository.findByParentId(postId, pageable);
+		return subPost;
+	}
+
+	/**
+	 * 获取主楼中存储的副楼回复
+	 * 
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<SubPost> getSubPostInPost(String postId) throws XueWenServiceException {
+		return findOneById(postId).getSubPosts();
+	}
+
+	/**
+	 * 主楼回复
+	 * 
+	 * @param user
+	 * @param post
+	 * @param fileUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post replyTopic(User user, Post post) throws XueWenServiceException {
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (topicService.findOneById(post.getTopicId()) == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		post.setAuthorId(user.getId());
+		post.setAuthorName(user.getNickName());
+		post.setAuthorLogoUrl(user.getLogoURL());
+		long time = System.currentTimeMillis();
+		post.setCtime(time);
+		post.setUtime(time);
+		if (StringUtil.isBlank(post.getFileUrl())) {
+			post.setType("0");
+		} else {
+			// 如URL不为空，则为图片或者是语音
+			if (myFileService.isImg(post.getFileUrl())) {
+				post.setType("2");
+			} else {
+				post.setType("1");
+			}
+		}
+		post.setSubPostsSize(0);
+		post.setDisplayOrder(0);
+		post.setLikesCount(0);
+		double[] position = new double[] { post.getLat(), post.getLng() };
+		post.setPosition(position);
+		// 计算主楼回复次数,加1
+		topicService.increasingPostCount(post.getTopicId(), 1);
+		return postRepository.save(post);
+	}
+
+	/**
+	 * 副楼回复
+	 * 
+	 * @param user
+	 * @param post
+	 * @param fileUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public SubPost replyPost(User user, SubPost subPost) throws XueWenServiceException {
+		if (subPost == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		Post post = postRepository.findOneByPostId(subPost.getParentId());
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		subPost.setAuthorId(user.getId());
+		subPost.setAuthorName(user.getNickName());
+		subPost.setAuthorLogoUrl(user.getLogoURL());
+		long time = System.currentTimeMillis();
+		subPost.setCtime(time);
+		subPost.setUtime(time);
+		if (StringUtil.isBlank(subPost.getFileUrl())) {
+			subPost.setType("0");
+		} else {
+			// 如URL不为空，则为图片或者是语音
+			if (myFileService.isImg(subPost.getFileUrl())) {
+				subPost.setType("2");
+			} else {
+				subPost.setType("1");
+			}
+		}
+		subPost.setDeleted(false);
+		double[] position = new double[] { subPost.getLat(), subPost.getLng() };
+		subPost.setPosition(position);
+		if (post.getSubPosts() == null || post.getSubPosts().size() < 3) {
+			post.setSubPostsSize(post.getSubPostsSize() + 1);
+			List<SubPost> listSubPost = new ArrayList<SubPost>();
+			if (post.getSubPosts() == null) {
+				listSubPost.add(subPost);
+				post.setSubPosts(listSubPost);
+			} else {
+				post.getSubPosts().add(subPost);
+			}
+			post.setUtime(time);
+			postRepository.save(post);
+			return subPost;
+		} else {
+			increasingSubPostCount(subPost.getParentId(), 1);
+			return subPostRepository.save(subPost);
+		}
+
+	}
+
+	/**
+	 * 主楼详情
+	 * 
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post getPostDetails(String postId) throws XueWenServiceException {
+		if (StringUtil.isBlank(postId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		Post post = postRepository.findOne(postId);
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		// 查找前10条副楼回复
+		Pageable pageable = new PageRequest(0, 10, new Sort(Direction.DESC, "ctime"));
+		Page<SubPost> subPosts = getSubPost(postId, pageable);
+		post.getSubPosts().addAll(subPosts.getContent());
+		return post;
+
+	}
+
+	/**
+	 * 主楼回复点赞
+	 * 
+	 * @param user
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post addPraise(User user, String postId) throws XueWenServiceException {
+		if (StringUtil.isBlank(postId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		Post post = findOneById(postId);
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		praiseService.addPraise(user, Config.YXTDOMAIN, post.getAppKey(), postId, "2");
+		post.setLikesCount(post.getLikesCount() + 1);
+		return postRepository.save(post);
+	}
+
+	/**
+	 * 主楼回复点赞
+	 * 
+	 * @param user
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post addPraisePc(User user, String postId) throws XueWenServiceException {
+		if (StringUtil.isBlank(postId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		Post post = findOneById(postId);
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		praiseService.addPraiseTip(Config.YXTDOMAIN, Config.APPKEY_PC, postId, Config.TYPE_TOPIC_POST_GROUP, user.getId());
+		post.setLikesCount(post.getLikesCount() + 1);
+		return postRepository.save(post);
+	}
+
+	/**
+	 * 根据ID返回主楼信息
+	 * 
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post findOneById(String id) throws XueWenServiceException {
+		if (StringUtil.isBlank(id)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		return postRepository.findOneByPostId(id);
+	}
+
+	/**
+	 * 根据用户Id和主楼Id判断用户是否赞过此主楼
+	 * 
+	 * @param userId
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isLikePost(String userId, String appKey, String postId) throws XueWenServiceException {
+		return praiseService.isUserPraise(userId, Config.YXTDOMAIN, postId, "2");
+	}
+
+	/**
+	 * 根据用户ID返回Post 的Response对象
+	 * 
+	 * @param userId
+	 * @param post
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public PostResponse toPostResponse(String userId, Post post) throws XueWenServiceException {
+		PostResponse prs = new PostResponse(post);
+		prs.setLike(isLikePost(userId, post.getAppKey(), post.getPostId()));
+		return prs;
+	}
+
+	/**
+	 * 根据用户Id和post集合 得到Post的Response的集合
+	 * 
+	 * @param userId
+	 * @param posts
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<PostResponse> toPostResponseList(String userId, List<Post> posts) throws XueWenServiceException {
+		List<PostResponse> prss = new ArrayList<PostResponse>();
+		if (posts != null) {
+			for (Post post : posts) {
+				prss.add(toPostResponse(userId, post));
+			}
+		}
+		return prss;
+	}
+
+	/**
+	 * 干货主楼回复
+	 * 
+	 * @param user
+	 * @param post
+	 * @param fileUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Post replyDrycargo(User user, Post post, String groupId) throws XueWenServiceException {
+		if (post == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (drycargoService.findOneById(post.getTopicId()) == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		post.setAuthorId(user.getId());
+		post.setAuthorName(user.getNickName());
+		post.setAuthorLogoUrl(user.getLogoURL());
+		long time = System.currentTimeMillis();
+		post.setCtime(time);
+		post.setUtime(time);
+		if (StringUtil.isBlank(post.getFileUrl())) {
+			post.setType("0");
+		} else {
+			// 如URL不为空，则为图片或者是语音
+			if (myFileService.isImg(post.getFileUrl())) {
+				post.setType("2");
+			} else {
+				post.setType("1");
+			}
+		}
+		post.setSubPostsSize(0);
+		post.setDisplayOrder(0);
+		post.setLikesCount(0);
+		double[] position = new double[] { post.getLat(), post.getLng() };
+		post.setPosition(position);
+		// 计算主楼回复次数
+		drycargoService.saveReplyCount(post.getTopicId(), groupId);
+		return postRepository.save(post);
+	}
+
+	/**
+	 * 分页获取干货主题回复
+	 * 
+	 * @param topicId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Post> getDrycargoPost(String topicId, String groupId, Pageable pageable) throws XueWenServiceException {
+		if (StringUtil.isBlank(topicId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		if (drycargoService.findOneById(topicId) == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		return postRepository.findByTopicId(topicId, pageable);
+	}
+
+	/**
+	 * 
+	 * @Title: findByTopidsIn
+	 * @Description: 通过ids取post
+	 * @param ids
+	 * @return List<Post>
+	 * @throws
+	 */
+	public List<Post> findByTopidsIn(List<String> ids) {
+		Sort sort = new Sort(Direction.ASC, "ctime");
+		return postRepository.findByTopicIdIn(ids, sort);
+	}
+
+	public Post findOneByTopicId(String topicId) {
+		Sort sort = new Sort(Direction.DESC, "ctime");
+		return postRepository.findOneByTopicId(topicId, sort);
+	}
+
+	/**
+	 * 根据话题Id查询出所有主楼ID集合
+	 * 
+	 * @param topicId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> findPostIdsByTopicId(String topicId) throws XueWenServiceException {
+		List<Post> posts = postTemplate.findPostRspIdByTopicId(topicId);
+		return getPostIdsByPosts(posts);
+	}
+
+	/**
+	 * 根据主楼回复列表返回主楼回复ID列表
+	 * 
+	 * @param posts
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> getPostIdsByPosts(List<Post> posts) throws XueWenServiceException {
+		if (posts != null && posts.size() > 0) {
+			List<Object> postIds = new ArrayList<Object>();
+			for (Post post : posts) {
+				postIds.add(post.getPostId());
+			}
+			return postIds;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * 根据话题Id删除所有评论，包括主楼评论和副楼评论
+	 * 
+	 * @param topicId
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByTopicId(String topicId) throws XueWenServiceException {
+		// 根据话题Id获取主楼ID集合
+		List<Object> postIds = findPostIdsByTopicId(topicId);
+		if (postIds != null && postIds.size() > 0) {
+			// 根据主楼评论ID集合删除所有的副楼评论
+			subPostTemplate.deleteSubPostByPostIds(postIds);
+			// 根据话题ID删除所有的主楼评论
+			postTemplate.deletePostByTopicId(topicId);
+		}
+
+	}
+
+	/**
+	 * 根据postId，将post中副楼回复的数量增减
+	 * 
+	 * @param postId
+	 * @throws XueWenServiceException
+	 */
+	public void increasingSubPostCount(String postId, int inc) throws XueWenServiceException {
+		postTemplate.increasingSubPostCount(postId, inc);
+	}
+
+	/**
+	 * 根据postID删除主楼回复以及其下的所有副楼回复
+	 * 
+	 * @throws XueWenServiceException
+	 */
+	public void deletePostByPostId(String topicId, String postId) throws XueWenServiceException {
+		// 删除此主楼下所有子楼记录
+		subPostTemplate.deleteSubPostByPostId(postId);
+		// 话题的回复数统计减一
+		topicService.increasingPostCount(topicId, -1);
+		// 删除主楼记录
+		postTemplate.deletePostById(postId);
+	}
+
+	/**
+	 * 根据subpostId删除副楼回复，并且根据postId将主楼回复中副楼回复数目统计减一
+	 * 
+	 * @param subPostId
+	 * @param postId
+	 * @throws XueWenServiceException
+	 */
+	public void deleteSubPostBySubPostId(String subPostId, String postId) throws XueWenServiceException {
+		// 删除此条副楼回复记录
+		subPostTemplate.deleteSubPostBySubPostId(subPostId);
+		// 主楼回复关于副楼回复数目统计减一
+		postTemplate.increasingSubPostCount(postId, -1);
+	}
+
+	/**
+	 * 根据主楼回复ID获取主楼回复中的subposts节点,可为空
+	 * 
+	 * @param postId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<SubPost> findSubPostListInPostByPostId(String postId) throws XueWenServiceException {
+		Post post = postTemplate.findSubPostListInPostByPostId(postId);
+		if (post != null && post.getSubPosts() != null && post.getSubPosts().size() > 0) {
+			return post.getSubPosts();
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * 如果副楼回复没有Id（即副楼回复数据直接写在主楼回复数据中）,则根据副楼回复的序号，删除此条副楼回复
+	 * 
+	 * @param indexNum
+	 * @param postId
+	 * @throws XueWenServiceException
+	 */
+	public void deleteSubPostBySubPostIndex(int index, String postId) throws XueWenServiceException {
+		// 根据主楼回复ID获取主楼回复中的subposts节点
+		List<SubPost> subPosts = findSubPostListInPostByPostId(postId);
+		if (subPosts != null && subPosts.size() - 1 >= index) {
+			// post中有副楼回复，且此序号存在
+			subPosts.remove(index);
+			postTemplate.removeOneSubPostInPostByPostId(postId, subPosts);
+		}
+	}
+
+}

@@ -1,0 +1,193 @@
+package operation.service.dynamic;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.dynamic.GroupDynamic;
+import operation.pojo.topics.Images;
+import operation.repo.dynamic.GroupDynamicRepository;
+import operation.repo.dynamic.GroupDynamicTemplate;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.praise.PraiseService;
+import operation.service.rabbitmq.RabbitmqService;
+import operation.service.topics.TopicService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.RestfulTemplateUtil;
+import tools.StringUtil;
+
+@Service
+@Component
+public class GroupDynamicService {
+
+	@Autowired
+	private GroupDynamicRepository groupDynamicRepository;
+	@Autowired
+	private GroupDynamicTemplate groupDynamicTemplate;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	private DrycargoService drycargoService;
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	@Autowired
+	private RabbitmqService rabbitmqService;
+	@Autowired
+	private PraiseService praiseService;
+	
+	
+	@Value("${groupDynamic.allDynamic.url}")
+	private String allDynamicUrl;
+
+	/**
+	 * 保存动态
+	 * @param groupId
+	 * @param sourceId
+	 * @param type
+	 * @param time
+	 * @throws XueWenServiceException
+	 */
+	public void addGroupDynamic(String groupId,String groupName,String groupLogoUrl,String sourceId,String title,String content,String courseId,List<Images> images,
+			String autherId,String autherNickName,String autherLogoUrl,String type,long ctime)throws XueWenServiceException{
+		if(StringUtil.isBlank(groupId) || StringUtil.isBlank(type)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		try {
+			rabbitmqService.sendGroupDynamic(Config.DYNAMIC_ADD_ADD,groupId,sourceId,autherId,new GroupDynamic(groupId,groupName,groupLogoUrl,sourceId,title,content,courseId,images,
+					autherId,autherNickName,autherLogoUrl,type,ctime,true));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * 根据sourceId和groupId删除动态
+	 * @param groupId
+	 * @param sourceId
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupIdAndSourceId(String groupId,String sourceId)throws XueWenServiceException{
+		try {
+			rabbitmqService.sendGroupDynamic(Config.DYNAMIC_DELETE_BYGROUPANDSOURCE,groupId,sourceId,"",new GroupDynamic());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * 获取动态
+	 * @param groupId
+	 * @param pageable
+	 * @param time
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public 	Page<GroupDynamic> getDynamic(String groupId,Pageable pageable,long time,String dynamic)throws XueWenServiceException{
+		if("1".equals(dynamic)){
+			return groupDynamicRepository.findByGroupIdAndCtimeGreaterThanAndChecked(groupId, time,true, pageable);
+		}else{
+			return groupDynamicRepository.findByGroupIdAndCtimeLessThanAndChecked(groupId, time,true, pageable);
+		}
+	}
+	/**
+	 * 
+	 * @Title: deleteGroupDynamics
+	 * @Description: 删除动态
+	 * @param list
+	 * @throws XueWenServiceException void
+	 * @throws
+	 */
+	public void deleteGroupDynamics(List<Object> list)throws XueWenServiceException{
+		groupDynamicTemplate.deleteBySourceIdIds(list);
+	}
+	/**
+	 * 获取groupDynamic
+	 * @param token
+	 * @param ctime
+	 * @param dynamic
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public  JSONObject getAllGroupDynamics(String token ,String ctime,String dynamic)throws XueWenServiceException{
+		try {
+			Map<String,String> map=new HashMap<String, String>();
+			map.put("token", token);
+			map.put("ctime", ctime);
+			map.put("dynamic", dynamic);
+			map.put("s", "30");
+			RestfulTemplateUtil restfulTemplateUtil=new RestfulTemplateUtil();
+			return restfulTemplateUtil.getRestApiData(allDynamicUrl, map);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return null;
+		}
+	}
+	/**
+	 * 
+	 * @throws XueWenServiceException
+	 */
+	public void updateAllOldDynamciLikeCount()throws XueWenServiceException{
+		List<GroupDynamic> gds=groupDynamicRepository.findAll();
+		for(GroupDynamic gd:gds){
+			gd.setLikeCount(praiseService.countBySourceId(gd.getSourceId()));
+			groupDynamicRepository.save(gd);
+		}
+	}
+	/**
+	 * 查询我创建的动态
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupDynamic> myCreate(String userId,String type,Pageable pageable)throws XueWenServiceException{
+		return groupDynamicRepository.findByAutherIdAndTypeLessThan(userId,type, pageable);
+	}
+	
+	/**
+	 * 查询我创建的动态
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupDynamic> myCreateCourse(String userId,String type, Pageable pageable)throws XueWenServiceException{
+		return groupDynamicRepository.findByAutherIdAndType(userId,type, pageable);
+	}
+	
+	/**
+	 * 查询我创建的动态
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupDynamic> myCreateDrycargo(String userId,String type,String type1, Pageable pageable)throws XueWenServiceException{
+		return groupDynamicRepository.findByAutherIdAndTypeOrAutherIdAndType(userId,type, userId,type1,pageable);
+	}
+	
+	public boolean dynamicExise(String sourceID)throws XueWenServiceException{
+		return groupDynamicTemplate.dynamicExiseBySourceId(sourceID);
+	}
+	/**
+	 * 删除群组下所有的动态
+	 * @param groupId
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupId(String groupId)throws XueWenServiceException{
+		groupDynamicTemplate.deleteByGroupId(groupId);
+	}
+	
+	public List<GroupDynamic> findAllGroupDynamicInSourceIds(List<String> sourceIds) throws XueWenServiceException{
+		return groupDynamicRepository.findBySourceIdIn(sourceIds);
+	}
+	
+}

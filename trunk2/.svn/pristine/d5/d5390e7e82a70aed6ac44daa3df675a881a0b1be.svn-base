@@ -1,0 +1,107 @@
+package operation.pojo.share;
+
+import org.springframework.data.annotation.Id;
+
+public class Share {
+
+	@Id
+	private String id;
+	
+	private Object userId;  //用户Id
+	
+	private String domain;//域即产品线，如：yxt
+	
+	private String appKey;  //来源： ios,android,pc,oss,test
+	
+	private String sourceId; //类型ID
+	
+	private int shareType; //类型，0-9代表话题10-11代表课程
+	
+	private int toType;//分享目的地类型   0-9  站外(0:群组，1：人)  10-19 站内（10：腾讯微信 11：腾讯QQ  12：腾讯QQ空间 13：新浪微博  ）
+	
+	private String toAddr;//目标地址
+	
+	private long utime;//更新时间
+	
+	private long ctime;//创建时间
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public Object getUserId() {
+		return userId;
+	}
+
+	public void setUserId(Object userId) {
+		this.userId = userId;
+	}
+
+	public String getDomain() {
+		return domain;
+	}
+
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
+
+	public String getAppKey() {
+		return appKey;
+	}
+
+	public void setAppKey(String appKey) {
+		this.appKey = appKey;
+	}
+
+	public String getSourceId() {
+		return sourceId;
+	}
+
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+
+	public int getShareType() {
+		return shareType;
+	}
+
+	public void setShareType(int shareType) {
+		this.shareType = shareType;
+	}
+
+	public int getToType() {
+		return toType;
+	}
+
+	public void setToType(int toType) {
+		this.toType = toType;
+	}
+
+	public String getToAddr() {
+		return toAddr;
+	}
+
+	public void setToAddr(String toAddr) {
+		this.toAddr = toAddr;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+}

@@ -1,0 +1,376 @@
+package operation.service.user;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.user.Contact;
+import operation.pojo.user.ContactAdress;
+import operation.pojo.user.ContactUser;
+import operation.pojo.user.User;
+import operation.pojo.user.UserContact;
+import operation.pojo.user.UserContactList;
+import operation.pojo.user.UserContactResponse;
+import operation.repo.group.GroupRepository;
+import operation.repo.user.ContactAdressRepository;
+import operation.repo.user.ContactAdressTemplate;
+import operation.repo.user.UserContactListRepository;
+import operation.repo.user.UserContactRepository;
+import operation.repo.user.UserRepository;
+import operation.service.group.GroupService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.JSON2ObjUtil;
+import tools.StringUtil;
+
+@Service
+@Component
+public class UserContactListService {
+
+	@Autowired
+	private UserContactListRepository userContactListRepository;
+
+	@Autowired
+	private UserRepository userRepository;
+	
+	@Autowired
+	private UserContactRepository userContactRepository;
+	
+	@Autowired
+	private ContactAdressRepository contactAdressRepository;
+	
+	@Autowired
+	private ContactAdressTemplate contactAdressTemplate;
+	
+	@Autowired
+	private ContactUserService contactUserService;
+	
+	@Autowired
+	private UserService userService;
+	
+	@Autowired
+	private GroupService groupService;
+	
+	
+	public UserContactListService() {
+		super();
+	}
+
+	
+	/**
+	 * 根据APP传递过来的用户通讯录的JSON数组字符串转换成通讯录的对象,去掉本身
+	 * @param contactsJson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void getContacts(String contactsJson,String myPhone,String userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(contactsJson)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+	    List ctts=JSON2ObjUtil.getDTOList(contactsJson,Contact.class);
+	    if(ctts.size()>0){
+	    	UserContact uc = userContactRepository.findByUserIdAndType(userId,0);
+	    	if(uc != null){
+	    		uc.setType(1);
+	    		userContactRepository.save(uc);
+	    	}
+	    	//如果手机号不为合法手机号，则myPhone置为空
+	    	myPhone=StringUtil.isMobileNO(myPhone)?myPhone:"";
+	    	UserContact userContact = new UserContact(userId,myPhone);
+	    	userContact.setContacts(ctts);
+	    	userContact.setType(0);
+	    	userContactRepository.save(userContact);
+	    	this.doUserRegist(userId, myPhone);
+	    	
+	    }
+	 
+	}
+	
+	/**
+	 * 获取通讯录,如果没有则新建一个
+	 * @param user
+	 * @return
+	 */
+	private UserContactList getOne(User user) throws XueWenServiceException{
+		UserContactList ucl=userContactListRepository.findOneByUserId(user.getId());
+		if (ucl == null) {
+			ucl = new UserContactList();
+			ucl.setUserId(user.getId());
+			ucl.setUserPhone(user.getPhoneNumber());
+		}
+		return ucl;
+	}
+	/**
+	 * 更新或新建用户通讯录
+	 * @param user
+	 * @param contacts
+	 */
+	public UserContactList add(User user, Map<String, String> contacts) throws XueWenServiceException{
+		UserContactList ucl;
+		ucl = this.getOne(user);
+		ucl.setContactList(contacts);
+		ucl.setUtime();
+		return userContactListRepository.save(ucl);
+	}
+	
+	/**
+	 * 更新或新建用户通讯录
+	 * @param user
+	 * @param contactsJson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+//	public UserContactList add(User user,String contactsJson)throws XueWenServiceException{
+//	//	Map<String, String> contacts=getContacts(contactsJson,user.getUserName(),user.getId());
+//	//	return add(user,contacts);
+//		
+//	}
+	
+	
+
+	/**
+	 * 获取拥有此用户的联系人列表
+	 */
+	public List<Object> whoKnownMe(User me) throws XueWenServiceException{
+		List<Object> whoKnownMe=new ArrayList<Object>();
+		List<UserContactList> all=userContactListRepository.findAll();
+		for(UserContactList ucl:all){
+			if(isUserContactListHasMe(ucl,me)){
+				whoKnownMe.add(ucl.getUserId());
+			}
+		}
+		return whoKnownMe;
+	}
+	
+	/**
+	 * 用户通讯录中是否包括我
+	 * @param other
+	 * @param me
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserContactListHasMe(UserContactList other,User me)throws XueWenServiceException{
+		if(other == null || me ==null ){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		if(other.getUserId().equals(me.getId())){
+			return false;
+		}
+		Map<String,String> contacts=other.getContactList();
+		for(String phoneNum:contacts.keySet()){
+			if(phoneNum.equals(me.getUserName())){
+			  return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 获取我知道的用户的列表
+	 * @param me
+	 * @return
+	 */
+	public List<Object> iKnownWho(User me) throws XueWenServiceException{
+		List<Object> userList = new ArrayList<Object>();
+		UserContactList ucl = this.getOne(me);
+		for (String phoneNumber : ucl.getContactList().keySet()) {
+			User user = userRepository.findOneByUserName(phoneNumber);
+			if (user != null) {
+				userList.add(user.getId());
+			}
+		}
+		return userList;
+	}
+
+	
+	/**
+	 * 获取双方都是好友的通讯录列表
+	 * @return
+	 */
+	public List<Object> bothKnown(List<Object> iKnowWho,List<Object> whoKnowMe)throws XueWenServiceException {
+		if(!iKnowWho.retainAll(whoKnowMe)){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return iKnowWho;
+	}
+
+	/**
+	 * 获取邀请好友列表(群组/社交圈拉人使用)
+	 * @param user
+	 * @param page
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<ContactAdress> getUserContact(String  userId,String groupId) throws XueWenServiceException{
+		List<ContactAdress>  cas= contactAdressRepository.findByUserId(userId);
+		List<ContactAdress>  contactList = new ArrayList<ContactAdress> ();
+		if (cas== null || cas.size()==0) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			if(!StringUtil.isBlank(groupId)){
+				XueWenGroup group=groupService.findOneXuewenGroupOnlyMember(groupId);
+				if(group != null && group.getMember() !=null){
+						for(ContactAdress contactAdress:cas){
+							if(contactAdress.getType() == 0){
+								contactAdress.setType(30);
+								contactList.add(contactAdress);
+							}else{
+								if( group.getMember().contains(contactAdress.getFriendUserId())){
+									contactAdress.setType(20);
+									contactList.add(contactAdress);
+								}else{
+									contactAdress.setType(0);
+									contactList.add(contactAdress);
+								}
+							}
+					}
+				}
+			}else{
+				for(ContactAdress contactAdress:cas){
+					if(contactAdress.getType() == 0){
+						contactAdress.setType(30);
+						contactList.add(contactAdress);
+					}else{
+						int contact=contactUserService.contact(userId, contactAdress.getFriendUserId());
+						contactAdress.setType(contact);
+						contactList.add(contactAdress);
+					}
+				}
+			}
+			return contactList;
+		}
+	}
+	
+	/**
+	 * 更新通讯录
+	 * @param contactsJson
+	 * @param myPhone
+	 * @param userId
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public  List<ContactAdress> updateUserContact(String contactsJson,User user,String groupId) throws XueWenServiceException{
+		this.getContacts(contactsJson,user.getPhoneNumber(),user.getId());
+		return this.getUserContact(user.getId(),groupId);
+	}
+	/**
+	 * 计算通讯录好友状态
+	 * @param userId
+	 */
+	public void doUserRegist(String userId,String myPhone)throws XueWenServiceException{
+		List<ContactAdress>  calist = contactAdressRepository.findByUserId(userId);
+		if(calist!=null){
+			contactAdressRepository.delete(calist);
+		}
+		UserContact uc = userContactRepository.findByUserIdAndType(userId, 0);
+		List<Contact> contactList = uc.getContacts();
+		Contact ct = null;
+		String name = "";
+		if(contactList != null && contactList.size() >0){
+			for(int i = 0 ; i < contactList.size() ; i ++){
+				ct = contactList.get(i);
+				name=ct.getName();
+				for(String num:ct.getPhoneNumbers()){
+		    		num=StringUtil.formatePhoneNum(num);
+		    		if(!StringUtil.isBlank(num) && !num.equals(myPhone) && !isExiseByUserIdAndPhoneNumber(userId, num)){
+		    			ContactAdress ca = new ContactAdress(userId,myPhone,name,num);
+		    			User registUser=userService.findByPhoneAndPhoneCheckedRspOnlyId(num);
+		    			if(registUser !=null){
+		    				ca.setType(1);//注册用户
+		    				ca.setFriendUserId(registUser.getId());
+		    				contactAdressRepository.save(ca);
+						}else{
+							ca.setType(0);// 非经注册
+							contactAdressRepository.save(ca);
+						}
+		    		}
+		    	}
+			}
+			
+		}
+		
+	}
+	
+	/**
+	 * 用户注册之后调用此方法修改通讯录列表中好友信息
+	 * @param userName
+	 * @throws XueWenServiceException
+	 */
+	public void updateContactAdress(String userName,String userId)throws XueWenServiceException{
+		contactAdressTemplate.updateByPhoneName(userName, userId);
+	}
+	
+	
+	/**
+	 * 获取邀请好友入群时所需的粉丝列表
+	 * @author hjn
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getInviteFoller(String userId,String groupId,Pageable pageable)throws XueWenServiceException{
+		//查询出所有粉丝
+		Page<ContactUser> contactUsers =  contactUserService.getFoller(userId,pageable);
+		XueWenGroup group=groupService.findOneXuewenGroupOnlyMember(groupId);
+		if(group != null  ){
+			List<Object> members=group.getMember();
+			for(ContactUser contactUser:contactUsers.getContent()){
+				if(members != null ){
+					if(members.contains(contactUser.getToUser())){
+						contactUser.setStatus(5);
+					}
+				}
+			}
+		}
+		return contactUsers;
+	}
+	/**
+	 * 获取邀请好友入群时所需的关注列表
+	 * @author hjn
+	 * @param userId
+	 * @param groupId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getInviteFolled(String userId,String groupId,Pageable pageable)throws XueWenServiceException{
+		//查询出所有关注
+		Page<ContactUser> contactUsers =  contactUserService.getFolled(userId,pageable);
+		XueWenGroup group=groupService.findOneXuewenGroupOnlyMember(groupId);
+		if(group != null  ){
+			List<Object> members=group.getMember();
+			for(ContactUser contactUser:contactUsers.getContent()){
+				if(members != null ){
+					if(members.contains(contactUser.getToUser())){
+						contactUser.setStatus(5);
+					}
+				}
+			}
+		}
+		return contactUsers;
+	}
+	
+	
+	/**
+	 * 根据用户Id和好友手机号判断记录是否存在
+	 * @author hjn
+	 * @param userId
+	 * @param phoneNumber
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserIdAndPhoneNumber(String userId,String phoneNumber)throws XueWenServiceException{
+		return contactAdressTemplate.isExiseByUserIdAndFriendPhoneNum(userId, phoneNumber);
+	}
+}

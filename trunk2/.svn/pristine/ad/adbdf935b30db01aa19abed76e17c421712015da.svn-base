@@ -1,0 +1,232 @@
+package operation.service.praise;
+
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.praise.UnPraise;
+import operation.pojo.praise.UserPraiseResponse;
+import operation.pojo.user.User;
+import operation.repo.praise.UnPraiseRepository;
+import operation.repo.praise.UnPraiseTemplate;
+import operation.service.user.ContactUserService;
+import operation.service.user.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+public class UnPraiseService {
+
+	@Autowired
+	private UnPraiseRepository unpraiseRepository;
+	@Autowired
+	private UnPraiseTemplate  unpraiseMongoTemplate;
+	@Autowired
+	private ContactUserService contactUserService;
+	@Autowired
+	private UserService userService;
+
+	public UnPraiseService() {
+
+	}
+	
+	/**
+	 * 用户点赞,不进行是否点赞判断
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addUnPraiseNotCheck(String domain,String appkey,String sourceId,String type ,String userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		UnPraise unpraise=new UnPraise();
+		unpraise.setDomain(domain);
+		unpraise.setAppKey(appkey);
+		unpraise.setSourceId(sourceId);
+		unpraise.setType(type);
+		unpraise.setUserId(userId);
+		long time=System.currentTimeMillis();
+		unpraise.setCtime(time);
+		unpraise.setUtime(time);
+		unpraiseRepository.save(unpraise);
+	}
+
+	/**
+	 * 用户点赞
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @throws XueWenServiceException
+	 */
+	public void addUnPraise(User user,String domain ,String appKey,String sourceId,String type)throws XueWenServiceException{
+		UnPraise unpraise=findOneUnPraiseByUserIdAndDomainAndSourceIdAndType(user.getId(),domain,sourceId,type);
+		if(unpraise == null){
+			unpraise=new UnPraise();
+			unpraise.setAppKey(appKey);
+			unpraise.setDomain(domain);
+			unpraise.setSourceId(sourceId);
+			unpraise.setType(type);
+			unpraise.setUserId(user.getId());
+			unpraiseRepository.save(unpraise);
+		}
+	}
+	/**
+	 * 用户点赞
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addUnPraise(UnPraise unpraise,String userId)throws XueWenServiceException{
+		if(unpraise == null || StringUtil.isBlank(unpraise.getDomain()) || StringUtil.isBlank(unpraise.getAppKey()) || StringUtil.isBlank(unpraise.getSourceId()) || StringUtil.isBlank(unpraise.getType())){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if(!isUserUnPraise(userId,unpraise.getDomain(),unpraise.getSourceId(),unpraise.getType())){
+			unpraise.setUserId(userId);
+			long time=System.currentTimeMillis();
+			unpraise.setCtime(time);
+			unpraise.setUtime(time);
+			unpraiseRepository.save(unpraise);
+		}
+	}
+	
+	/**
+	 * 用户点赞
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addUnPraiseTip(String domain,String appKey,String sourceId,String type,String userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(domain) || StringUtil.isBlank(appKey) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if(!isUserUnPraise(userId,domain,sourceId,type)){
+			UnPraise unpraise = new UnPraise();
+			unpraise.setUserId(userId);
+			long time=System.currentTimeMillis();
+			unpraise.setCtime(time);
+			unpraise.setUtime(time);
+			unpraiseRepository.save(unpraise);
+		} else {
+			throw new  XueWenServiceException(Config.STATUS_206,Config.MSG_ALREADY_206,null);
+		}
+	}
+	
+	/**
+	 * 用户是否点赞
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserUnPraise(String userId,String domain,String sourceId,String type)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return unpraiseMongoTemplate.existsByUserIdAndDomainAndSourceIdAndType(userId,domain,sourceId,type);
+	}
+	
+	/**
+	 * 根据用户ID和域Id和来源ID和类型，查找用户点赞对象,可为空
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UnPraise findOneUnPraiseByUserIdAndDomainAndSourceIdAndType(String userId,String domain,String sourceId,String type)throws XueWenServiceException{
+//		praiseRepository.exists(id)
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return unpraiseRepository.findByUserIdAndDomainAndSourceIdAndType(userId, domain, sourceId, type);
+	}
+	/**
+	 * 根据域Id和来源ID和类型，查找用户点赞对象,可为空
+	 * @param appkey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 */
+	public Page<UnPraise> findOneUnPraiseByDomainAndSourceIdAndType(String domain,String sourceId,String type,Pageable pageable)throws XueWenServiceException{
+		if( StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return unpraiseRepository.findByDomainAndSourceIdAndType(domain, sourceId, type,pageable);
+	}
+	
+	/**
+	 * 统计一个项目的点赞数量
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int countByDomainAndSourceIdAndType(String domain,String sourceId,String type)throws XueWenServiceException{
+		if(StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return unpraiseRepository.countByDomainAndSourceIdAndType(domain, sourceId, type);
+	}
+	/**
+	 * 
+	 * @Title: findListByUserIdAndAppkeyAndType
+	 * @Description: 查找用户对某一类型的点过的赞
+	 * @param userId
+	 * @param appKey
+	 * @param type
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException Page<Praise>
+	 * @throws
+	 */
+	public Page<UnPraise> findListByUserIdAndDomainAndType(String userId,String domain,String type,Pageable pageable)throws XueWenServiceException{
+		if(StringUtil.isBlank(domain) || StringUtil.isBlank(userId) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return unpraiseRepository.findByUserIdAndDomainAndType(userId, domain, type, pageable);
+	}
+	
+	public List<UserPraiseResponse> toResponeses(List<UnPraise> unpraises,String userId) throws XueWenServiceException{
+		List<UserPraiseResponse> uprs = new ArrayList<UserPraiseResponse>();
+		if(unpraises==null || unpraises.size()<=0){
+		}else{
+			for(int i = 0; i < unpraises.size(); i++){
+				uprs.add(toResponse(unpraises.get(i),userId));
+			}
+		}
+		return uprs;
+		
+	}
+	
+	public UserPraiseResponse toResponse(UnPraise unpraise,String userId)throws XueWenServiceException{
+		if (unpraise == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+		User unpraiseUser = userService.findUser(unpraise.getUserId());
+		UserPraiseResponse upr = new UserPraiseResponse(unpraise.getUserId(),unpraiseUser.getUserName(),unpraiseUser.getLogoURL(),unpraiseUser.getNickName());
+		if(unpraise.getUserId().equals(userId)){
+			upr.setContactStatus(10);
+		}else{
+			upr.setContactStatus(contactUserService.contact(userId, unpraise.getUserId()));
+		}
+		return upr;
+	}
+
+}

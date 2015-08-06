@@ -1,0 +1,80 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.NewChapter;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/**
+ * new chatpter实例的template操作
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class NewChapterTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public NewChapterTemplate(){
+		super();
+	}
+	/**
+	 * 根据chapterId 返回newChapter对象 只有Id和lessons节点
+	 * @author hjn
+	 * @param chapterId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewChapter findOneChapterByIdRspOnlyIdAndLessonIds(String chapterId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(chapterId));
+		query.fields().include("id").include("lessonIds");
+		return mongoTemplate.findOne(query, NewChapter.class);
+	}
+	/**
+	 * 根据chapterId List 返回newChapter 对象集合 每个对象 只有Id和lessons节点
+	 * @author hjn
+	 * @param chapterId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewChapter> findChapterListByIdListRspOnlyIdAndLessonIds(List<Object> chapterIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(chapterIds));
+		query.fields().include("id").include("lessonIds");
+		return mongoTemplate.find(query, NewChapter.class);
+	}
+	/**
+	 * 根据chapterId返回newChapter对象不返回lesson节点
+	 * @author hjn
+	 * @param chapterIds
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewChapter findOneChapterByIdRspExcLessons(String chapterId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(chapterId));
+		query.fields().exclude("lessons");
+		return mongoTemplate.findOne(query, NewChapter.class);
+	}
+	/**
+	 * 根据章节Id集合删除章节记录
+	 * @param chapterIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByIds(List<Object> chapterIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(chapterIds));
+		mongoTemplate.remove(query, NewChapter.class);
+	}
+	
+	
+	
+	
+	
+}

@@ -1,0 +1,139 @@
+package operation.controller.version;
+
+import java.net.URLDecoder;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.version.YunXueTangVersion;
+import operation.service.version.VersionService;
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+import tools.StringUtil;
+
+@RestController
+@RequestMapping("/version")
+@Configuration
+public class VersionController extends BaseController {
+	private static final Logger logger = Logger
+			.getLogger(VersionController.class);
+
+	@Autowired
+	public VersionService versionService;
+
+	public VersionController() {
+
+	}
+
+	/**
+	 * 查询版本更新
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findversion")
+	public @ResponseBody ResponseContainer findversion(
+			HttpServletRequest request, YunXueTangVersion version) {
+		try {
+			Direction d = Direction.DESC;
+			Sort st = new Sort(d, "ctime");
+			YunXueTangVersion yunXueTangVersion = versionService.checkVersion(
+					st, version);
+			return addResponse(Config.STATUS_200, Config.MSG_TOADMIN_200,
+					yunXueTangVersion, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 查询版本列表
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("versionList")
+	public @ResponseBody ResponseContainer versionList(
+			HttpServletRequest request,QueryModel dm) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<YunXueTangVersion> yunXueTangVersion = versionService.versionList(pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), yunXueTangVersion);
+			this.getReponseData().setResult(yunXueTangVersion.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_TOADMIN_200,
+					getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 更新版本
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("updateVersion")
+	public @ResponseBody ResponseContainer updateVersion(
+			HttpServletRequest request, YunXueTangVersion version) {
+		try {
+			if(null != version.getMessage()){
+				if(!StringUtil.isEmpty(version.getMessage().toString())){
+					version.setMessage(URLDecoder.decode(version.getMessage(),"UTF-8"));
+				}
+			}
+			if(null != version.getContext()){
+				if(!StringUtil.isEmpty(version.getContext().toString())){
+					version.setContext(URLDecoder.decode(version.getContext(),"UTF-8"));
+				}
+			}
+			version.setCtime(System.currentTimeMillis());
+			
+			YunXueTangVersion yunXueTangVersion = versionService.save(version);
+
+			return addResponse(Config.STATUS_200, Config.MSG_TOADMIN_200,
+					yunXueTangVersion, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+
+}

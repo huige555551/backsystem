@@ -1,0 +1,10 @@
+package operation.repo.study;
+
+import operation.pojo.study.Study;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface StudyRepository extends MongoRepository<Study, String>{
+
+	
+}

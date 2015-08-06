@@ -1,0 +1,239 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.NewGroupCourse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/**
+ * 群组课程实例 template 操作 
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class NewGroupCourseTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public NewGroupCourseTemplate(){
+		super();
+	}
+	
+	/**
+	 * 根据群组ID和课程Id判断小组课堂是否已经分享过此课程
+	 * @author hjn
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByGroupIdAndCourseId(String groupId,String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").is(groupId).and("course").is(courseId));
+		return mongoTemplate.exists(query,NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据课程Id判断小组课堂是否已经分享过此课程
+	 * @author hjn
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByCourseId(String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("course").is(courseId));
+		return mongoTemplate.exists(query,NewGroupCourse.class);
+	}
+	/**
+	 * 根据群组课程ID和群组ID和课程Id判断小组课堂是否已经分享过此课程
+	 * @author hjn
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByIdAndGroupIdAndCourseId(String id,String groupId,String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id).and("group").is(groupId).and("course").is(courseId));
+		return mongoTemplate.exists(query,NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据用户ID，群组ID和课程ID，判断此用户是否已经分享此课程到群组
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserIdAndGroupIdAndCourseId(String userId,String groupId,String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("whoImport").is(userId).and("group").is(groupId).and("course").is(courseId));
+		return mongoTemplate.exists(query,NewGroupCourse.class);
+	}
+	
+	/**
+	 * 增加课程收藏统计数量
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void increaseFavCount(String groupCourseId,int increaseNum)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupCourseId));
+		Update update=new Update();
+		update.inc("favCount", increaseNum);
+		mongoTemplate.updateMulti(query, update, NewGroupCourse.class);
+	}
+	
+	/**
+	 * 增加课程收藏统计数量
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void increaseStudyCount(String groupCourseId,int increaseNum)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupCourseId));
+		Update update=new Update();
+		update.inc("studyCount", increaseNum);
+		mongoTemplate.updateMulti(query, update, NewGroupCourse.class);
+	}
+	/**
+	 * 增加课程分享统计数量
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void increaseShareCount(String groupCourseId,int increaseNum)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupCourseId));
+		Update update=new Update();
+		update.inc("shareCount", increaseNum);
+		mongoTemplate.updateMulti(query, update, NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组课程ID集合删除
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByIds(List<Object> groupCourseIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(groupCourseIds));
+		mongoTemplate.remove(query, NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组ID删除所有群组课程
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupId(String groupId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").is(groupId));
+		mongoTemplate.remove(query, NewGroupCourse.class);
+	}
+	/**
+	 * 根据课程ID删除所有群组课程
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByCourseId(String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("course").is(courseId));
+		mongoTemplate.remove(query, NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组Id获取群组课程Id集合
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewGroupCourse> findGroupCourseIdsListByGroupId(String groupId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").is(groupId));
+		query.fields().include("id");
+		return mongoTemplate.find(query,NewGroupCourse.class);
+	}
+	/**
+	 * 根据课程Id获取群组课程Id集合
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewGroupCourse> findGroupCourseIdsListByCourseId(String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("course").is(courseId));
+		query.fields().include("id");
+		return mongoTemplate.find(query,NewGroupCourse.class);
+	}
+	/**
+	 * 根据课程ID集合获取群组课程集合
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewGroupCourse> findGroupCourseIdsListByNewCourseIdsList(List<Object> newCourseIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("course").in(newCourseIds));
+		return mongoTemplate.find(query,NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组课程Id返回收藏统计和学习统计
+	 * @param groupCourseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewGroupCourse findOneRspStudyCountAndFavCount(String groupCourseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupCourseId));
+		query.fields().include("favCount").include("studyCount");
+		return mongoTemplate.findOne(query,NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组Id获取群组课程Id集合
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewGroupCourse> findGroupCourseCourseIdsByGroupId(String groupId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").is(groupId));
+		query.fields().include("course");
+		return mongoTemplate.find(query,NewGroupCourse.class);
+	}
+	/**
+	 * 合并用户，将fromUser分享到群组的课程变为toUser分享
+	 * @param fromUserId
+	 * @param toUserId
+	 * @throws XueWenServiceException
+	 */
+	public void mergeNewGroupCourse(String fromUserId,String toUserId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("whoImport").is(fromUserId));
+		Update update=new Update();
+		update.set("whoImport", toUserId);
+		mongoTemplate.updateMulti(query, update, NewGroupCourse.class);
+	}
+	
+	/**
+	 * 根据newGroupCourseId获取此课程的统计数据
+	 * @param newGroupCourseId
+	 * @return
+	 */
+	public NewGroupCourse getNewGroupCourseCountInfo(String newGroupCourseId){
+		Query query=new Query(Criteria.where("id").is(newGroupCourseId));
+		query.fields().include("favCount").include("studyCount").include("shareCount");
+		return mongoTemplate.findOne(query,NewGroupCourse.class);
+	}
+	/**
+	 * 判断这门课程是谁导入
+	 * @param groupCourseId
+	 * @param userId
+	 * @return
+	 */
+	public boolean isExiseByWhoImport(String groupCourseId,String userId){
+		Query query=new Query(Criteria.where("id").is(groupCourseId).and("whoImport").is(userId));
+		return mongoTemplate.exists(query,NewGroupCourse.class);
+	}
+}

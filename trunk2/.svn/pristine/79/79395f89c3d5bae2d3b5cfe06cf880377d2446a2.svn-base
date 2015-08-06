@@ -1,0 +1,104 @@
+package operation.service.log;
+
+import java.util.List;
+
+import operation.pojo.log.UserRegistLog;
+import operation.pojo.user.User;
+import operation.repo.log.UserRegLogRepository;
+import operation.service.user.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Service;
+
+import tools.StringUtil;
+/**
+ * 
+* @ClassName: UserRegistLogService
+* @Description: 注册来源统计
+* @author tangli
+* @date 2015年3月17日 下午4:04:16
+*
+ */
+@Service
+public class UserRegistLogService {
+	@Autowired
+	private UserRegLogRepository userRegLogRepo;
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	@Autowired
+	private UserService userService;
+	
+	/**
+	 * 
+	 * @Title: save
+	 * @auther Tangli
+	 * @Description: 保存或跟新
+	 * @param log void
+	 * @throws
+	 */
+	public void save(UserRegistLog log){
+		userRegLogRepo.save(log);
+	}
+
+	public Page<UserRegistLog> search( long ctime,long etime, String vkey, String ukey, Pageable pageable) {
+		if(StringUtil.isBlank(ukey)&&StringUtil.isBlank(vkey)){
+			return userRegLogRepo.findAll(pageable);
+		}
+		long ct=ctime;
+		long et=etime;		
+		if(!StringUtil.isBlank(vkey)){
+			return  userRegLogRepo.findByVkeyAndTime(vkey,ct,et,pageable);
+		}
+		if (!StringUtil.isBlank(ukey)) {
+			return userRegLogRepo.findByCkeyAndTime(ukey,ct,et,pageable);
+		}
+	    if(StringUtil.isBlank(vkey)&&StringUtil.isBlank(ukey)){
+			return userRegLogRepo.findByTime(ct,et,pageable);
+		}
+		return null;
+		
+		
+	}
+	
+	
+	public Page<UserRegistLog> searchQd(long ctime,long etime,String userKey,String adsId,Pageable pageable){
+		if(StringUtil.isBlank(userKey)&&StringUtil.isBlank(adsId)){
+			return userRegLogRepo.findByCtimeBetween(ctime,etime,pageable);
+		}
+		if(StringUtil.isBlank(userKey)&&(!StringUtil.isBlank(adsId))){
+			return userRegLogRepo.findByAdSellerIdLikeAndCtimeBetween(adsId,ctime,etime,pageable);
+
+		}
+		if(StringUtil.isBlank(adsId)&&(!StringUtil.isBlank(userKey))){
+			return userRegLogRepo.findByCkeyAndTime(userKey,ctime,etime,pageable);
+
+		}
+		if((!StringUtil.isBlank(adsId))&&(!StringUtil.isBlank(userKey))){
+			return userRegLogRepo.findAllInfo(userKey,adsId,ctime,etime,pageable);
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: setloginTime
+	 * @auther Tangli
+	 * @Description: 写入登录时间
+	 * @param logs void
+	 * @throws
+	 */
+	public void setloginTime(List<UserRegistLog> logs){
+		for (UserRegistLog userRegistLog : logs) {
+			User user= userService.findOne(userRegistLog.getUserId());
+			userRegistLog.setLogintime(user.getLogintime());
+		}	
+	}
+	
+	
+}

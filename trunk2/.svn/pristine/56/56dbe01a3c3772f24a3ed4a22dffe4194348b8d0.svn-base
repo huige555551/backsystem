@@ -1,0 +1,134 @@
+package operation.service.words;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.words.StopWords;
+import operation.repo.words.StopWordsReposity;
+
+import org.ansj.domain.Term;
+import org.ansj.splitWord.analysis.BaseAnalysis;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+/**
+ * O
+ * @ClassName: StopWordsService
+ * @Description: 过滤禁用词库 业务
+ * @author Jack Tang
+ * @date 2015年2月11日 上午11:07:09
+ *
+ */
+@Service
+public class StopWordsService {
+	@Autowired
+	private StopWordsReposity stopWordsReposity;
+	
+	
+	/**
+	 * 
+	 * @Title: save
+	 * @Description: 插入或更新
+	 * @param stopWords void
+	 * @throws
+	 */
+	public void save(StopWords stopWords){
+		stopWordsReposity.save(stopWords);
+	}
+	
+	/**
+	 * 
+	 * @Title: findByWordsIn
+	 * @Description: 通过词查找
+	 * @param word
+	 * @return StopWords
+	 * @throws
+	 */
+	public StopWords findByWordsIn(String word){
+		
+		return stopWordsReposity.findOneByContentIn(word);
+	}
+	
+	/**
+	 * 
+	 * @Title: findOne
+	 * @Description: 取词库
+	 * @return StopWords
+	 * @throws
+	 */
+	public StopWords findOne(){
+		List<StopWords> stopWords=stopWordsReposity.findAll();
+		return stopWords.size()==0?null:stopWords.get(0);
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: addWords
+	 * @Description: 添加词
+	 * @param word
+	 * @throws XueWenServiceException void
+	 * @throws
+	 */
+	public void addWords(String word ) throws XueWenServiceException{
+		if(findByWordsIn(word)!=null){
+			throw new XueWenServiceException(Config.STATUS_201, "该词汇已存在", null);
+		}else{
+			 StopWords stopWord=findOne();
+			 if(stopWord!=null){
+				stopWord.addWord(word); 
+			 }
+			 else{
+				 stopWord =new StopWords();
+				 Set<String> set;
+				try {
+					set = getwords();
+					stopWord.setContent(set);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				 
+				
+			 }
+			 save(stopWord);
+			 
+		}
+		
+	}
+
+	public Set<String> getwords() throws Exception, Exception{
+		File file=new File("E:/workspace/yunxuetang3_api/src/main/resources/word.txt");
+		InputStreamReader read = new InputStreamReader(
+                new FileInputStream(file),"UTF-8");//考虑到编码格式
+                BufferedReader bufferedReader = new BufferedReader(read);
+                String lineTxt = null;
+				Set<String>set=new HashSet<String>();
+
+                while((lineTxt = bufferedReader.readLine()) != null){
+                    set.add(lineTxt);
+                }
+                read.close();
+                
+                return set;
+	}
+	
+	
+	@Test
+	public void test(){
+		String string="你好啊 你是谁操你妈的草你妈";
+		String regx="操你妈|歡樂性今宵";
+		string=string.replaceAll(regx, "*");
+		System.out.println(string);
+	}
+}

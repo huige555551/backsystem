@@ -1,0 +1,222 @@
+package operation.service.fav;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.fav.Fav;
+import operation.repo.fav.FavMongoTemplate;
+import operation.repo.fav.FavRepository;
+import operation.service.course.CourseService;
+import operation.service.course.KnowledgeService;
+import operation.service.course.NewCourseService;
+import operation.service.drycargo.DrycargoBeanService;
+import operation.service.topics.TopicService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+public class FavService {
+
+	@Autowired
+	private FavRepository favRepository;
+	@Autowired
+	private FavMongoTemplate  favMongoTemplate;
+	@Autowired
+	private  TopicService topicService;
+	@Autowired
+	private NewCourseService newCourseService;
+	@Autowired
+	private DrycargoBeanService drycargoBeanService;
+	@Autowired
+	private KnowledgeService knowledgeService;
+
+	public FavService() {
+
+	}
+
+//	/**
+//	 * 用户收藏
+//	 * @param userId
+//	 * @param appKey
+//	 * @param sourceId
+//	 * @param type
+//	 * @throws XueWenServiceException
+//	 */
+//	public void addFav(User user,String appKey,String sourceId,String type)throws XueWenServiceException{
+//		Fav fav=findOnePraiseByUserIdAndAppKeyAndSourceIdAndType(user.getId(),appKey,sourceId,type);
+//		if(praise == null){
+//			praise=new Praise();
+//			praise.setAppKey(appKey);
+//			praise.setSourceId(sourceId);
+//			praise.setType(type);
+//			praise.setUserId(user.getId());
+//			praise.setUserLogoUrl(user.getLogoURL());
+//			praise.setUserName(user.getNickName());
+//			praiseRepository.save(praise);
+//		}
+//	}
+	/**
+	 * 用户收藏,不进行是否收藏判断
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addFavNotCheck(String domain,String appkey,String sourceId,String favType ,String  userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		Fav fav=new Fav();
+		fav.setDomain(domain);
+		fav.setAppKey(appkey);
+		fav.setSourceId(sourceId);
+		fav.setFavType(favType);
+		fav.setUserId(userId);
+		long time=System.currentTimeMillis();
+		fav.setCtime(time);
+		fav.setUtime(time);
+		favRepository.save(fav);
+	}
+	/**
+	 * 用户收藏,首先判断是否收藏
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addFav(Fav fav,String  userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(fav.getDomain()) || StringUtil.isBlank(fav.getAppKey()) || StringUtil.isBlank(fav.getSourceId())){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if(!isUserFav(userId,fav.getDomain(),fav.getSourceId(),fav.getFavType())){
+			fav.setUserId(userId);
+			long time=System.currentTimeMillis();
+			fav.setCtime(time);
+			fav.setUtime(time);
+			favRepository.save(fav);
+		}
+	}
+	/**
+	 * 用户收藏,首先判断是否收藏pc
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addFavPc(String domain,String appkey,String sourceId,String favType ,String  userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if(!isUserFav(userId,domain,sourceId,favType)){
+			Fav fav=new Fav();
+			fav.setDomain(domain);
+			fav.setAppKey(appkey);
+			fav.setSourceId(sourceId);
+			fav.setFavType(favType);
+			fav.setUserId(userId);
+			long time=System.currentTimeMillis();
+			fav.setCtime(time);
+			fav.setUtime(time);
+			favRepository.save(fav);
+		}else{
+			throw new  XueWenServiceException(Config.STATUS_206,Config.MSG_ALREADY_206,null);
+		}
+	}
+	
+	/**
+	 * 用户是否收藏
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserFav(String userId,String domain,String sourceId,String favType)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return favMongoTemplate.existsByUserIdAndDomainAndSourceIdAndFavType(userId,domain,sourceId,favType);
+	}
+	
+	/**
+	 * 根据域Id和来源ID和类型，查找用户点赞对象,可为空
+	 * @param appkey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 */
+	public Page<Fav> findOneFavByAppKeyAndSourceIdAndType(String appkey,String sourceId,int favType,Pageable pageable)throws XueWenServiceException{
+		if( StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId)  ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return favRepository.findByAppKeyAndSourceIdAndFavType(appkey, sourceId, favType,pageable);
+	}
+	
+	/**
+	 * 统计一个项目的点赞数量
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int countByAppkeyAndSourceIdAndType(String appKey,String sourceId,int favType)throws XueWenServiceException{
+		if(StringUtil.isBlank(appKey) || StringUtil.isBlank(sourceId)  ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return favRepository.countByAppKeyAndSourceIdAndFavType(appKey, sourceId, favType);
+	}
+	
+	
+	public Page<Fav> findListByUserIdAndAppkeyAndType(String userId,String appKey,int favType,Pageable pageable)throws XueWenServiceException{
+		if(StringUtil.isBlank(appKey) || StringUtil.isBlank(userId) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return favRepository.findByUserIdAndAppKeyAndFavType(userId, appKey, favType, pageable);
+	}
+	/**
+	 * 获得小组课程收藏人列表
+	 * @param userId
+	 * @param groupCourseId
+	 * @param domain
+	 */
+	public Page<Fav> getUserFavList(String userId, String groupCourseId,String domain,Pageable pageable) throws XueWenServiceException{
+		if(StringUtil.isBlank(groupCourseId) || StringUtil.isBlank(userId) || StringUtil.isBlank(domain)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return favRepository.findBySourceIdAndDomain(groupCourseId,domain,pageable);
+	}
+	
+	/**
+	 * 根据来源集合删除收藏记录
+	 * @param sourceIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteBySourceIds(List<Object> sourceIds)throws XueWenServiceException{
+		favMongoTemplate.deleteBySourceIds(sourceIds);
+	}
+	/**
+	 * 根据用户Id和来源集合删除收藏记录
+	 * @param sourceIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByUserIdAndSourceIds(String userId,List<Object> sourceIds)throws XueWenServiceException{
+		favMongoTemplate.deleteByUserIdAndSourceIds(userId,sourceIds);
+	}
+	/**
+	 * 根据来源删除收藏记录
+	 * @param sourceIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteBySourceId(String sourceId)throws XueWenServiceException{
+		favMongoTemplate.deleteBySourceId(sourceId);
+	}
+	
+	
+}

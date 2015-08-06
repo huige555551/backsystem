@@ -1,0 +1,68 @@
+package operation.service.course;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import com.tencent.exception.XueWenServiceException;
+import com.tencent.pojo.course.UserBuyCourse;
+import com.tencent.repo.course.UserBuyCourseRepository;
+import com.tencent.repo.course.UserBuyCourseTemplate;
+
+@Component
+@Service
+public class UserBuyCourseService {
+	
+	@Autowired
+	private UserBuyCourseRepository userBuyCourseRepository;
+	
+	@Autowired
+	private UserBuyCourseTemplate userBuyCourseTemplate;
+	
+	/**
+	 * 判断该用户是否已经购买过该课程（true,已购买；false 未购买）
+	 * @param userId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean findOneByUserIdAndCourseId(String userId,String courseId)throws XueWenServiceException{
+		return userBuyCourseTemplate.findOneByUserIdAndCourseId(userId, courseId);
+	}
+	
+	/**
+	 * 购买课程
+	 * @param userId
+	 * @param nickName
+	 * @param logoUrl
+	 * @param courseId
+	 * @param courseTitle
+	 * @param courseLogo
+	 * @param coursePrice
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserBuyCourse buyCourse(String userId,String nickName,String logoUrl,String courseId,String courseTitle,String courseLogo,String coursePrice)throws XueWenServiceException{
+		UserBuyCourse ubc = new UserBuyCourse(userId,courseId);
+		ubc.setCourseLogo(courseLogo);
+		ubc.setCourseTitle(courseTitle);
+		ubc.setCoursePrice(coursePrice);
+		ubc.setLogoUrl(logoUrl);
+		ubc.setNickName(nickName);
+		userBuyCourseRepository.save(ubc);
+		return ubc;
+	}
+	/**
+	 * 查询我购买的课程
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserBuyCourse> userBuyCourse(String userId,Pageable pageable) throws XueWenServiceException{
+		return userBuyCourseRepository.findAllByUserId(userId, pageable);
+	}
+}

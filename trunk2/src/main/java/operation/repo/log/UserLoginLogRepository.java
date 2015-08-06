@@ -1,0 +1,12 @@
+package operation.repo.log;
+
+
+import operation.pojo.log.UserLoginLog;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface UserLoginLogRepository extends MongoRepository<UserLoginLog, String>{
+
+	UserLoginLog findOneByUserId(String userId);
+
+}

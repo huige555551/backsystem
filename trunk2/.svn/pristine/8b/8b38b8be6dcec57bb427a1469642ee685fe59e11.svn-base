@@ -1,0 +1,109 @@
+package operation.controller.course;
+
+import java.io.PrintWriter;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper; 
+import operation.pojo.course.Course;
+import operation.pojo.course.CourseShareResponse;
+import operation.pojo.course.TopicShareResponse;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.topics.Post;
+import operation.pojo.topics.TopicResponse;
+import operation.service.course.CourseService;
+import operation.service.topics.PostService;
+import operation.service.topics.TopicService;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.PageRequestTools;
+
+@RestController
+@RequestMapping("/courseShare")
+public class CourseShareController {
+
+	private static final Logger logger = Logger.getLogger(CourseShareController.class);
+
+	@Autowired
+	public CourseService courseService;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	private PostService postService;
+	/**
+	 * 查询分享课程信息
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/course")
+	public void findCourseDetails(HttpServletRequest request,HttpServletResponse response) {
+		try {
+			String courseId = request.getParameter("courseId");
+			Course course = courseService.findShareCourse(courseId);
+			
+			Page<Course>  radomCourse = courseService.findRadomCourse(courseId);
+			
+			List<Course> courseList = radomCourse.getContent();
+			
+			CourseShareResponse csr = new CourseShareResponse();
+			csr.setCourse(course);
+			csr.setCourseRelevant(courseList);	
+			
+			String jsonstr= new ObjectMapper().writeValueAsString(csr);
+		       //方案一  
+            response.setCharacterEncoding("UTF-8"); //设置编码格式  
+            response.setContentType("text/html");   //设置数据格式  
+            PrintWriter out = response.getWriter(); //获取写入对象  
+            out.print(jsonstr); //将json数据写入流中  
+            out.flush(); 
+			
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			
+		}
+
+	}
+	@RequestMapping("/topic")
+	public void findTopicDetails(HttpServletRequest request,HttpServletResponse response,QueryModel dm) {
+		
+		String topicId = request.getParameter("topicId");
+		String userId = request.getParameter("userId");
+		String sourceId = request.getParameter("sourceId");
+		try {
+			TopicResponse tpoicRes = topicService.topicDetails(userId, topicId,sourceId);
+			dm.setMode("AES");
+			dm.setS(5);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Post> postList = postService.getTopicPost(topicId, pageable);
+			TopicShareResponse tsr = new TopicShareResponse();
+			tsr.setTopicResponse(tpoicRes);
+			tsr.setPostResponse(postService.toPostResponseList(userId, postList.getContent()));
+			
+			
+			
+			String jsonstr= new ObjectMapper().writeValueAsString(tsr);
+		       //中文乱码解决
+	         response.setCharacterEncoding("UTF-8"); //设置编码格式  
+	         response.setContentType("text/html");   //设置数据格式  
+	         PrintWriter out = response.getWriter(); //获取写入对象  
+	         out.print(jsonstr); //将json数据写入流中  
+	         out.flush(); 
+         
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}catch (Exception e) {
+			e.printStackTrace();
+			
+		}
+		
+	}
+}

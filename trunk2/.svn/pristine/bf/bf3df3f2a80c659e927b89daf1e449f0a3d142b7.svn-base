@@ -1,0 +1,70 @@
+package operation.service.activity;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.Activity;
+import operation.repo.activity.ActivityRepo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import tools.Config;
+import tools.StringUtil;
+
+/**
+ * 
+* @ClassName: ActivityService
+* @Description:线下活动
+* @author tangli
+* @date 2015年3月23日 下午2:21:58
+*
+ */
+public class ActivityService {
+  @Autowired
+  private ActivityRepo activityRepo;
+  /**
+   * 
+   * @Title: save
+   * @auther tangli
+   * @Description: 保存 更新
+   * @param activity void
+   * @throws
+   */
+  private void save(Activity activity){
+	  activityRepo.save(activity);
+  }
+  
+  /**
+   * 
+   * @Title: findOne
+   * @auther tangli
+   * @Description: 根据id取
+   * @param Id
+   * @return Activity
+   * @throws
+   */
+  private Activity findOne(String id) throws XueWenServiceException{
+	  if(StringUtil.isBlank(id)){
+		  throw new XueWenServiceException(Config.STATUS_201, "参数不能为空",null);
+	  }
+	  return activityRepo.findOne(id);
+  }
+  /**
+   * 
+   * @Title: findByCity
+   * @auther tangli
+   * @Description: 通过城市查询
+   * @param city
+   * @param pageable
+   * @return
+   * @throws XueWenServiceException Page<Activity>
+   * @throws
+   */
+  private Page<Activity>findByCity(String city,Pageable pageable) throws XueWenServiceException{
+	  if(StringUtil.isBlank(city)){
+		  throw new XueWenServiceException(Config.STATUS_201, "参数不能为空",null);
+	  }
+	  return activityRepo.findByCity(city,pageable);
+	  
+  }
+}

@@ -1,0 +1,94 @@
+package operation.service.share;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.share.Share;
+import operation.pojo.user.User;
+import operation.repo.share.ShareRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class ShareService {
+	
+	
+	@Autowired
+	public ShareRepository shareRepository;
+	
+	
+	public Share subjectShare(Share share)
+			throws XueWenServiceException {
+		
+		return shareRepository.save(share);
+	}
+	
+	
+	public ShareService() {
+		super();
+	}
+
+	/**
+	 * 用户分享
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @throws XueWenServiceException
+	 */
+	public void addShare(String userId,String domain,String appKey,String sourceId,int shareType,int toType,String toAddr)throws XueWenServiceException{
+		Share share=new Share();
+		share.setUserId(userId);
+		share.setDomain(domain);
+		share.setAppKey(appKey);
+		share.setSourceId(sourceId);
+		share.setShareType(shareType);
+		share.setToType(toType);
+		share.setToAddr(toAddr);
+		long time=System.currentTimeMillis();
+		share.setCtime(time);
+		share.setUtime(time);
+		shareRepository.save(share);
+	}
+	/**
+	 * 用户分享
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @throws XueWenServiceException
+	 */
+	public void addShare(User user,String domain,String appKey,String sourceId,int shareType,int toType,String toAddr)throws XueWenServiceException{
+		Share share=new Share();
+		share.setUserId(user.getId());
+		share.setDomain(domain);
+		share.setAppKey(appKey);
+		share.setSourceId(sourceId);
+		share.setShareType(shareType);
+		share.setToType(toType);
+		share.setToAddr(toAddr);
+		long time=System.currentTimeMillis();
+		share.setCtime(time);
+		share.setUtime(time);
+		shareRepository.save(share);
+	}
+	
+	public void shareCouerse(User user,String appKey,String sourceId,int shareType)throws XueWenServiceException{
+		Share one = shareRepository.findByUserIdAndSourceIdAndShareType(user.getId(), sourceId, shareType);
+		if(one==null){
+			Share share=new Share();
+			share.setUserId(user.getId());
+			share.setAppKey(appKey);
+			share.setSourceId(sourceId);
+			share.setShareType(shareType);
+			shareRepository.save(share);
+		}
+	}
+	
+	public int courseCount(String userId,String appKey,int type){
+		return shareRepository.countByUserIdAndShareTypeAndAppKey(userId, type, appKey);
+		
+	}
+	
+}

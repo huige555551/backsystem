@@ -1,0 +1,116 @@
+package operation.pojo.dynamic;
+
+import java.util.List;
+
+import operation.pojo.topics.Images;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection="groupDynamic")
+public class GroupDynamic {
+
+	@Id
+	private String id;  //id
+	private String groupId;//所属群组ID
+	private String sourceId;//群组课程Id,话题ID，干货Id等
+	private String title; //标题
+	private String content; //内容
+	private String courseId; //课程Id
+	private List<Images> images; //图片
+	private String autherId; //发布人ID
+	private String autherNickName; //发布人昵称
+	private String autherLogoUrl; //发布人logo
+	private String type;//类型 干货，话题，群组课程，炫页,加入群组
+	private long ctime;//创建时间
+
+	public GroupDynamic(){
+		super();
+	}
+	public GroupDynamic(String groupId,String sourceId,String title,String content,String courseId,List<Images> images,
+			String autherId,String autherNickName,String autherLogoUrl,String type,long ctime){
+		this.groupId=groupId;
+		this.sourceId=sourceId;
+		this.title=title;
+		this.content=content;
+		this.courseId=courseId;
+		this.images=images;
+		this.autherId=autherId;
+		this.autherNickName=autherNickName;
+		this.autherLogoUrl=autherLogoUrl;
+		this.type=type;
+		this.ctime=ctime;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getGroupId() {
+		return groupId;
+	}
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+	public String getSourceId() {
+		return sourceId;
+	}
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
+	}
+	public String getContent() {
+		return content;
+	}
+	public void setContent(String content) {
+		this.content = content;
+	}
+	public String getCourseId() {
+		return courseId;
+	}
+	public void setCourseId(String courseId) {
+		this.courseId = courseId;
+	}
+	public List<Images> getImages() {
+		return images;
+	}
+	public void setImages(List<Images> images) {
+		this.images = images;
+	}
+	public String getAutherId() {
+		return autherId;
+	}
+	public void setAutherId(String autherId) {
+		this.autherId = autherId;
+	}
+	public String getAutherNickName() {
+		return autherNickName;
+	}
+	public void setAutherNickName(String autherNickName) {
+		this.autherNickName = autherNickName;
+	}
+	public String getAutherLogoUrl() {
+		return autherLogoUrl;
+	}
+	public void setAutherLogoUrl(String autherLogoUrl) {
+		this.autherLogoUrl = autherLogoUrl;
+	}
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	public long getCtime() {
+		return ctime;
+	}
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+}

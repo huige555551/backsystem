@@ -1,0 +1,12 @@
+package operation.repo.ad;
+
+import java.util.List;
+
+import operation.pojo.ad.ZtiaoAd;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface ZtiaoAdReposity extends MongoRepository<ZtiaoAd, String> {
+
+	List<ZtiaoAd> findByAdId(String adId);
+}

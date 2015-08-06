@@ -1,0 +1,45 @@
+package operation.service.user;
+
+import java.util.List;
+
+import operation.pojo.user.User;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+@Service
+@Component
+public class UserOnlineService  implements InitializingBean{
+	private static final Logger logger=Logger.getLogger(UserOnlineService.class);
+
+	@Autowired
+	public UserService userService;
+	
+	public void initValidUser(){
+		List<User> onlineUser = userService.onlineUsers();
+
+		for (int i = 0; i < onlineUser.size(); i++) {
+			long sysNow=System.currentTimeMillis();
+			logger.info("系统当前时间："+sysNow+"====用户登录保持超时时间："+onlineUser.get(i).getExpireTime());
+			if (sysNow < onlineUser.get(i).getExpireTime()) {
+				logger.info("初始化的合法用户======用户ID："+onlineUser.get(i).getId()+"=======用户名："+onlineUser.get(i).getUserName()+"===用户token:"+onlineUser.get(i).getToken());
+				Config.map.put(onlineUser.get(i).getToken(), onlineUser.get(i));
+			}
+
+		}
+		logger.info("map中元素长度:"+Config.map.size());
+
+	}
+	
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// TODO Auto-generated method stub
+		this.initValidUser();
+	}
+
+}

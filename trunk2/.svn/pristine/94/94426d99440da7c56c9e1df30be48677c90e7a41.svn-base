@@ -1,0 +1,258 @@
+package operation.controller.find;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.pojo.course.Course;
+import operation.pojo.course.GroupCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.drycargo.DrycargoBean;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.topics.Topic;
+import operation.service.course.CourseService;
+import operation.service.course.GroupCourseService;
+import operation.service.drycargo.DrycargoBeanService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.group.GroupService;
+import operation.service.group.MyGroupService;
+import operation.service.topics.TopicService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+
+@RestController
+@RequestMapping("/find")
+@Configuration
+public class FindGroupSubjectController extends BaseController{
+	
+	private static final Logger logger=Logger.getLogger(FindGroupSubjectController.class);
+	public FindGroupSubjectController() {
+		super();
+	}
+	@Autowired
+	public GroupService groupService;
+	
+	@Autowired
+	public MyGroupService myGroupService;
+	@Autowired
+	public TopicService topicService;
+	@Autowired
+	public DrycargoService drycargoService;
+	@Autowired
+	public GroupCourseService groupCourseService;
+	
+	@Autowired
+	public CourseService courseService;
+	
+	@Autowired
+	public DrycargoBeanService drycargoBeanService;
+	
+	
+	/**
+	 * 查询发现话题
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findTopic")
+	public @ResponseBody ResponseContainer findSubject(
+			HttpServletRequest request,QueryModelMul dm) {
+		try {
+//			Sort st1 = new Sort(Direction.DESC,"displayOrder","ctime");
+//			Pageable pageableTopic = new PageRequest(0,6,st1);
+//			Page<Topic> topic = topicService.findAll(pageableTopic);
+//			ReponseDataTools.getClientReponseData(rsData, topic);
+//			this.rsData.setResult(topicService.toResponses(topic.getContent()));
+//			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+//					Config.RESP_MODE_10, "");
+			//根据请求参数封装一个分页信息对象
+			List<String> sort = new ArrayList<String>();
+			sort.add("displayOrder");
+			sort.add("ctime");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Topic> topicResult = topicService.findAlTopic(pageable);
+			ReponseDataTools.getClientReponseData(rsData, topicResult);
+			this.rsData.setResult(topicService.toResponses(topicResult.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	/**
+	 * 发现干货
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findDrycargo")
+	public @ResponseBody ResponseContainer findDrycargo(
+			HttpServletRequest request,QueryModelMul dm) {
+		try {
+			//Sort st = new Sort(Direction.DESC,"weightSort","ctime");
+			//根据请求参数封装一个分页信息对象
+			List<String> sort = new ArrayList<String>();
+			sort.add("weightSort");
+			sort.add("ctime");
+			dm.setSort(sort);
+			//Pageable pageableTopic = new PageRequest(0,6,st1);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			//Page<DrycargoBean> drycargo = drycargoBeanService.findAll(pageableTopic);
+			Page<Drycargo> drycargo = drycargoService.findAll(pageable);
+			ReponseDataTools.getClientReponseData(rsData, drycargo);
+			this.rsData.setResult((drycargoService.toResponeses(drycargo.getContent())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	/**
+	 * 发现小组课程
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findGroupCourse")
+	public @ResponseBody ResponseContainer findGroupCourse(
+			HttpServletRequest request,QueryModelMul dm) {
+		try {
+			List<String> sort = new ArrayList<String>();
+			sort.add("ctime");
+			sort.add("studyCount");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<GroupCourse> groupCourse = groupCourseService.findAll(pageable);
+			ReponseDataTools.getClientReponseData(rsData, groupCourse);
+			this.rsData.setResult(groupCourseService.toResponseGroupsCourseList(groupCourse.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	/**
+	 * 查询发现更多话题
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findAllTopic")
+	public @ResponseBody ResponseContainer findAlTopic(
+			HttpServletRequest request,Topic topic,QueryModelMul dm) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			List<String> sort = new ArrayList<String>();
+			sort.add("displayOrder");
+			sort.add("viewCount");
+			sort.add("ctime");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Topic> topicResult = topicService.findAlTopic(pageable);
+			ReponseDataTools.getClientReponseData(rsData, topicResult);
+			this.rsData.setResult(topicService.toResponses(topicResult.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	/**
+	 * 发现更多干货
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findAllDrycargo")
+	public @ResponseBody ResponseContainer findAllDrycargo(
+			HttpServletRequest request,Drycargo drycargo,QueryModelMul dm) {
+		try {
+			List<String> sort = new ArrayList<String>();
+			sort.add("weightSort");
+			sort.add("viewCount");
+			sort.add("ctime");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Drycargo> drycargoSub = drycargoService.findAll(pageable);
+			ReponseDataTools.getClientReponseData(rsData, drycargoSub);
+			this.rsData.setResult((drycargoService.toResponeses(drycargoSub.getContent())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	/**
+	 * 发现更多干货
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("findAllGroupCourse")
+	public @ResponseBody ResponseContainer findAllGroupCourse(
+			HttpServletRequest request,GroupCourse groupCourse,QueryModelMul dm) {
+		try {
+			List<String> sort = new ArrayList<String>();
+			sort.add("studyCount");
+			sort.add("ctime");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<GroupCourse> gc = groupCourseService.findAll(pageable);
+			ReponseDataTools.getClientReponseData(rsData, gc);
+			this.rsData.setResult(groupCourseService.toResponseGroupsCourseList(gc.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,
+					Config.RESP_MODE_10, "");
+		} 
+		
+		catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	
+
+}

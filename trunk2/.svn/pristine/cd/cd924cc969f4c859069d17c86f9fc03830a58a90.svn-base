@@ -1,0 +1,254 @@
+package tools;
+
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import net.sf.json.JsonConfig;
+import net.sf.json.util.PropertyFilter;
+
+public class YXTJSONHelper {
+
+	
+    public static  JsonConfig config = new JsonConfig();
+    
+    /**
+     * 指定JSONObject一个过滤器
+     */
+    private static void initJSONObjectConfig()
+    {
+        config.setJsonPropertyFilter(new PropertyFilter(){
+            @Override
+            public boolean apply(Object source, String name, Object value) {
+                return value == null;
+            }
+        });
+    }
+
+	/**
+	 * 
+	 * @author yangquanliang
+	 * @Description: 添加或修改属性 不存在添加 存在修改
+	 * @param @param object
+	 * @param @param addMap
+	 * @param @return
+	 * @return JSONObject
+	 * @throws
+	 */
+	public static JSONObject addAndModifyAttrJsonObject(Object object,
+			Map<String, Object> addAndModifyMap) {
+		
+		initJSONObjectConfig();
+		
+		if (object != null) {
+			JSONObject objj = JSONObject.fromObject(object,config);
+
+			for (String key : addAndModifyMap.keySet()) {
+				objj.put(key, addAndModifyMap.get(key));
+			}
+			return objj;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * @author yangquanliang
+	 * @Description: 修改对象属性 返回客户端需要的字段
+	 * @param @param object
+	 * @param @param addMap 需要添加的key value 或者要修改的key value 不存在的key就是添加 存在的key
+	 *        就是修改
+	 * @param @param excludeKey 要删除掉的key value 要删除的key value比较少时使用
+	 * @param @return 删的少 加的也少
+	 * @return JSONObject
+	 * @throws
+	 */
+	public static JSONObject getExObjectAttrJsonObject(Object object,
+			Map<String, Object> addAndModifyMap, String... excludeKey) {
+		if (object != null) {
+			
+			initJSONObjectConfig();
+
+			JSONObject objj = JSONObject.fromObject(object,config);
+
+			for (String exkey : excludeKey) {
+				objj.remove(exkey);
+			}
+
+			for (String key : addAndModifyMap.keySet()) {
+				objj.put(key, addAndModifyMap.get(key));
+			}
+
+			return objj;
+
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
+	 * @author yangquanliang
+	 * @Description: 修改对象属性 返回客户端需要的字段
+	 * @param @param object
+	 * @param @param excludeKey 要删除掉的key value 要删除的key value比较少时使用
+	 * @param @return 删的少 加的也少
+	 * @return JSONObject
+	 * @throws
+	 */
+	public static JSONObject excludeAttrJsonObject(Object object,
+			String... excludeKey) {
+		
+		initJSONObjectConfig();
+		if (object != null) {
+
+			JSONObject objj = JSONObject.fromObject(object,config);
+
+			for (String exkey : excludeKey) {
+				objj.remove(exkey);
+			}
+
+			return objj;
+
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
+	 * 
+	 * @author yangquanliang
+	 * @Description: 修改对象属性
+	 * @param @param object
+	 * @param @param addMap 需要添加的key value
+	 * @param @param IncludeKey 需要保留的key value 针对保留的比较少 不需要的比较多得情况
+	 * @param @return 要删得太多 留下的少
+	 * @return JSONObject
+	 * @throws
+	 */
+	public static JSONObject getInObjectAttrJsonObject(Object object,
+			Map<String, Object> addAndModifyMap, String... IncludeKey) {
+
+		initJSONObjectConfig();
+		if (object != null) {
+			JSONObject newJson = new JSONObject();
+
+			JSONObject parmJson = JSONObject.fromObject(object,config);
+
+			for (String inkey : IncludeKey) {
+				newJson.put(inkey, parmJson.get(inkey));
+			}
+
+			for (String key : addAndModifyMap.keySet()) {
+				newJson.put(key, addAndModifyMap.get(key));
+			}
+
+			return newJson;
+
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
+	 * 
+	 * @author yangquanliang
+	 * @Description: 修改对象属性
+	 * @param @param object
+	 * @param @param IncludeKey 需要保留的key value 针对保留的比较少 不需要的比较多得情况
+	 * @param @return 要删得太多 留下的少
+	 * @return JSONObject
+	 * @throws
+	 */
+	public static JSONObject includeAttrJsonObject(Object object,
+			String... IncludeKey) {
+
+		initJSONObjectConfig();
+		if (object != null) {
+			JSONObject newJson = new JSONObject();
+
+			JSONObject parmJson = JSONObject.fromObject(object,config);
+
+			for (String inkey : IncludeKey) {
+				newJson.put(inkey, parmJson.get(inkey));
+			}
+
+			return newJson;
+
+		} else {
+			return null;
+		}
+
+	}
+	
+	
+	/**
+	 * 
+	* @author yangquanliang
+	* @Description: 批量处理list对象属性 排除list元素的某些属性
+	* @param @param list
+	* @param @param excludeKey
+	* @param @return
+	* @return JSONArray
+	* @throws
+	 */
+
+	public static JSONArray getExListObjectAttrJsonArray(
+			List<? extends Object> list, 
+			String... excludeKey) {
+		
+		initJSONObjectConfig();
+		if (list != null && list.size() > 0) {
+			JSONArray jarr = new JSONArray();
+			for (Object obj : list) {
+				JSONObject objj = JSONObject.fromObject(obj,config);
+				for (String exkey : excludeKey) {
+					objj.remove(exkey);
+				}
+				jarr.add(objj);
+			}
+
+			return jarr;
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
+	 * 
+	* @author yangquanliang
+	* @Description: 批量处理list对象属性 只保留list元素的某些属性
+	* @param @param list
+	* @param @param IncludeKey
+	* @param @return
+	* @return JSONArray
+	* @throws
+	 */
+	public static JSONArray getINListObjectAttrJsonArray(
+			List<? extends Object> list,String... IncludeKey) {
+		initJSONObjectConfig();
+		if (list != null && list.size() > 0) {
+			JSONArray jarr = new JSONArray();
+			for (Object obj : list) {
+				JSONObject jsonRe = new JSONObject();
+				JSONObject parmJson = JSONObject.fromObject(obj,config);
+
+				for (String inkey : IncludeKey) {
+					jsonRe.put(inkey, parmJson.get(inkey));
+				}
+
+				jarr.add(jsonRe);
+			}
+
+			return jarr;
+
+		} else {
+			return null;
+		}
+
+	}
+}

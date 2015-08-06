@@ -1,0 +1,121 @@
+package operation.controller.oss;
+
+import java.util.List;
+
+import net.sf.json.JSONObject;
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.service.ossindex.OssIndexService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import tools.Config;
+import tools.ResponseContainer;
+
+
+/**
+ * 
+* @ClassName: OssIndexController
+* @Description: 运营平台首页管理
+* @author Administrator
+* @date 2015年3月2日 下午5:16:36
+*
+ */
+@Controller
+@RequestMapping("oss/index")
+public class OssIndexController extends BaseController {
+	@Autowired
+	private OssIndexService ossIndexService;
+	
+	/**
+	 * 
+	 * @Title: getBoxPostByName
+	 * @auther Tangli
+	 * @Description: 取首页干货内容
+	 * @param name
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getIndexDry")
+	public @ResponseBody ResponseContainer getBoxPostByName(String name){
+		try {
+			List<JSONObject>res=ossIndexService.findIndexDry(name);
+			getReponseData().setResult(res);
+			return addResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(Config.STATUS_201, Config.MSG_201, null, Config.RESP_MODE_10, "");
+
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: getBoxPostByName
+	 * @auther Tangli
+	 * @Description: 取首页群组内容
+	 * @param name
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getIndexgroup")
+	public @ResponseBody ResponseContainer getIndexgroup(String name){
+		try {
+			List<JSONObject>res=ossIndexService.findIndexGroups(name);
+			getReponseData().setResult(res);
+			return addResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(Config.STATUS_201, Config.MSG_201, null, Config.RESP_MODE_10, "");
+
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: getBoxPostByName
+	 * @auther Tangli
+	 * @Description: 取首页话题内容
+	 * @param name
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getIndextopic")
+	public @ResponseBody ResponseContainer getIndextopic(String name){
+		try {
+			List<JSONObject>res=ossIndexService.findIndexTopics(name);
+			getReponseData().setResult(res);
+			return addResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(Config.STATUS_201, Config.MSG_201, null, Config.RESP_MODE_10, "");
+
+		}
+	}
+	
+	
+
+	/**
+	 * 
+	 * @Title: getBoxPostByName
+	 * @auther Tangli
+	 * @Description: 取首页课程内容
+	 * @param name
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getIndexcourse")
+	public @ResponseBody ResponseContainer getIndexcourse(String name){
+		try {
+			List<JSONObject>res=ossIndexService.findIndexCourse(name);
+			getReponseData().setResult(res);
+			return addResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(Config.STATUS_201, Config.MSG_201, null, Config.RESP_MODE_10, "");
+
+		}
+	}
+	
+	
+}

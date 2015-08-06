@@ -1,0 +1,551 @@
+package operation.service.space;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.file.FileOperation;
+import operation.pojo.file.FileOperationInfo;
+import operation.pojo.file.FileStoreInfo;
+import operation.pojo.group.ResponseGroup;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.like.LikeOrUnlikePojo;
+import operation.pojo.space.ResponseSpace;
+import operation.pojo.space.Space;
+import operation.pojo.user.ResponseUser;
+import operation.pojo.user.User;
+import operation.repo.group.GroupRepository;
+import operation.repo.share.ShareRepository;
+import operation.repo.space.SpaceRepository;
+import operation.repo.user.UserRepository;
+import operation.service.file.MyFileService;
+import operation.service.subject.LikeOrUnlikeService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import tools.Config;
+import tools.MD5Util;
+import tools.StringUtil;
+
+@Service
+@Component
+public class SpaceService {
+
+	private static final Logger logger=Logger.getLogger(SpaceService.class);
+	@Autowired
+	public MyFileService myFileService;
+	@Autowired
+	public SpaceRepository spaceRepository;
+	@Autowired
+	public LikeOrUnlikeService likeOrUnlikeService ;
+	@Autowired
+	public ShareRepository shareRepository;
+	@Autowired
+	public UserRepository userRepo;
+	@Autowired
+	public GroupRepository groupRepo;
+//	/**
+//	 * 空间文件上传文件
+//	 * @param groupId 群ID
+//	 * @param user  上传人
+//	 * @param file 上传文件
+//	 * @return  
+//	 * @throws XueWenServiceException
+//	 */
+//	public ResponseSpace upload(String spaceAdmin,User user,MultipartFile file,String fileName,String intro,List<Object> tags)throws XueWenServiceException{
+//		logger.info("群空间图片上传======groupId:"+spaceAdmin+"=====user:"+user.getNickName());
+//
+//		if(StringUtil.isBlank(spaceAdmin) || user==null || file == null || file.isEmpty()){
+//			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+//		}
+//		try {
+//			//得到file的MD5
+//			String fileMD5=MD5Util.getFileMD5(file.getBytes());
+//			//通过此MD5去数据库中查找是否有相同MD5的文件
+//			FileStoreInfo fileStoreInfo=myFileService.findOneByFileMD5(fileMD5);
+//			if(fileStoreInfo==null){
+//				
+//				logger.info("=======文件名===="+file.getOriginalFilename());
+//                myFileService.uploadFile(file, Config.SPACE);
+//				//需要进行文件存储
+//				fileStoreInfo=new FileStoreInfo();
+//				fileStoreInfo.setFileMD5(fileMD5);
+//				fileStoreInfo.setFileServerName(file.getOriginalFilename());
+//				fileStoreInfo.setFileContext(myFileService.findFileContext(file.getOriginalFilename()));
+//				fileStoreInfo.setFileSuffix(myFileService.getFileSuffix(file.getOriginalFilename()));
+//				fileStoreInfo.setFileLocal(Config.SPACE+"/"+file.getOriginalFilename());
+//				fileStoreInfo.setFileUrl(Config.contextPath+"/space/"+file.getOriginalFilename());
+//				fileStoreInfo.setFileLength(file.getSize());
+//				fileStoreInfo=myFileService.saveFileStoreInfo(fileStoreInfo);
+//			}
+//			long time=System.currentTimeMillis();
+//			//文件基本操作信息存储
+//		    FileOperationInfo foi=new FileOperationInfo();
+//			foi.setFileMD5(fileMD5);
+//			foi.setUploadUser(user.getId());
+//			foi.setUploadTime(time);
+//			foi.setFileName(fileName);
+//			foi.setIntro(intro);
+//			foi.setTags(tags);
+//			foi.setLikeCount(0);
+//			foi.setUnLikeCount(0);
+//			foi.setShareCount(0);
+//			foi.setAttentionCount(0);
+//			foi.setReadCount(0);
+//			foi.setDownloadCount(0);
+//			foi=myFileService.saveFoi(foi);
+//			//群空间资料存储
+//			Space space=findOneSpace(spaceAdmin);
+//			if(space==null){
+//				space=new Space();
+//				space.setSpaceAdmin(spaceAdmin);
+//				List<Object> files=new ArrayList<Object>();
+//				files.add(foi.getId());
+//				space.setFiles(files);
+//				space=saveSpace(space);
+//			}else{
+//				if(space.getFiles()==null || space.getFiles().size()<=0){
+//					List<Object> files=new ArrayList<Object>();
+//					files.add(foi.getId());
+//					space.setFiles(files);
+//				}else{
+//					space.getFiles().add(foi.getId());
+//					space=saveSpace(space);
+//				}
+//			}
+//			return responseSpace(space);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		return null;
+//	}
+	
+	/**
+	 * 根据spaceNum(GroupID或者UserID)
+	 * @param spaceNum
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Space findOneSpace(String spaceAdmin)throws XueWenServiceException{
+		if(StringUtil.isBlank(spaceAdmin)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			return spaceRepository.findOneSpceBySpaceAdmin(spaceAdmin);
+		}
+	}
+	
+	public ResponseSpace spaceCheck(String spaceAdmin)throws XueWenServiceException{
+		Space space=findOneSpace(spaceAdmin);
+		if(space == null){
+			Space sp=new Space();
+			sp.setSpaceAdmin(spaceAdmin);
+			Space afterSp=saveSpace(sp);
+			return responseSpace(afterSp);
+		}else{
+			return responseSpace(space);
+		}
+	}
+	/**
+	 * 保存SPace
+	 * @param space
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Space saveSpace(Space space)throws XueWenServiceException{
+		if(space==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			return spaceRepository.save(space);
+		}
+	}
+	
+	
+	
+	/**
+	 * 用户赞
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	public FileOperationInfo like(String id, String userId) throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+		}
+		LikeOrUnlikePojo like = likeOrUnlikeService.like("fileOperationInfo", id, userId);
+		foi.setWholiked(like.getWhoLiked());
+		foi.setLikeCount(like.getLikeCount());
+		foi.setWhounliked(like.getWhoUnLiked());
+		foi.setUnLikeCount(like.getUnLikeCount());
+		FileOperationInfo fileOperationInfo=myFileService.saveFoi(foi);
+		return fileOperationInfo;
+	}
+
+	/**
+	 * 用户不赞
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	public FileOperationInfo unlike(String id, String userId)
+			throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+		}
+		LikeOrUnlikePojo like = likeOrUnlikeService.unlike("fileOperationInfo", id, userId);
+		foi.setWholiked(like.getWhoLiked());
+		foi.setLikeCount(like.getLikeCount());
+		foi.setWhounliked(like.getWhoUnLiked());
+		foi.setUnLikeCount(like.getUnLikeCount());
+		FileOperationInfo fileOperationInfo=myFileService.saveFoi(foi);
+		return fileOperationInfo;
+	}
+	
+	/**
+	 * 用户分享
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	public FileOperationInfo share(String id, String userId, String shareAdrr)throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+		}
+		List<Object> share = foi.getWhoShared();
+		int shareCount = foi.getShareCount();
+		if (share == null) {
+			share = new ArrayList<Object>();
+		}
+		if (share.size() == 0 || !share.contains(userId)) {
+			share.add(userId);
+			shareCount++;
+			foi.setWhoShared(share);
+			foi.setShareCount(shareCount);
+		} else {
+			return foi;
+		}
+		FileOperationInfo fileOperationInfo=myFileService.saveFoi(foi);
+//		Share shareObject = new Share();
+//		shareObject.setShareAdrr(shareAdrr);
+//		shareObject.setShareTime(System.currentTimeMillis());
+//		shareObject.setSubjectId(fileOperationInfo.getId());
+//		shareObject.setUserId(userId);
+//		Share shareResult = shareRepository.save(shareObject);
+//		if (null == shareResult) {
+//			throw new XueWenServiceException(Config.STATUS_201,
+//					Config.MSG_SHARE_201, null);
+//		}
+		return fileOperationInfo;
+	}
+	
+	
+	/**
+	 * 用户关注
+	 * 
+	 * @param id
+	 *            话题Id
+	 * @param userId
+	 *            用户Id
+	 * @return
+	 */
+	public FileOperationInfo attention(String id, String userId)throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+		List<Object> whoAttention = foi.getWhoAttention();
+		int attentionCount = foi.getAttentionCount();
+
+		if (whoAttention == null) {
+			whoAttention = new ArrayList<Object>();
+		}
+		if (whoAttention.size() == 0 || !whoAttention.contains(userId)) {
+			whoAttention.add(userId);
+			attentionCount++;
+			foi.setWhoAttention(whoAttention);
+			foi.setAttentionCount(attentionCount);
+		} else {
+			return foi;
+		}
+		FileOperationInfo fileOperationInfo = myFileService.saveFoi(foi);
+		return fileOperationInfo;
+	}
+	
+	/**
+	 * 用户阅读文件
+	 * 
+	 * @param id
+	 *            话题Id
+	 * @param userId
+	 *            用户Id
+	 * @return
+	 */
+	public FileOperationInfo read(String id, String userId)throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+		List<Object> whoRead=foi.getWhoRead();
+		int readCount = foi.getReadCount();
+
+		if (whoRead == null) {
+			whoRead = new ArrayList<Object>();
+		}
+		long time=System.currentTimeMillis();
+		if (whoRead.size() == 0 || !whoRead.contains(userId)) {
+			whoRead.add(userId);
+			readCount++;
+			foi.setWhoRead(whoRead);
+			foi.setReadCount(readCount);
+		} else{
+			return foi;
+		}
+		//保存用户学习记录
+		saveFileOperation(userId,id,"read",time);
+		FileOperationInfo fileOperationInfo = myFileService.saveFoi(foi);
+		return fileOperationInfo;
+	}
+	
+	
+	/**
+	 * 用户下载文件
+	 * 
+	 * @param id
+	 *            话题Id
+	 * @param userId
+	 *            用户Id
+	 * @return
+	 */
+	public FileOperationInfo download(String id, String userId)throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+		List<Object> whoDownload=foi.getWhoDownload();
+		int downloadCount = foi.getDownloadCount();
+		if (whoDownload == null) {
+			whoDownload = new ArrayList<Object>();
+		}
+		long time=System.currentTimeMillis();
+		if (whoDownload.size() == 0 || !whoDownload.contains(userId)) {
+			whoDownload.add(userId);
+			downloadCount++;
+			foi.setWhoDownload(whoDownload);
+			foi.setDownloadCount(downloadCount);
+		} else{
+			return foi;
+		}
+		//保存用户学习记录
+		saveFileOperation(userId,id,"download",time);
+		FileOperationInfo fileOperationInfo = myFileService.saveFoi(foi);
+		return fileOperationInfo;
+	}
+	
+	/**
+	 * 赞，不赞，分享，关注成员查询
+	 * //action 的值为like,unlike,share,attention
+	 * @param groupId
+	 * @return
+	 */
+	
+	public List<Object> checkMember(String id, String userId,String action)throws XueWenServiceException {
+		FileOperationInfo foi=myFileService.getFoi(id);
+		if (foi == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+        if(action.equals("like")){
+        	
+        	List<User> whoLike = likeOrUnlikeService.getWhoLiked("fileOperationInfo", id);
+//    		//Subject subject = subjectRepo.findOne(id);
+//    		subject.setWholiked(like.getWhoLiked());
+//    		subject.setLikeCount(like.getLikeCount());
+//    		subject.setWhounliked(like.getWhoUnLiked());
+//    		subject.setUnLikeCount(like.getUnLikeCount());
+        	
+        	
+        //	List<Object> whoLike=subject.getWholiked();
+    	if (null != whoLike && whoLike.size() > 0) {
+    			List<ResponseUser> rss = new ResponseUser().toResponseUser(whoLike);
+    			List<Object> owners = new ArrayList<Object>();
+    			owners.addAll(rss);
+    			return owners;
+    		}else{
+    			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+    		}
+        	//action 的值为like,unlike,share,attention
+		}else if(action.equals("unlike")){
+			
+			List<User> whoUnlike = likeOrUnlikeService.getWhoUnLiked("fileOperationInfo", id);
+		//	List<Object> whoUnlike=subject.getWhounliked();
+			if (null != whoUnlike && whoUnlike.size() > 0) {
+				List<ResponseUser> rss = new ResponseUser().toResponseUser((whoUnlike));
+				List<Object> owners = new ArrayList<Object>();
+				owners.addAll(rss);
+				return owners;
+			}else{
+    			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+    		}
+		}else if(action.equals("share")){
+			List<Object> whoShare=foi.getWhoShared();
+			if (null != whoShare && whoShare.size() > 0) {
+				List<User> users = userRepo.findByIdIn(whoShare);
+				List<ResponseUser> rss = new ResponseUser().toResponseUser(users);
+				List<Object> owners = new ArrayList<Object>();
+				owners.addAll(rss);
+				return owners;
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+			}
+		}else if(action.equals("attention")){
+			List<Object> whoAttention=foi.getWhoAttention();
+			if (null != whoAttention && whoAttention.size() > 0) {
+				List<User> users = userRepo.findByIdIn(whoAttention);
+				List<ResponseUser> rss = new ResponseUser().toResponseUser(users);
+				List<Object> owners = new ArrayList<Object>();
+				owners.addAll(rss);
+				return owners;
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+			}
+		}else if(action.equals("read")){
+			List<Object> whoRead=foi.getWhoRead();
+			if (null != whoRead && whoRead.size() > 0) {
+				List<User> users = userRepo.findByIdIn(whoRead);
+				List<ResponseUser> rss = new ResponseUser().toResponseUser(users);
+				List<Object> owners = new ArrayList<Object>();
+				owners.addAll(rss);
+				return owners;
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+			}
+		}else if(action.equals("download")){
+			List<Object> whoDownload=foi.getWhoDownload();
+			if (null != whoDownload && whoDownload.size() > 0) {
+				List<User> users = userRepo.findByIdIn(whoDownload);
+				List<ResponseUser> rss = new ResponseUser().toResponseUser(users);
+				List<Object> owners = new ArrayList<Object>();
+				owners.addAll(rss);
+				return owners;
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+			}
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+		}
+	}
+	
+	
+	/**
+	 * 记录用户学习轨迹
+	 * @param userId
+	 * @param fileOperationInfoId
+	 * @param operation
+	 * @param time
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean saveFileOperation(String userId,String fileOperationInfoId,String operation,long time)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) ||  StringUtil.isBlank(fileOperationInfoId) || StringUtil.isBlank(operation)){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201, null);
+		}else{
+			FileOperation fo=myFileService.getFoByUserIdAndFoiId(userId, fileOperationInfoId);
+			if(fo == null){
+				fo=new FileOperation();
+				fo.setUser(userId);
+				fo.setFileOperationInfo(fileOperationInfoId);
+			}
+			if(operation.equals("read")){
+				List<Long> read=fo.getRead();
+				if(read==null){
+					read=new ArrayList<Long>();
+					read.add(time);
+					fo.setRead(read);
+				}else{
+					fo.getRead().add(time);
+				}
+			}else if(operation.equals("download")){
+				List<Long> download=fo.getDownload();
+				if(download==null){
+					download=new ArrayList<Long>();
+					download.add(time);
+					fo.setDownload(download);
+				}else{
+					fo.getDownload().add(time);
+				}
+			}else{
+				List<Long> live=fo.getLive();
+				if(live==null){
+					live=new ArrayList<Long>();
+					live.add(time);
+					fo.setLive(live);
+				}else{
+					fo.getLive().add(time);
+				}
+			}
+			myFileService.saveFileOperation(fo);
+			return true;
+		}
+	}
+	
+	
+	/**
+	 * 查询用户某个课程的学习轨迹
+	 * @param userId
+	 * @param fileOperationInfoId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileOperation findFileOperaiton(String userId,String fileOperationInfoId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) ||  StringUtil.isBlank(fileOperationInfoId)){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201, null);
+		}else{
+			FileOperation fo=myFileService.getFoByUserIdAndFoiId(userId, fileOperationInfoId);
+		    if(fo==null){
+		    	throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201, null);
+		    }
+			return fo;
+		}
+	}
+	
+	
+	public ResponseSpace responseSpace(Space space)throws XueWenServiceException{
+		if(space == null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201, null); 
+		}else{
+			ResponseSpace rs=new ResponseSpace();
+			rs.setId(space.getId());
+			User user=userRepo.findOneById(space.getSpaceAdmin().toString());
+			if(user == null){
+				XueWenGroup group=groupRepo.findOneById(space.getSpaceAdmin().toString());
+				if(group ==null){
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201, null);
+				}else{
+					rs.setSpaceAdmin(new ResponseGroup(group));
+				}
+			}else{
+				rs.setSpaceAdmin(new ResponseUser(user));
+			}
+			if(space.getFiles() == null || space.getFiles().size()==0 ){
+				return rs;
+			}else{
+				List<FileOperationInfo> fois=myFileService.getFois(space.getFiles());
+				rs.setFiles(fois);
+				return rs;
+			}
+		}
+	}
+	
+
+}

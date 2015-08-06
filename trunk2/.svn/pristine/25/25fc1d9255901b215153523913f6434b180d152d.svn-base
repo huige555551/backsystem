@@ -1,0 +1,440 @@
+package operation.service.course;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.Course;
+import operation.pojo.course.GroupCourse;
+import operation.pojo.course.NewCourse;
+import operation.pojo.user.User;
+import operation.repo.course.CourseRepository;
+import operation.repo.course.GroupCourseRepository;
+import operation.service.group.GroupService;
+import operation.service.user.UserService;
+
+import org.jivesoftware.smack.util.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+
+public class GroupCourseService {
+
+	@Autowired
+	public GroupCourseRepository groupCourseRepository;
+	
+	@Autowired
+	public UserCourseService userCourseService;
+	
+	@Autowired
+	public CourseRepository courseRepository;
+	
+	@Autowired
+	private NewCourseService newCourseService;
+	
+	@Autowired
+	public CourseService courseService;
+	
+	@Autowired
+	public UserService userService;
+	
+	@Autowired
+	public GroupService groupService;
+	/**
+	 * 小组课堂查看
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupCourse> getGroupCourses(String pageNumber, String pageSize,Sort st,String groupId) throws XueWenServiceException{
+		Pageable pageable = null;
+		if (!StringUtils.isNullOrEmpty(pageNumber) && !StringUtils.isNullOrEmpty(pageSize)) {
+			pageable = new PageRequest(Integer.parseInt(pageNumber),Integer.parseInt(pageSize),st);
+		} else {
+			pageable = new PageRequest(Integer.parseInt("0"),Integer.parseInt("10"),st);
+		}
+		if(StringUtil.isBlank(groupId)){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		Page<GroupCourse> groupCourses=groupCourseRepository.findByGroup(groupId,pageable);
+		if (groupCourses.getTotalElements() < 0) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		return groupCourses;
+	}
+	
+	/**
+	 * 分享课程到小组课堂
+	 * @param groupId
+	 * @param courseId
+	 * @throws XueWenServiceException
+	 */
+	public void shareCourseToGroupClass(String groupId,String courseId,User user)throws XueWenServiceException{
+		GroupCourse gc=groupCourseRepository.findByGroupAndCourse(groupId, courseId);
+		long time=System.currentTimeMillis();
+		if(gc==null){
+			//此课程第一次分享
+			gc=new GroupCourse(groupId,courseId,user.getId());
+		}else{
+			//此课程已经被分享
+			Map<String,Long> whoImport=gc.getWhoImport();
+			Set<String> users=whoImport.keySet();
+			if(users.contains(user.getId())){
+				//此课程已经被此人分享，则更新时间
+				gc.setUtime(time);
+			}else{
+				//此课程未被此人分享，则加入导入者列表
+				whoImport.put(user.getId(), time);
+				gc.setWhoImport(whoImport);
+				gc.setImportCount(gc.getImportCount()+1);
+				gc.setUtime(time);
+			}
+		}
+		courseService.countOperation(user.getId(), courseId,"share");
+		groupCourseRepository.save(gc);
+		
+		
+	}
+	
+	/**
+	 * 分享课程到小组课堂Pc
+	 * @param groupId
+	 * @param courseId
+	 * @throws XueWenServiceException
+	 */
+	public boolean shareCourseToGroupClassPc(String groupId,String courseId,User user)throws XueWenServiceException{
+		GroupCourse gc=groupCourseRepository.findByGroupAndCourse(groupId, courseId);
+		long time=System.currentTimeMillis();
+		if(gc==null){
+			//此课程第一次分享
+			gc=new GroupCourse(groupId,courseId,user.getId());
+		}else{
+			//此课程已经被分享
+			Map<String,Long> whoImport=gc.getWhoImport();
+			Set<String> users=whoImport.keySet();
+			if(users.contains(user.getId())){
+				//此课程已经被此人分享，则更新时间
+				gc.setUtime(time);
+			}else{
+				//此课程未被此人分享，则加入导入者列表
+				whoImport.put(user.getId(), time);
+				gc.setWhoImport(whoImport);
+				gc.setImportCount(gc.getImportCount()+1);
+				gc.setUtime(time);
+			}
+		}
+		boolean bool = newCourseService.countOperationPc(user.getId(), courseId,"share");
+		groupCourseRepository.save(gc);
+		return bool;
+	}
+	
+	/**
+	 * 小组课堂课程分享其他目标地址
+	 * @param groupCoursId
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void shareCourseToOthers(String fromGroupId,String toGroupId,String courseId,User user)throws XueWenServiceException{
+		GroupCourse gc=groupCourseRepository.findByGroupAndCourse(fromGroupId, courseId);
+		long time=System.currentTimeMillis();
+		if(gc==null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}else{
+			//更新小组课堂的分享数量
+			Map<String,Long> whoShare=gc.getWhoShare();
+			if(whoShare == null){
+				whoShare=new HashMap<String, Long>();
+			}
+			Set<String> users=whoShare.keySet();
+			if(users == null || users.size()==0 || !users.contains(user.getId())){
+				//此课程未被此人分享，则增加分享数和更新时间
+				whoShare.put(user.getId(), time);
+				gc.setWhoShare(whoShare);
+				gc.setShareCount(gc.getShareCount()+1);
+				gc.setUtime(time);
+			}else{
+				//此课程已经被此人分享，则增加分享数量
+				gc.setShareCount(gc.getShareCount()+1);
+				gc.setUtime(time);
+			}
+		}
+		
+		//将课程分享到目标小组课堂
+		if(!StringUtil.isBlank(toGroupId)){
+			shareCourseToGroupClass(toGroupId,courseId,user);
+		}else{
+			courseService.countOperation(user.getId(), gc.getCourse().toString(),"share");
+		}
+		groupCourseRepository.save(gc);
+	}
+
+	/**
+	 * 收藏小组课堂课程到用户收藏列表
+	 * @param groupCoursId
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void favCourse(String fromGroupId,String courseId,User user)throws XueWenServiceException{
+		GroupCourse gc=groupCourseRepository.findByGroupAndCourse(fromGroupId, courseId);
+		if(gc==null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}else{
+			Map<String,Long> whoFav=gc.getWhoFav();
+			if(whoFav == null){
+				whoFav=new HashMap<String, Long>();
+			}
+			Set<String> users=whoFav.keySet();
+			if(users == null || users.size()==0 || !users.contains(user.getId())){
+				//此课程未被此用户收藏
+				long time=System.currentTimeMillis();
+				whoFav.put(user.getId(), time);
+				gc.setWhoFav(whoFav);
+				gc.setFavCount(gc.getFavCount()+1);
+				gc.setUtime(time);
+				//加入用户课程收藏列表
+				userCourseService.addFav(gc.getCourse().toString(),user.getId(),fromGroupId);
+				groupCourseRepository.save(gc);
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,
+						Config.MSG_FAV_201, null);
+			}
+			
+		}
+	}
+	
+	/**
+	 * 学习此课程
+	 * @param groupCoursId
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void studyCourse(String fromGroupId,String courseId,User user,String jsonStr,String chapterId)throws XueWenServiceException{
+		GroupCourse gc=groupCourseRepository.findByGroupAndCourse(fromGroupId, courseId);
+		if(gc==null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}else{
+			Map<String,Long> whoStudy=gc.getWhoStudy();
+			if(whoStudy == null){
+				whoStudy=new HashMap<String, Long>();
+			}
+			Set<String> users=whoStudy.keySet();
+			if(users == null || users.size()==0 || !users.contains(user.getId())){
+				//此课程未被此用户学习过
+				long time=System.currentTimeMillis();
+				whoStudy.put(user.getId(), time);
+				gc.setWhoStudy(whoStudy);
+				gc.setStudyCount(gc.getStudyCount()+1);
+				gc.setUtime(time);
+				//加入用户课程学习列表
+				//userCourseService.addStudy(gc.getCourse().toString(),user.getId(),timer,proess);
+				userCourseService.addStudyNew(gc.getCourse().toString(),user.getId(),chapterId,jsonStr);
+				groupCourseRepository.save(gc);
+			}
+		}
+	}
+	
+	/**
+	 * 将课程信息组装入小组课堂的课程列表
+	 * @param groupCourses
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<GroupCourse> toResponseGroupsCourseList(List<GroupCourse> groupCourses)throws XueWenServiceException{
+		if(groupCourses==null || groupCourses.size()==0){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		List<GroupCourse> gcs=new ArrayList<GroupCourse>();
+		for(GroupCourse groupCourse:groupCourses){
+			gcs.add(toResponseGroupCourse(groupCourse));
+		}
+		return gcs;
+	}
+	
+	/**
+	 * 将课程信息组装入小组课堂的课程列表
+	 * @param groupCourses
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<GroupCourse> toResponseNewGroupsCourseList(List<GroupCourse> groupCourses)throws XueWenServiceException{
+		if(groupCourses==null || groupCourses.size()==0){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		List<GroupCourse> gcs=new ArrayList<GroupCourse>();
+		for(GroupCourse groupCourse:groupCourses){
+			gcs.add(toResponseNewGroupCourse(groupCourse));
+		}
+		return gcs;
+	}
+	
+	
+	/**
+	 * 将课程信息组装入GroupCourse对象，以便于前端显示
+	 * @param groupCourse
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public GroupCourse toResponseGroupCourse(GroupCourse groupCourse)throws XueWenServiceException{
+		if(groupCourse==null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		String courseId=groupCourse.getCourse().toString();
+		Course course=courseRepository.findOne(courseId);
+		groupCourse.setCourse(course);
+		groupCourse.setSharePerson(getSharePerson(groupCourse.getWhoImport().keySet()));
+		return groupCourse;
+	}
+	
+	/**
+	 * 将课程信息组装入GroupCourse对象，以便于前端显示
+	 * @param groupCourse
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public GroupCourse toResponseNewGroupCourse(GroupCourse groupCourse)throws XueWenServiceException{
+		if(groupCourse==null){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		String courseId=groupCourse.getCourse().toString();
+		
+		NewCourse  course=newCourseService.getById(courseId);
+		groupCourse.setCourse(course);
+		groupCourse.setSharePerson(getSharePerson(groupCourse.getWhoImport().keySet()));
+		return groupCourse;
+	}
+	
+	/**
+	 * 得到课程的分享人
+	 * @param sps
+	 * @return
+	 */
+	private String getSharePerson(Set<String> sps)throws XueWenServiceException{
+		int j=3;
+		int i=0;
+		if(sps.size()<3){
+			j=sps.size();
+		}
+		String shareParen="";
+		for(String str:sps){
+			if(userService.findShareUser(str) !=null){
+			String name=userService.findUser(str).getNickName();
+			if(i<j){
+				if(shareParen.length()>0){
+					shareParen=shareParen+"、"+name;
+				}else{
+					shareParen=name;
+				}
+			}else{
+				break;
+			}
+			i++;
+			}
+		}
+		String last="";
+		if(sps.size()==1){
+			last=" 分享";
+		}else if(sps.size()==2 || sps.size()==3){
+			last=" 等分享";
+		}else{
+			last=" ……等分享";
+		}
+		return "由 "+shareParen+last;
+	}
+	
+	
+	/**
+	 * 发现小组课程（只查询6个，根据我所在的群组ID集合，过滤出本人不在的群组）
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupCourse> findAll(Pageable pageable)throws XueWenServiceException {
+		//List<Object> groupIsOpen = groupService.findGroupByIsOpen(myGrouplist);
+		Page<GroupCourse>  groupCourse = groupCourseRepository.findAll(pageable);
+		return groupCourse;
+	}
+	
+	/**
+	 * 发现更多小组课程
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<GroupCourse> findAllGroupCourse(Pageable pageable)throws XueWenServiceException {
+	//	List<Object> groupALL = groupService.findAllGroups();
+		Page<GroupCourse>  groupCourse = groupCourseRepository.findAll(pageable);
+		return groupCourse;
+	}
+	/**
+	 * 查询某一小组下的课程数量
+	 * @param groupId
+	 * @return
+	 */
+	public int getCourseCountByGroup(String groupId){
+		return groupCourseRepository.countByGroup(groupId);
+	}
+
+	/**
+	 * 
+	 * @Title: findByCourseIn
+	 * @Description: 根据courseId查询
+	 * @param courseIds
+	 * @return List<GroupCourse>
+	 * @throws
+	 */
+	public Page<GroupCourse> findByCourseIn(List<String> courseIds, Pageable pageable) {
+		return groupCourseRepository.findByCourseIn(courseIds, pageable);
+	}
+
+	/**
+	 * 
+	 * @Title: findByGroupIn
+	 * @Description: 根据群组查看所有关系
+	 * @param groupId
+	 * @return List<GroupCourse>
+	 * @throws
+	 */
+	public List<GroupCourse> findByGroupIn(String groupId) {
+		return groupCourseRepository.findByGroupIn(groupId);
+	}
+	
+	/**
+	 * 
+	 * @Title: groupCourseToSharesPc
+	 * @Description: 推荐多个课程进入小组分享  多个courseIds用,分割
+	 * @param groupId
+	 * @param tagName
+	 * @param user
+	 * @return
+	 * @throws XueWenServiceException List<String>
+	 * @throws
+	 */
+	public void coursesToSharesPc(String groupId, String courseIds, User user) throws XueWenServiceException {
+		if (org.apache.commons.lang.StringUtils.isBlank(groupId)) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		//选择的课程不为空时
+		if (org.apache.commons.lang.StringUtils.isNotBlank(courseIds)) {
+			String[] courseIdArray = courseIds.split(",");
+			for (String courseId : courseIdArray) {
+				shareCourseToGroupClassPc(groupId, courseId, user);
+			}
+		} 
+	}
+
+}

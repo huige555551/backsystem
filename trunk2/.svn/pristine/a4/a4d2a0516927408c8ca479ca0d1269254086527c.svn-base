@@ -1,0 +1,302 @@
+package operation.pojo.drycargo;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import operation.pojo.user.UserShort;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+
+public class Drycargo {
+	@Id
+	private String id;
+	@Indexed
+	private Object group;//群组（数据库存储群组ID）
+	@Indexed
+	private String url; //干货的源地址
+	private String fileUrl; //干货的关键图片或路径
+	@Indexed
+	private String message;//干货的内容
+	private String description;//干货信息
+	private long ctime;//创建时间
+	private long utime;//修改时间
+	private List<UserShort> sharePerList;// 分享人列表
+	public List<Object> shareids;// 分享人id列表查询使用
+
+	private Map<String,Long> whoView;//浏览人
+	private int viewCount; //浏览量
+	
+	
+	private Object drycargoTagName;
+	@Indexed
+	private Object drycargoId; //干货资源ID
+	
+	private int replyCount; // 回复数
+	private int newReplyCount;//主题的新回复数
+	private Map<String,Long> whoLiked;//谁赞过存赞过的用户id 使用LinkedList并判断长度 只保留7个左右的用户名
+	private int likesCount; // 被点赞的次数
+	
+	private Map<String,Long> whounLiked;//谁不赞
+	private int unLikeCount;//不赞数量
+	
+	private Map<String,Long> whoShared;//谁分享 只保留7个左右的用户名
+	private int shareCount;
+	
+	private Map<String,Long> whoImport; //把干货分享至此小组课堂的人员列表
+	private int importCount; //把干货分享至此小组课堂的人员统计
+	
+	private Map<String,Long> whoFav;//小组课堂收藏人员列表
+	private int favCount;//收藏人数统计
+	
+	private int weightSort;//权重
+	
+	public Drycargo(){
+		super();
+		
+	}
+	
+	public Drycargo(String groupId,String drycargoId,String userId){
+		this.group = groupId;
+		this.drycargoId = drycargoId;
+		long time=System.currentTimeMillis();
+		Map<String,Long> whoImport=new HashMap<String, Long>();
+		whoImport.put(userId, time);
+		this.whoImport=whoImport;
+		this.importCount=1;
+		this.viewCount = 0;
+		this.replyCount = 0;
+		this.likesCount = 0;
+		this.unLikeCount = 0;
+		this.shareCount=0;
+		this.ctime=time;
+		this.utime=time;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public Object getGroup() {
+		return group;
+	}
+
+	public void setGroup(Object group) {
+		this.group = group;
+	}
+
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getFileUrl() {
+		return fileUrl;
+	}
+
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public int getViewCount() {
+		return viewCount;
+	}
+
+	public void setViewCount(int viewCount) {
+		this.viewCount = viewCount;
+	}
+
+	public Map<String, Long> getWhoView() {
+		return whoView;
+	}
+
+	public void setWhoView(Map<String, Long> whoView) {
+		this.whoView = whoView;
+	}
+
+
+	public List<UserShort> getSharePerList() {
+		return sharePerList;
+	}
+
+	public void setSharePerList(List<UserShort> sharePerList) {
+		this.sharePerList = sharePerList;
+	}
+	public List<Object> getShareids() {
+		return shareids;
+	}
+
+	public void setShareids(List<Object> shareids) {
+		this.shareids = shareids;
+	}
+
+	public Object getDrycargoId() {
+		return drycargoId;
+	}
+
+	public void setDrycargoId(Object drycargoId) {
+		this.drycargoId = drycargoId;
+	}
+
+	public int getReplyCount() {
+		return replyCount;
+	}
+
+	public void setReplyCount(int replyCount) {
+		this.replyCount = replyCount;
+	}
+
+	public int getNewReplyCount() {
+		return newReplyCount;
+	}
+
+	public void setNewReplyCount(int newReplyCount) {
+		this.newReplyCount = newReplyCount;
+	}
+
+	
+
+	public int getLikesCount() {
+		return likesCount;
+	}
+
+	public void setLikesCount(int likesCount) {
+		this.likesCount = likesCount;
+	}
+
+
+
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+
+	
+
+	public int getShareCount() {
+		return shareCount;
+	}
+
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+
+	public Map<String, Long> getWhoImport() {
+		return whoImport;
+	}
+
+	public void setWhoImport(Map<String, Long> whoImport) {
+		this.whoImport = whoImport;
+	}
+
+	public int getImportCount() {
+		return importCount;
+	}
+
+	public void setImportCount(int importCount) {
+		this.importCount = importCount;
+	}
+
+	public Map<String, Long> getWhoShared() {
+		return whoShared;
+	}
+
+	public void setWhoShared(Map<String, Long> whoShared) {
+		this.whoShared = whoShared;
+	}
+
+	public Map<String, Long> getWhoLiked() {
+		return whoLiked;
+	}
+
+	public void setWhoLiked(Map<String, Long> whoLiked) {
+		this.whoLiked = whoLiked;
+	}
+
+	public Map<String, Long> getWhounLiked() {
+		return whounLiked;
+	}
+
+	public void setWhounLiked(Map<String, Long> whounLiked) {
+		this.whounLiked = whounLiked;
+	}
+
+	public Map<String, Long> getWhoFav() {
+		return whoFav;
+	}
+
+	public void setWhoFav(Map<String, Long> whoFav) {
+		this.whoFav = whoFav;
+	}
+
+	public int getFavCount() {
+		return favCount;
+	}
+
+	public void setFavCount(int favCount) {
+		this.favCount = favCount;
+	}
+
+	public int getWeightSort() {
+		return weightSort;
+	}
+
+	public void setWeightSort(int weightSort) {
+		this.weightSort = weightSort;
+	}
+
+	public Object getDrycargoTagName() {
+		return drycargoTagName;
+	}
+
+	public void setDrycargoTagName(Object drycargoTagName) {
+		this.drycargoTagName = drycargoTagName;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+
+}

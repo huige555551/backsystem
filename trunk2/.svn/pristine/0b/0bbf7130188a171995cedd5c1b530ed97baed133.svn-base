@@ -1,0 +1,57 @@
+package operation.pojo.subject;
+
+import org.springframework.data.annotation.Id;
+
+public class Share {
+//	@Id
+//	private String id;
+//	
+//	private String userId;
+//	
+//	private String subjectId;
+//	
+//	private String shareAdrr;
+//	
+//	private long shareTime;
+//
+//	public String getId() {
+//		return id;
+//	}
+//
+//	public void setId(String id) {
+//		this.id = id;
+//	}
+//
+//	public String getUserId() {
+//		return userId;
+//	}
+//
+//	public void setUserId(String userId) {
+//		this.userId = userId;
+//	}
+//
+//	public String getSubjectId() {
+//		return subjectId;
+//	}
+//
+//	public void setSubjectId(String subjectId) {
+//		this.subjectId = subjectId;
+//	}
+//
+//	public String getShareAdrr() {
+//		return shareAdrr;
+//	}
+//
+//	public void setShareAdrr(String shareAdrr) {
+//		this.shareAdrr = shareAdrr;
+//	}
+//
+//	public long getShareTime() {
+//		return shareTime;
+//	}
+//
+//	public void setShareTime(long shareTime) {
+//		this.shareTime = shareTime;
+//	}
+
+}

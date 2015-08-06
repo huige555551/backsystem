@@ -1,0 +1,59 @@
+package operation.service.activity;
+
+import java.util.Iterator;
+
+import love.cq.util.StringUtil;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.NewActivity;
+import operation.pojo.user.User;
+import operation.repo.activity.NewActivityRepo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Component
+@Service
+public class NewActivityService {
+	@Autowired
+	private NewActivityRepo newActivityRepo;
+	
+	/**
+	 * 创建活动
+	 * @param newActivity
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean create(NewActivity newActivity,String group,User user) throws XueWenServiceException {
+//		if(!StringUtil.isBlank(group)){
+//			 JSONArray array = JSONArray.fromObject(group);
+//			 for(Iterator iter = array.iterator(); iter.hasNext();){    
+//		            JSONObject jsonObject = (JSONObject)iter.next(); 
+//		            NewActivity activity = new NewActivity();
+////		            activity.setGroupId(jsonObject.get("groupId").toString());
+////		            activity.setGroupName(jsonObject.get("groupName").toString());
+////		            activity.setGroupLogoUrl(jsonObject.get("groupLogoUrl").toString());
+//		            activity.setCreateUser(user.getId());
+//		            activity.setCreateUserName(user.getNickName());
+//		            activity.setCreateUserLogoUrl(user.getLogoURL());
+//		            activity.setActivityEndTime(newActivity.getActivityEndTime());
+//		            activity.setActivitylogoUrl(newActivity.getActivitylogoUrl());
+//		            activity.setActivityStartTime(newActivity.getActivityStartTime());
+//		            activity.setAddress(newActivity.getAddress());
+//		            activity.setDes(newActivity.getDes());
+//		            activity.setIntro(newActivity.getIntro());
+//		            activity.setMaxCount(newActivity.getMaxCount());
+//		            activity.setName(newActivity.getName());
+//		            activity.setOptionEndTime(newActivity.getOptionEndTime());
+//		            activity.setOptionStartTime(newActivity.getOptionStartTime());
+//		            activity.setPrice(newActivity.getPrice());
+//		            activity.setPriceModel(newActivity.getPriceModel());
+//		            newActivityRepo.save(activity);
+//		       }  
+//		}
+		return true;
+	}
+
+}

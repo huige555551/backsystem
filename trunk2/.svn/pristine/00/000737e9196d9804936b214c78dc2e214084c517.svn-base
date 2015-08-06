@@ -1,0 +1,836 @@
+package operation.service.file;
+
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.file.FileOperation;
+import operation.pojo.file.FileOperationInfo;
+import operation.pojo.file.FileStoreInfo;
+import operation.pojo.space.ResponseSpace;
+import operation.pojo.space.Space;
+import operation.pojo.topics.ImageOperation;
+import operation.pojo.user.MyCollect;
+import operation.pojo.user.User;
+import operation.repo.file.FileOperationInfoRepository;
+import operation.repo.file.FileOperationRepository;
+import operation.repo.file.FileStoreInfoRepository;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import tools.Config;
+import tools.MD5Util;
+import tools.StringUtil;
+
+@Service
+@Component
+public class MyFileService {
+	private static final Logger logger=Logger.getLogger(MyFileService.class); 
+
+	@Autowired
+	public FileStoreInfoRepository fileStoreInfoRepository;
+	@Autowired
+	public FileOperationInfoRepository fileOperationInfoRepository;
+	@Autowired
+	public FileOperationRepository fileOperationRepo;
+	
+	/**
+	 * 根据文件MD5的值查找文件
+	 * @param fileMD5  文件MD5
+	 * @return  文件信息
+	 * @throws XueWenServiceException
+	 */
+	public FileStoreInfo findOneByFileMD5(String fileMD5) throws XueWenServiceException{
+		if(StringUtil.isBlank(fileMD5 )) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null) ;
+		}
+		FileStoreInfo fsi=fileStoreInfoRepository.findOneByFileMD5(fileMD5 );
+		return fsi;
+	}
+	
+	/**
+	 * 根据文件Id的值查找文件
+	 * @param fileId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileStoreInfo findOneByFileId(String fileId) throws XueWenServiceException{
+		if(StringUtil.isBlank(fileId )) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null) ;
+		}
+		FileStoreInfo fsi=fileStoreInfoRepository.findOneById(fileId);
+		return fsi;
+	}
+	
+	/**
+	 * 获取文件类型
+	 * @param fileName 文件名
+	 * @return  文件类型
+	 * @throws XueWenServiceException
+	 */
+	public String findFileContext(String fileName )throws XueWenServiceException{
+		String suffix=getFileSuffix(fileName);
+		if(suffix == "png"){
+		    return "image/png";
+		} else if(suffix.equals("jpg")){
+		    return "image/jpeg";
+		} else if(suffix.equals("jpeg")){
+		    return "image/jpeg";
+		} else if(suffix.equals("gif")){
+		    return "image/gif";
+		} else if(suffix.equals("bmp")){
+		    return "image/bmp";
+		} else if(suffix.equals("mp3")){
+		    return "audio/mp3";
+		} else if(suffix.equals("mp4")){
+		    return " video/mp4";
+		} else if(suffix.equals("txt")){
+		    return " text/plain" ;
+		} else if(suffix.equals("html")){
+		    return " text/html" ;
+		} else if(suffix.equals("htm")){
+		    return " text/html" ;
+		} else if(suffix.equals("ico")){
+		    return " image/x-icon" ;
+		} else if(suffix.equals("mid")){
+		    return " audio/mid" ;
+		} else if(suffix.equals("midi")){
+		    return " audio/mid" ;
+		} else if(suffix.equals("wav")){
+		    return " audio/wav" ;
+		} else if(suffix.equals("amr")){
+		    return " audio/amr" ;
+		} else if(suffix.equals("pdf")){
+		    return " application/pdf" ;
+		} else if(suffix.equals("ppt")){  
+		    return " applications-powerpoint" ;
+		} else if(suffix.equals("pptx")){
+		    return "applications-powerpoint";
+		} else if(suffix.equals("caf")){
+		    return " audio/x-caf" ;
+		} else if(suffix.equals("mov")){
+		    return " video/quicktime" ;
+		} else {
+		    return " text/plain" ;
+		}
+	}
+	
+	/**
+	 * 获取文件的后缀
+	 * @param fileName 文件名
+	 * @return   文件后缀（不带有"."）
+	 * @throws XueWenServiceException
+	 */
+	public String getFileSuffix(String fileName) throws XueWenServiceException{
+		if(StringUtil.isBlank(fileName)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null) ;
+		}else{
+			int i=fileName.lastIndexOf(".") ;
+			int leg=fileName.length();
+			return (i>0?(i+1)==leg?"":fileName.substring(i+1,fileName.length()):"") ;
+		}
+	}
+	
+	/**
+	 * 获取文件的去掉后缀的名称
+	 * @param fileName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public String getFileNameNoSuffix(String fileName)throws XueWenServiceException{
+		if(StringUtil.isBlank(fileName)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null) ;
+		}else{
+			int i=fileName.lastIndexOf(".") ;
+			int leg=fileName.length();
+			return (i>0?(i+1)==leg?"":fileName.substring(0,i):"") ;
+		}
+	}
+	
+	
+	
+	/**
+	 * 用户上传文件
+	 * @param user
+	 * @param file
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileStoreInfo upload(User user,MultipartFile file)throws XueWenServiceException{
+		logger.info("语音文件上传======groupId:"+"=====user:"+user.getNickName());
+		if(user==null || file == null || file.isEmpty()){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		try {
+			//得到file的MD5
+			String fileMD5=MD5Util.getFileMD5(file.getBytes());
+			//通过此MD5去数据库中查找是否有相同MD5的文件
+			FileStoreInfo fileStoreInfo=findOneByFileMD5(fileMD5);
+			if(fileStoreInfo==null){
+				String name =URLEncoder.encode(file.getOriginalFilename(),"UTF-8");
+				logger.info("=======文件名===="+file.getOriginalFilename());
+			    upload(file,Config.SPEECH+"/",name);
+			    if(getFileSuffix(name).equals("png") || getFileSuffix(name).equals("jpg") || getFileSuffix(name).equals("jpeg") || getFileSuffix(name).equals("gif") ){
+			    	String fileNameNoSuffix=getFileNameNoSuffix(name);
+					String suffix=getFileSuffix(name);
+			    	String fileSName=fileNameNoSuffix+"_s."+suffix;
+					String fileMName=fileNameNoSuffix+"_m."+suffix;
+					String fileLName=fileNameNoSuffix+"_l."+suffix;
+			    	createVarietySize(Config.SPEECH+"/"+name,Config.SPEECH+"/"+fileSName,Config.IMAGS);
+					createVarietySize(Config.SPEECH+"/"+name,Config.SPEECH+"/"+fileMName,Config.IMAGM);
+					createVarietySize(Config.SPEECH+"/"+name,Config.SPEECH+"/"+fileLName,Config.IMAGL);
+			    }
+			    
+				//需要进行文件存储
+				fileStoreInfo=new FileStoreInfo();
+				fileStoreInfo.setFileMD5(fileMD5);
+				fileStoreInfo.setFileServerName(file.getOriginalFilename());
+				fileStoreInfo.setFileContext(findFileContext(name));
+				fileStoreInfo.setFileSuffix(getFileSuffix(name));
+				fileStoreInfo.setFileLocal(Config.SPEECH+"/"+name);
+				fileStoreInfo.setFileUrl(Config.contextPath+"/speech/"+name);
+				fileStoreInfo.setFileLength(file.getSize());
+				fileStoreInfo=saveFileStoreInfo(fileStoreInfo);
+			}
+			return fileStoreInfo;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201,null);
+		}
+	}
+	
+	/**
+	 * 用户上传文件
+	 * @param user
+	 * @param file
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileStoreInfo uploadFile(MultipartFile file,String fileLocal,String fileUrl)throws XueWenServiceException{
+		try {
+			//得到file的MD5
+			String fileMD5=MD5Util.getFileMD5(file.getBytes());
+			//通过此MD5去数据库中查找是否有相同MD5的文件
+			FileStoreInfo fileStoreInfo=findOneByFileMD5(fileMD5);
+			if(fileStoreInfo==null){
+				String name =URLEncoder.encode(file.getOriginalFilename(),"UTF-8");
+				logger.info("=======文件名===="+file.getOriginalFilename());
+				String suffix=getFileSuffix(name);
+				String serverName=fileMD5+"."+suffix;
+			    upload(file,fileLocal+"/",serverName);
+			    if(getFileSuffix(serverName).equals("png") || getFileSuffix(serverName).equals("jpg") || getFileSuffix(serverName).equals("jpeg") || getFileSuffix(serverName).equals("gif") ){
+			    	String fileNameNoSuffix=getFileNameNoSuffix(serverName);
+			    	String fileSName=fileNameNoSuffix+"_s."+suffix;
+					String fileMName=fileNameNoSuffix+"_m."+suffix;
+					String fileLName=fileNameNoSuffix+"_l."+suffix;
+			    	createVarietySize(fileLocal+"/"+serverName, fileLocal+"/"+fileSName,Config.IMAGS);
+					createVarietySize(fileLocal+"/"+serverName, fileLocal+"/"+fileMName,Config.IMAGM);
+					createVarietySize(fileLocal+"/"+serverName, fileLocal+"/"+fileLName,Config.IMAGL);
+			    }
+			    
+				//需要进行文件存储
+				fileStoreInfo=new FileStoreInfo();
+				fileStoreInfo.setFileMD5(fileMD5);
+				fileStoreInfo.setFileServerName(file.getOriginalFilename());
+				fileStoreInfo.setFileContext(findFileContext(serverName));
+				fileStoreInfo.setFileSuffix(getFileSuffix(serverName));
+				fileStoreInfo.setFileLocal(fileLocal+"/"+serverName);
+				fileStoreInfo.setFileUrl(fileUrl+"/"+serverName);
+				fileStoreInfo.setFileLength(file.getSize());
+				fileStoreInfo=saveFileStoreInfo(fileStoreInfo);
+			}
+			return fileStoreInfo;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201,null);
+		}
+	}
+	
+	
+	/**
+	 * 空间文件上传
+	 * @param file  上传文件
+	 * @param fileURL  上传文件目录
+	 * @return true or false
+	 * @throws XueWenServiceException
+	 */
+	
+	public boolean uploadFile(MultipartFile file,String fileURL)throws XueWenServiceException{
+		try {
+			if (null != file && !file.isEmpty()) {
+				if (!StringUtil.isBlank(fileURL)) {
+					File dirFile=new File(fileURL);
+					if(!dirFile.exists()){
+						dirFile.mkdirs();
+					}
+					byte[] bytes = file.getBytes();
+					File file2 = new File(fileURL+"/"+file.getOriginalFilename());
+					if (file2.exists() && file2.canWrite()) {
+
+					} else {
+						file2.createNewFile();
+						file2.setWritable(true);
+					}
+					BufferedOutputStream stream = new BufferedOutputStream(
+							new FileOutputStream(file2));
+					stream.write(bytes);
+					stream.close();
+					logger.info("===============文件上传成功======================");
+					return true;
+				}else{
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+				}
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+			}
+		} catch (Exception e) {
+			logger.info("================上传文件失败:"+e);
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+		}
+
+	}
+	
+	
+	/**
+	 * 生成缩略图 
+	 * fromFileStr:原图片路径
+	 *  saveToFileStr:缩略图路径 
+	 *  width:缩略图的宽 
+	 *  height:缩略图的高
+	 */
+	public  void saveImageAsJpg(String fromFileStr, String saveToFileStr,
+			int width, int height,boolean equalProportion) throws Exception {
+		BufferedImage srcImage;
+        String imgType="JPEG";
+        if(fromFileStr.toLowerCase().endsWith(".png")){
+        	imgType="PNG";
+        }
+        File fromFile=new File(fromFileStr);
+        File saveFile=new File(saveToFileStr);
+        srcImage=ImageIO.read(fromFile);
+        if(width>0||height>0){
+        	srcImage=resize(srcImage,width,height,equalProportion);
+        }
+        ImageIO.write(srcImage,imgType,saveFile);
+	}
+    
+	/**
+	 * 将原图片的BufferedImage对象生成缩略图
+	 * source：原图片的BufferedImage对象
+	 * targetW:缩略图的宽
+	 * targetH:缩略图的高
+	 */
+	public  BufferedImage resize(BufferedImage source,int targetW,int targetH,boolean equalProportion){
+		int type=source.getType();
+		BufferedImage target=null;
+		double sx=(double)targetW/source.getWidth();
+		double sy=(double)targetH/source.getHeight();
+		//这里想实现在targetW，targetH范围内实现等比例的缩放
+		  //如果不需要等比例的缩放则下面的if else语句注释调即可
+		if(equalProportion){
+			if(sx>sy){
+				sx=sy;
+				targetW=(int)(sx*source.getWidth());
+			}else{
+				sy=sx;
+				targetH=(int)(sx*source.getHeight());
+			}
+		}
+		if(type==BufferedImage.TYPE_CUSTOM){
+			ColorModel cm=source.getColorModel();
+			WritableRaster raster=cm.createCompatibleWritableRaster(targetW,targetH);
+		    boolean alphaPremultiplied=cm.isAlphaPremultiplied();
+		    target=new BufferedImage(cm,raster,alphaPremultiplied,null);
+		}else{
+			target=new BufferedImage(targetW,targetH,type);
+			Graphics2D g=target.createGraphics();
+			g.setRenderingHint(RenderingHints.KEY_RENDERING,RenderingHints.VALUE_RENDER_QUALITY);
+			g.drawRenderedImage(source,AffineTransform.getScaleInstance(sx,sy));
+			g.dispose();
+		}
+		return target;
+	}
+	
+	/**
+	 * 根据给定的字符串和分隔片大小切割文件路径
+	 * @param id
+	 * @param spiltNum
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public  String idSpilt(String id,int spiltNum)throws XueWenServiceException{
+		if(id==null){
+			logger.info("===id不符合规则=======id:"+id);
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+		}else{
+			String spilt="";
+			while(id.length()>0){
+				if(id.length()>spiltNum){
+					spilt+="/"+id.substring(0,spiltNum);
+					id=id.substring(spiltNum);
+				}else{
+					spilt+="/"+id;
+					id="";
+				}
+			}
+//			spilt="/"+id.substring(0,4)+"/"+id.substring(4,8)+"/"+id.substring(8,12)+"/"+id.substring(12,16)+"/"+id.substring(16,20)+"/"+id.substring(20);
+			return spilt;
+		}
+	}
+	
+	
+	/**
+	 * 上传图片原图
+	 * @param file
+	 * @param fileURL
+	 * @param filename
+	 * @throws XueWenServiceException
+	 */
+	public void uploadImage(MultipartFile file,String fileURL,String filename)throws XueWenServiceException{
+		try {
+			if (null != file && !file.isEmpty()) {
+				if (!StringUtil.isBlank(fileURL)) {
+					File dirFile=new File(fileURL);
+					if(!dirFile.exists()){
+						dirFile.mkdirs();
+					}
+					byte[] bytes = file.getBytes();
+					File file2 = new File(fileURL+"/"+filename);
+					if (file2.exists() && file2.canWrite()) {
+
+					} else {
+						file2.createNewFile();
+						file2.setWritable(true);
+					}
+					BufferedOutputStream stream = new BufferedOutputStream(
+							new FileOutputStream(file2));
+					stream.write(bytes);
+					stream.close();
+					logger.info("===============文件上传成功======================");
+				}else{
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+				}
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+			}
+		} catch (Exception e) {
+			logger.info("================上传文件失败:"+e);
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+		}
+	}
+	
+	/**
+	 * 文件上传
+	 * @param file
+	 * @param fileURL
+	 * @param filename
+	 * @throws XueWenServiceException
+	 */
+	public void upload(MultipartFile file,String fileURL,String filename)throws XueWenServiceException{
+		try {
+			if (null != file && !file.isEmpty()) {
+				if (!StringUtil.isBlank(fileURL)) {
+					File dirFile=new File(fileURL);
+					if(!dirFile.exists()){
+						dirFile.mkdirs();
+					}
+					byte[] bytes = file.getBytes();
+					File file2 = new File(fileURL+"/"+filename);
+					if (file2.exists() && file2.canWrite()) {
+
+					} else {
+						file2.createNewFile();
+						file2.setWritable(true);
+					}
+					BufferedOutputStream stream = new BufferedOutputStream(
+							new FileOutputStream(file2));
+					stream.write(bytes);
+					stream.close();
+					logger.info("===============文件上传成功======================");
+				}else{
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+				}
+			}else{
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+			}
+		} catch (Exception e) {
+			logger.info("================上传文件失败:"+e);
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPLOAD_201, null);
+		}
+	}
+	
+	/**
+	 * 根据尺寸生成相应尺寸图片
+	 * @param fromFileUrl
+	 * @param toFileUrl
+	 * @param size
+	 * @throws XueWenServiceException
+	 */
+	public void createVarietySize(String fromFileUrl,String toFileUrl,int size)throws XueWenServiceException{
+		try {
+			saveImageAsJpg(fromFileUrl, toFileUrl, size, size,true);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.info("======切割图片失败"+e);
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 文件存储
+	 * @param fileStoreInfo
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileStoreInfo saveFileStoreInfo(FileStoreInfo fileStoreInfo)throws XueWenServiceException{
+		if(fileStoreInfo==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			FileStoreInfo fsi=fileStoreInfoRepository.save(fileStoreInfo);
+			if(fsi==null){
+				throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+			}else{
+				return fsi;
+			}
+		}
+	}
+	
+	/**
+	 * 保存文件操作信息
+	 * @param foi
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileOperationInfo saveFoi(FileOperationInfo foi)throws XueWenServiceException{
+		if(foi==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			FileOperationInfo oFoi=fileOperationInfoRepository.save(foi);
+			if(oFoi==null){
+				throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+			}else{
+				return oFoi;
+			}
+		}
+	}
+	
+	/**
+	 * 根据文件操作信息ID查找文件操作信息
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileOperationInfo getFoi(String id)throws XueWenServiceException{
+		if(StringUtil.isBlank(id)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			FileOperationInfo oFoi=fileOperationInfoRepository.findOneById(id);
+			return oFoi;
+		}
+	}
+	
+	/**
+	 * 根据fileOperationInfo id列表查找出fileOperationInfo 列表
+	 * @param fileOperationInfos
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<FileOperationInfo> getFois(List<Object> fileOperationInfos)throws XueWenServiceException{
+		if(fileOperationInfos==null || fileOperationInfos.size()==0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			List<FileOperationInfo> fois=fileOperationInfoRepository.findByIdIn(fileOperationInfos);
+			return fois;
+		}
+	}
+	
+	/**
+	 * 根据用户Id和文件操作ID查询用户学习记录
+	 * @param userId
+	 * @param fileOperationInfoId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileOperation getFoByUserIdAndFoiId(String userId,String fileOperationInfoId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(fileOperationInfoId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			FileOperation fo=fileOperationRepo.findByUserAndFileOperationInfo(userId, fileOperationInfoId);
+			return fo;
+		}
+	}
+	
+	/**
+	 * 保存用户学习记录
+	 * @param fileOperation
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public FileOperation saveFileOperation(FileOperation fileOperation)throws XueWenServiceException{
+		if(fileOperation==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}else{
+			FileOperation sFo=fileOperationRepo.save(fileOperation);
+			if(sFo==null){
+				throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+			}else{
+				return sFo;
+			}
+		}
+	}
+	
+	/**
+	 * 根据创建者 查询我的收藏及我的学习
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public MyCollect getCollect(String userid)throws XueWenServiceException{
+		List<FileOperationInfo> oFoi=fileOperationInfoRepository.findByUploadUser(userid);
+		MyCollect mycollect = new MyCollect();
+		mycollect.setName("互联网");
+		mycollect.setCatagory(oFoi);
+		mycollect.setName("销售");
+		mycollect.setCatagory(oFoi);
+		if(oFoi==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		return mycollect;
+		
+	}
+	
+	
+	/**
+	 * 遍历文件夹，取出文件夹中所有的文件
+	 * @param filePath
+	 * @return
+	 */
+	public List<File> getFiles(String filePath)throws XueWenServiceException{
+	  	File root = new File(filePath);
+	  	File[] files = root.listFiles();
+	  	List<File> filelist = new ArrayList<File>();
+	    for(File file:files){     
+	    	if(!file.isDirectory()){
+	    		/*
+	    		 * 递归调用
+	    		 */
+	    		filelist.add(file);
+	    		System.out.println("显示"+filePath+"下所有子目录"+file.getAbsolutePath());
+	    	}   
+    	}
+	    return filelist;
+	}
+	
+	/**
+	 * 得到文件夹下所有文件夹路径
+	 * @param filePath
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<String> getFileDir(String filePath)throws XueWenServiceException{
+		File root = new File(filePath);
+	  	File[] files = root.listFiles();
+	  	List<String> fileDirlist = new ArrayList<String>();
+	    for(File file:files){     
+	    	if(file.isDirectory()){
+	    		/*
+	    		 * 递归调用
+	    		 */
+	    		fileDirlist.add(file.getAbsolutePath());
+	    		System.out.println("显示"+filePath+"下所有子目录"+file.getAbsolutePath());
+	    	}   
+    	}
+	    return fileDirlist;
+	}
+	
+	/**
+	 * 判断文件是否是图片
+	 * @param fileName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isImg(String fileName)throws XueWenServiceException{
+		if(getFileSuffix(fileName).equals("png") || getFileSuffix(fileName).equals("jpg") || getFileSuffix(fileName).equals("jpeg") || getFileSuffix(fileName).equals("gif") ){
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * 判断文件是否为mp4视频
+	 * @param fileName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isVedio(String fileName)throws XueWenServiceException{
+		if(getFileSuffix(fileName).equals("mp4")){
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * 判断文件是否为txt文件
+	 * @param fileName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isText(String fileName)throws XueWenServiceException{
+		if(getFileSuffix(fileName).equals("txt")){
+			return true;
+		}
+		return false;
+	}
+	
+	 /**
+     * 以行为单位读取文件，常用于读面向行的格式化文件
+     */
+    public  void readFileByLines(String fileName) {
+        File file = new File(fileName);
+        BufferedReader reader = null;
+        try {
+            System.out.println("以行为单位读取文件内容，一次读一整行：");
+            reader = new BufferedReader(new FileReader(file));
+            String tempString = null;
+            int line = 1;
+            // 一次读入一行，直到读入null为文件结束
+            Map<String,String> info=new LinkedHashMap<String, String>();
+            while ((tempString = reader.readLine()) != null) {
+                // 显示行号
+            	// 显示行号
+            	if(!StringUtil.isBlank(tempString)){
+            		String[] split = tempString.split("\\s+");
+            		logger.info("===="+split.length+"===:"+split[0]+"=====:"+split[1]);
+            		if(split.length==2){
+            			info.put(split[0],split[1]);
+            		}
+            	}
+            	logger.info("line " + line + ": " + tempString+"==:"+info.size());
+                line++;
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e1) {
+                }
+            }
+        }
+    }
+    /**
+     * 以行为单位读取文件，常用于读面向行的格式化文件
+     */
+    public  Map<String,String> readFileByLines(File file) {
+        BufferedReader reader = null;
+        Map<String,String> info=new LinkedHashMap<String, String>();
+        try {
+            System.out.println("以行为单位读取文件内容，一次读一整行：");
+            reader = new BufferedReader(new FileReader(file));
+            String tempString = null;
+            int line = 1;
+            // 一次读入一行，直到读入null为文件结束
+            while ((tempString = reader.readLine()) != null) {
+                // 显示行号
+            	if(!StringUtil.isBlank(tempString)){
+            		String[] split = tempString.split("\\s+");
+            		logger.info("===="+split.length+"===:"+split[0]+"=====:"+split[1]);
+            		if(split.length==2){
+            			info.put(split[0],split[1]);
+            		}
+            	}
+            	logger.info("line " + line + ": " + tempString);
+                line++;
+            }
+            reader.close();
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e1) {
+                }
+            }
+        }
+        return info;
+    }
+	
+    
+    
+    public static void main(String[] args) {
+//    	readFileByLines("/Users/hjn/Downloads/yxt/salse/info.txt");
+//    	String s="/var/www/html";
+//    	String str="/var/www/html/course/sales";
+//    	System.out.println(str.substring(s.length()));
+//    	File f=new File("/Users/hjn/Downloads/yxt/salse/info.txt");
+//    	System.out.println(f.getAbsolutePath());
+// 
+//    	try {
+//			long time=System.currentTimeMillis();
+//			System.out.println(idSpilt(String.valueOf(time),5));
+//		} catch (XueWenServiceException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+	}
+	
+    
+   /**
+    * 获得图片得高度与宽度
+    * @param fromFileStr
+    * @return
+    * @throws Exception
+    */
+	public  ImageOperation getPicWidthAndHeight(String fromFileStr) {
+		BufferedImage srcImage;
+        File fromFile=new File(fromFileStr);
+        try {
+			srcImage=ImageIO.read(fromFile);
+			int width = srcImage.getWidth();
+	        int height = srcImage.getHeight();
+	        ImageOperation io = new ImageOperation(width,height);
+	        return io;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        return null;
+        
+	}
+	
+	
+	
+	
+	
+}

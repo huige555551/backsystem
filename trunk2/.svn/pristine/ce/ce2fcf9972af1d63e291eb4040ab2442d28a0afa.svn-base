@@ -1,0 +1,384 @@
+package operation.service.user;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.user.ContactUser;
+import operation.pojo.user.User;
+import operation.repo.user.ContactUserRepository;
+import operation.repo.user.ContactUserTemplate;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+
+@Service
+@Component
+public class ContactUserService {
+	@Autowired
+	private ContactUserRepository contactUserRepository;
+	@Autowired
+	private ContactUserTemplate contactUserTemplate;
+	@Autowired
+	private UserService userService;
+	@Autowired
+	private UserMessageService userMessageService;
+	
+	public ContactUserService(){
+		super();
+	}
+	
+	/**
+	 * 以A为起点，B为终点 ,获取 A  <---------> B 用户之间的相互关系 (暂时不用)
+	 * 现阶段 两个用户之间的关系有五种 :
+	 * A <---> B  0 ：无关系
+	 * A  ---> B  1:申请  或 B ----> A -1:申请
+	 * A <---------> B 2: 好友  
+	 * A ----------> B 3: 黑名单  或  B----->A -3：黑名单
+	 * A <------> B  4 : A B 互相拉黑 
+	 *@author hjn
+	 * @param fromUserId 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int contact(String fromUserId,String toUserId)throws XueWenServiceException{
+		//得到 A  ---> B 之间的关系
+		int fromStatus=contactUserTemplate.contactStatus(fromUserId, toUserId);
+		if(fromStatus == 0 ){
+			int toStatus=contactUserTemplate.contactStatus(toUserId, fromUserId);
+			//A ---> B 没有关系 则返回 B ---> A 的关系  （0 ：无关系 -1: 申请 或  -3：黑名单）
+			if(toStatus == 1){
+				//B 申请添加A为好友
+				return -1;  
+			}else if(toStatus  == 3){
+				//B 设置 A 黑名单
+				return -3;
+			}else{
+				return 0;
+			}
+		}
+		return fromStatus;
+	}
+	
+	/**
+	 * A  关注 B
+	 * @author hjn
+	 * @param fromUser 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @throws XueWenServiceException
+	 */
+	public void apply(User fromUser,String toUserId)throws XueWenServiceException{
+		if(fromUser == null || StringUtil.isBlank(toUserId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_USERINFOERROR_201,null);
+		}
+		int status=contact(fromUser.getId(),toUserId);
+		if(status == 0){
+			//后续添加逻辑用户对添加好友权限的判断
+			//添加 A <---> B 之间的关系 A -->B 关系为 1：关注  增加  B---->A 关系为0 
+			addContact(fromUser.getId() ,toUserId);
+		}else if(status == 1){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_ALREADAPPLY_201,null);
+		}else if(status == -1){
+			//B 已经申请添加 A 为好友 ，则直接将两人添加为好友  A<-------> B 相互关注
+			beFriend(fromUser.getId(),toUserId);
+			//向目标用户推送消息,已经成为好友
+		}else if(status == 2){
+			// A<-----> B 已经相互关注 ，不能重复关注
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_ALREADAPPLY_201,null);
+		}else if(status == 3){
+			// A ----> B 设置为黑名单时，更改 A -->B 关系为 1：关注  增加  B---->A 关系为0 ：无
+			addContact(fromUser.getId() ,toUserId);
+		}else if(status == -3 || status == 4){
+			//B ---> A 设置为黑名单
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_BLACKFriend_201,null);
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+	}
+	
+	
+	/**
+	 * A  取消关注 B
+	 * @author hjn
+	 * @param fromUserId 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @throws XueWenServiceException
+	 */
+	public void delete(String fromUserId,String toUserId)throws XueWenServiceException{
+		if(StringUtil.isBlank(fromUserId) || StringUtil.isBlank(toUserId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_USERINFOERROR_201,null);
+		}
+		int status=contact(fromUserId,toUserId);
+		long time = System.currentTimeMillis();
+		if(status == 1){
+			//删除 A <----> B 之间的关系 
+			contactUserTemplate.removeContact(toUserId, fromUserId);
+			contactUserTemplate.removeContact(fromUserId, toUserId);
+		}else if(status == 2){
+			//关系由2 变为 -1  即 由互相关注变为被关注
+			changeStatus(fromUserId, toUserId,0, time);
+			changeStatus(toUserId, fromUserId,1, time);
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+	}
+	
+	/**
+	 * A 设置 B 为黑名单
+	 * @author hjn
+	 * @param fromUserId 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @throws XueWenServiceException
+	 */
+	public void setBlack(String fromUserId,String toUserId)throws XueWenServiceException{
+		if(StringUtil.isBlank(fromUserId) || StringUtil.isBlank(toUserId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_USERINFOERROR_201,null);
+		}
+		int status=contact(fromUserId,toUserId);
+		long time =System.currentTimeMillis();
+		if(status == 0 || status == 1 || status == -1 || status == 2){
+			// 设置：A  ------> B  3:黑名单   B ------> A 关系删除
+			changeStatus(fromUserId, toUserId, 3, time);
+			contactUserTemplate.removeContact(toUserId, fromUserId);
+		}else if(status == 3 || status == 4){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_ALREADBLACK_201,null);
+		}else if(status == -3){
+			changeStatus(toUserId, fromUserId, 4, time);
+			changeStatus(fromUserId, toUserId, 4, time);
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+	}
+	
+	/**
+	 * 取消拉黑
+	 * @param fromUserId
+	 * @param toUserId
+	 * @throws XueWenServiceException
+	 */
+	public void reBlack(String fromUserId,String toUserId)throws XueWenServiceException{
+		if(StringUtil.isBlank(fromUserId) || StringUtil.isBlank(toUserId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_USERINFOERROR_201,null);
+		}
+		int status=contact(fromUserId,toUserId);
+		long time =System.currentTimeMillis();
+		if(status == 3){
+			contactUserTemplate.removeContact(fromUserId, toUserId);
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_ALREADBLACK_201,null);
+		}else if(status == 4){
+			contactUserTemplate.removeContact(fromUserId, toUserId);
+			changeStatus(toUserId, fromUserId, 3, time);
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+	}
+	
+	/**
+	 * 获取全部关注关系列表
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getAllList(String userId,Pageable pageable)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatusLessThan(userId, 3, pageable);
+	}
+	
+	/**
+	 * 获取互相关注列表
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getEachList(String userId,Pageable pageable)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatus(userId, 2, pageable);
+	}
+	
+	/**
+	 * 获取关注（我关注的人）列表
+	 * @author hjn
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getFolled(String userId,Pageable pageable)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatusOrFromUserAndStatus(userId, 1, userId, 2, pageable);
+	}
+	
+	/**
+	 * 分页获取粉丝 (关注我的人)列表
+	 * @author hjn
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getFoller(String userId,Pageable pageable)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatusOrFromUserAndStatus(userId, 0, userId, 2, pageable);
+	}
+	/**
+	 * 获取所有粉丝 (关注我的人)列表
+	 * @author hjn
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<ContactUser> getAllFoller(String userId)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatusOrFromUserAndStatus(userId, 0, userId, 2);
+	}
+	
+	/**
+	 * 获取黑名单
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<ContactUser> getBlack(String userId,Pageable pageable)throws XueWenServiceException{
+		return contactUserRepository.findByFromUserAndStatusGreaterThan(userId, 3, pageable);
+	}
+	
+	/**
+	 * 申请好友时，添加A  <---> B 之间的关系(暂时不用)
+	 * @author hjn
+	 * @param fromUserId 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @throws XueWenServiceException
+	 */
+	public void addContact(String fromUserId ,String toUserId)throws XueWenServiceException{
+		long time=System.currentTimeMillis();
+		if(!contactUserTemplate.existsContact(fromUserId, toUserId)){
+			//添加 A ----> B 的关系为 1:申请
+			ContactUser cu=new ContactUser();
+			cu.setFromUser(fromUserId);
+			cu.setToUser(toUserId);
+			cu.setStatus(1);
+			cu.setCtime(time);
+			cu.setUtime(time);
+			contactUserRepository.save(cu);
+		}else{
+			contactUserTemplate.changeStatus(fromUserId, toUserId, 1, time);
+		}
+		
+		if(!contactUserTemplate.existsContact(toUserId, fromUserId)){
+			//添加 B ---->A 的关系 为 0 : 无
+			ContactUser cu=new ContactUser();
+			cu.setFromUser(toUserId);
+			cu.setToUser(fromUserId);
+			cu.setStatus(0);
+			cu.setCtime(time);
+			cu.setUtime(time);
+			contactUserRepository.save(cu);
+		}else{
+			contactUserTemplate.changeStatus(toUserId, fromUserId, 0, time);
+		}
+	}
+	
+	/**
+	 * 设置 A <-----> B 为好友 (暂时不用)
+	 * @author hjn
+	 * @param fromUserId 当前用户 A 
+	 * @param toUserId  目标用户 B
+	 * @throws XueWenServiceException
+	 */
+	public void beFriend(String fromUserId,String toUserId)throws XueWenServiceException{
+		long time=System.currentTimeMillis();
+		if(!contactUserTemplate.existsContact(fromUserId, toUserId)){
+			//添加 A ----> B 的关系为 1:申请
+			ContactUser cu=new ContactUser();
+			cu.setFromUser(fromUserId);
+			cu.setToUser(toUserId);
+			cu.setStatus(2);
+			cu.setCtime(time);
+			cu.setUtime(time);
+			contactUserRepository.save(cu);
+		}else{
+			contactUserTemplate.changeStatus(fromUserId, toUserId, 2,time);
+		}
+		
+		if(!contactUserTemplate.existsContact(toUserId, fromUserId)){
+			//添加 B ---->A 的关系 为 0 : 无
+			ContactUser cu=new ContactUser();
+			cu.setFromUser(toUserId);
+			cu.setToUser(fromUserId);
+			cu.setStatus(2);
+			cu.setCtime(time);
+			cu.setUtime(time);
+			contactUserRepository.save(cu);
+		}else{
+			contactUserTemplate.changeStatus(toUserId, fromUserId, 2,time);
+		}
+	}
+	
+	
+	/**
+	 * 单个好友前端返回信息组装(暂时不用)
+	 * @param contactUser
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public ContactUser rspContactUser(ContactUser contactUser)throws XueWenServiceException{
+		User user=userService.getContactOfRspUserById(contactUser.getToUser().toString());
+		contactUser.setToUser(user);
+		return contactUser;
+	}
+	
+	/**
+	 * 好友列表前端返回信息组装(暂时不用)
+	 * @param contactUsers
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<ContactUser> rspContactUserList(List<ContactUser> contactUsers)throws XueWenServiceException{
+		if(contactUsers != null){
+			for(ContactUser contactUser:contactUsers){
+				rspContactUser(contactUser);
+			}
+		}
+		return contactUsers;
+	}
+	
+	/**
+	 * 更改关系为规定关系
+	 * @param fromUserId
+	 * @param toUserId
+	 * @param status
+	 * @param time
+	 * @throws XueWenServiceException
+	 */
+	public void changeStatus(String fromUserId, String toUserId, int status,long  time)throws XueWenServiceException{
+		if(!contactUserTemplate.existsContact(fromUserId, toUserId)){
+			//添加 A ----> B 的关系为 1:申请
+			ContactUser cu=new ContactUser();
+			cu.setFromUser(fromUserId);
+			cu.setToUser(toUserId);
+			cu.setStatus(status);
+			cu.setCtime(time);
+			cu.setUtime(time);
+			contactUserRepository.save(cu);
+		}else{
+			contactUserTemplate.changeStatus(fromUserId, toUserId, status,time);
+		}
+	}
+	/**
+	 * 获得某一用得粉丝数量或关注的数量
+	 * @param userId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int getUserContact(String userId,String type) throws XueWenServiceException{
+		if("0".equals(type)){//获得我的粉丝数量
+			return contactUserRepository.countByFromUserAndStatusOrFromUserAndStatus(userId, 0, userId, 2);
+		}else if("1".equals(type)){//获得我的关注数量
+			return contactUserRepository.countByFromUserAndStatusOrFromUserAndStatus(userId, 1, userId, 2);
+		}
+		return 0;
+	}
+	
+}

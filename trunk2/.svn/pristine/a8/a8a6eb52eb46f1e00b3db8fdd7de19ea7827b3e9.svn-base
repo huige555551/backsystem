@@ -1,0 +1,59 @@
+package operation.pojo.category;
+
+import java.util.List;
+
+import org.springframework.data.annotation.Id;
+
+public class Category {
+	@Id
+	private String id;
+	
+	private String parentId;
+	
+	private String categoryName;
+	
+	private String categoryIntro;
+	
+	public List<Category> childCategory;
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
+	public String getCategoryName() {
+		return categoryName;
+	}
+
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
+	}
+
+	public String getCategoryIntro() {
+		return categoryIntro;
+	}
+
+	public void setCategoryIntro(String categoryIntro) {
+		this.categoryIntro = categoryIntro;
+	}
+
+	public List<Category> getChildCategory() {
+		return childCategory;
+	}
+
+	public void setChildCategory(List<Category> childCategory) {
+		this.childCategory = childCategory;
+	}
+
+}

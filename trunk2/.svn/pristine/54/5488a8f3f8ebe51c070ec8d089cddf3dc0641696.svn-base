@@ -1,0 +1,9 @@
+package operation.repo.xuanye;
+
+import operation.pojo.xuanye.Xuanye;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface XuanyeRepository extends MongoRepository<Xuanye, String> {
+
+}

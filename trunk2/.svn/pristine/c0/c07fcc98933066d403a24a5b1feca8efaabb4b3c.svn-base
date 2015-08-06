@@ -1,0 +1,33 @@
+package operation.repo.box;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.box.Box;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class BoxTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	public BoxTemplate(){
+		super();
+	}
+	/**
+	 * 根据boxpost id  和 sourceId  判断此条数据是否存在
+	 * @param boxPostId
+	 * @param sourceId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByBoxPostIdAndSourceId(String boxPostId,String sourceId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("post").is(boxPostId).and("sourceId").is(sourceId));
+		return mongoTemplate.exists(query, Box.class);
+	}
+}

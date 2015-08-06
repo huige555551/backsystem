@@ -1,0 +1,155 @@
+package operation.service.activity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.Activity;
+import operation.pojo.box.Box;
+import operation.pojo.group.XueWenGroup;
+import operation.repo.activity.ActivityRepo;
+import operation.service.box.BoxService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+/**
+ * 
+* @ClassName: ActivityService
+* @Description:线下活动
+* @author tangli
+* @date 2015年3月23日 下午2:21:58
+*
+ */
+@Service
+public class ActivityService {
+  @Autowired
+  private ActivityRepo activityRepo;
+  @Autowired
+  private BoxService boxService;
+
+  public void add(Activity activity,String desImgsStr,String optionsStr){
+	  if(!StringUtil.isBlank(desImgsStr)){
+		  activity.setDesImgs(desImgsStr.split(","));
+	  }
+	  if(!StringUtil.isBlank(optionsStr)){
+		  activity.setOptions(optionsStr.split(","));
+	  }
+	 save(activity);
+  }
+  
+  public void save(Activity activity){
+	  activityRepo.save(activity);
+  }
+  
+  
+  /**
+   * 
+   * @Title: findOne
+   * @auther tangli
+   * @Description: 根据id取
+   * @param Id
+   * @return Activity
+   * @throws
+   */
+  public Activity findOne(String id) throws XueWenServiceException{
+	  if(StringUtil.isBlank(id)){
+		  throw new XueWenServiceException(Config.STATUS_201, "参数不能为空",null);
+	  }
+	  return activityRepo.findOne(id);
+  }
+  /**
+   * 
+   * @Title: findByCity
+   * @auther tangli
+   * @Description: 通过城市查询
+   * @param city
+   * @param pageable
+   * @return
+   * @throws XueWenServiceException Page<Activity>
+   * @throws
+   */
+  public Page<Activity>findByCity(String city,Pageable pageable) throws XueWenServiceException{
+	  if(StringUtil.isBlank(city)){
+		  throw new XueWenServiceException(Config.STATUS_201, "参数不能为空",null);
+	  }
+	  return activityRepo.findByCity(city,pageable);
+	  
+  }
+  
+  public Page<Activity> activityPage(Pageable pageable){
+	  return activityRepo.findAll(pageable);
+  }
+  /**
+   * 
+   * @Title: searchActivity
+   * @auther tangli
+   * @Description: 搜索活动
+   * @param ctime  开始时间
+   * @param etime  结束时间
+   * @param city   活动城市
+   * @param pageable
+   * @return Page<Activity>
+   * @throws
+   */
+	public Page<Activity> searchActivity(Long ctime, Long etime, String city, 
+			Pageable pageable,String keywords) {
+		if (ctime == null || etime == null) {
+			ctime = 0l;
+			etime = System.currentTimeMillis()+6*30*3600*1000;
+		}
+		if(StringUtil.isBlank(keywords)||keywords.equals("'null'")){
+			keywords="";
+		}
+		if (StringUtil.isBlank(city)) {
+			return activityRepo.findByActivityStartTimeBetweenAndNameLike(ctime, etime,keywords,pageable);
+		} else {
+			return activityRepo.findByActivityStartTimeBetweenAndCityAndNameLike(ctime,
+					etime, city,keywords, pageable);
+		}
+	}
+	//推荐
+	public List<Activity> findByIdIn(List<Object> ids) {
+		return activityRepo.findByIdIn(ids);
+	}
+
+	public Object toBoxResponses(List<Box> boxs) throws XueWenServiceException {
+		List<Object> activitys = new ArrayList<Object>();
+		if(boxs !=null && boxs.size()>0){
+			for(Box box:boxs){
+				Activity activity=findOne(box.getSourceId().toString());
+				if(activity !=null){
+//					Map<String,Object> addAndModifyMap=new HashMap<String, Object>();
+//					addAndModifyMap.put("boxId", box.getId());
+//					String[] exclude = {"post","praiseResponse","position","tagName","group","categoryId","childCategoryId"};
+					activitys.add(activity);
+				}
+			}
+		}
+		return activitys;
+	}
+
+	public Page<Activity> findByBoxPostIdNotInBox(String boxPostId,
+			Pageable pageable) throws XueWenServiceException {
+		List<Object> ids=boxService.getSourceIdsByBoxPostId(boxPostId);
+		return activityRepo.findByIdNotIn(ids, pageable);
+	}
+	
+	/**
+	 * 分页获取不在此位置的话题列表
+	 * @param boxPostId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Activity> findByBoxPostIdNotInBoxForSearch(String boxPostId,String keyword)throws XueWenServiceException{
+		List<Object> ids=boxService.getSourceIdsByBoxPostId(boxPostId);
+		return activityRepo.findByNameRegexAndIdNotIn(keyword,ids);
+	}
+	
+	
+}

@@ -1,0 +1,45 @@
+package operation.pojo.response;
+
+import java.util.List;
+
+import operation.pojo.user.UserCourseChapter;
+
+public class CourseDetailResponse {
+	
+	
+	private Object UserCourse;//课程
+	
+	private List<UserCourseChapter> userCourseChapter;
+	
+	private boolean  authority;
+
+	public Object getUserCourse() {
+		return UserCourse;
+	}
+
+	public void setUserCourse(Object userCourse) {
+		UserCourse = userCourse;
+	}
+
+	public List<UserCourseChapter> getUserCourseChapter() {
+		return userCourseChapter;
+	}
+
+	public void setUserCourseChapter(List<UserCourseChapter> userCourseChapter) {
+		this.userCourseChapter = userCourseChapter;
+	}
+
+	public boolean isAuthority() {
+		return authority;
+	}
+
+	public void setAuthority(boolean authority) {
+		this.authority = authority;
+	}
+	
+	
+	
+	
+	
+
+}

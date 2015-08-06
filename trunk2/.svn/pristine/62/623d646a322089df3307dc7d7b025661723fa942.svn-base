@@ -1,0 +1,224 @@
+package operation.service.log;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.ad.Ad;
+import operation.pojo.log.UserRegLogS;
+import operation.pojo.log.UserRegistLog;
+import operation.pojo.user.User;
+import operation.repo.log.UserRegLogRepository;
+import operation.service.ad.AdService;
+import operation.service.user.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+/**
+ * 
+* @ClassName: UserRegistLogService
+* @Description: 注册来源统计
+* @author tangli
+* @date 2015年3月17日 下午4:04:16
+*
+ */
+@Service
+public class UserRegistLogService {
+	@Autowired
+	private UserRegLogRepository userRegLogRepo;
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	@Autowired
+	private UserService userService;
+	@Autowired
+	private AdService adService;
+	
+	
+	/**
+	 * 
+	 * @Title: save
+	 * @auther Tangli
+	 * @Description: 保存或跟新
+	 * @param log void
+	 * @throws
+	 */
+	public void save(UserRegistLog log){
+		userRegLogRepo.save(log);
+	}
+	public UserRegistLog save(String a) throws XueWenServiceException{
+		if(StringUtil.isBlank(a)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		Ad ad=adService.findOne(a);
+		if(ad==null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		return userRegLogRepo.save(new UserRegistLog(ad));
+	}
+
+	
+	public UserRegistLog findOneByUserId(String userId){
+		return userRegLogRepo.findOneByUserId(userId);
+	} 
+    
+	/**
+	 * 
+	 * @Title: search
+	 * @auther Tangli
+	 * @Description: 被邀请人统计
+	 * @param ctime 开始时间
+	 * @param etime 结束时间
+	 * @param vkey  邀请人
+	 * @param ukey  被邀请人
+	 * @param pageable
+	 * @return Page<UserRegistLog>
+	 * @throws
+	 */
+	public Page<UserRegistLog> search( long ctime,long etime, String vkey, String ukey, Pageable pageable) {
+		if(StringUtil.isBlank(ukey)&&StringUtil.isBlank(vkey)){
+			return userRegLogRepo.findByCtimeBetween(ctime, etime, pageable);
+		}		
+		if(!StringUtil.isBlank(vkey)){
+			return  userRegLogRepo.findByVkeyAndTime(vkey,ctime,etime,pageable);
+		}
+		if (!StringUtil.isBlank(ukey)) {
+			return userRegLogRepo.findByCkeyAndTime(ukey,ctime,etime,pageable);
+		}
+	    if((!StringUtil.isBlank(vkey))&&(!StringUtil.isBlank(ukey))){    	
+			return userRegLogRepo.findByUkeyAndVkey(ukey,vkey,ctime,etime,pageable);
+		}
+		return null;
+		
+		
+	}
+	
+	/**
+	 * 
+	 * @Title: searchQd
+	 * @auther Tangli
+	 * @Description: 渠道用户统计
+	 * @param ctime   开始时间
+	 * @param etime  结束时间
+	 * @param userKey 用户搜索关键词
+	 * @param adsId  
+	 * @param pageable
+	 * @return Page<UserRegistLog>
+	 * @throws
+	 */
+	public Page<UserRegistLog> searchQd(long ctime,long etime,String userKey,String adsId,Pageable pageable){
+		if(StringUtil.isBlank(userKey)&&StringUtil.isBlank(adsId)){
+			return userRegLogRepo.findByCtimeBetween(ctime,etime,pageable);
+		}
+		if(StringUtil.isBlank(userKey)&&(!StringUtil.isBlank(adsId))){
+			return userRegLogRepo.findByAdSellerIdLikeAndCtimeBetween(adsId,ctime,etime,pageable);
+
+		}
+		if(StringUtil.isBlank(adsId)&&(!StringUtil.isBlank(userKey))){
+			return userRegLogRepo.findByCkeyAndTime(userKey,ctime,etime,pageable);
+		}
+		if((!StringUtil.isBlank(adsId))&&(!StringUtil.isBlank(userKey))){
+			return userRegLogRepo.findAllInfo(userKey,adsId,ctime,etime,pageable);
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: setloginTime
+	 * @auther Tangli
+	 * @Description: 写入登录时间
+	 * @param logs void
+	 * @throws
+	 */
+	public void setloginTime(List<UserRegistLog> logs){
+		for (UserRegistLog userRegistLog : logs) {
+			User user= userService.findOne(userRegistLog.getUserId());
+			userRegistLog.setLogintime(user.getLogintime());
+		}	
+	}
+    
+	/**
+	 * 
+	 * @Title: setTotal
+	 * @auther Tangli
+	 * @Description: 追加注册人数
+	 * @param logs void
+	 * @throws
+	 */
+	public void setTotal(List<UserRegistLog> logs) {
+		for (UserRegistLog userRegistLog : logs) {
+			long total=mongoTemplate.count(new Query(Criteria.where("vUserEmail").is(userRegistLog.getEmail())), UserRegistLog.class);
+			userRegistLog.setCtn(Integer.valueOf(total+""));
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: setVUser
+	 * @auther Tangli
+	 * @Description: 追加邀请人
+	 * @param content void
+	 * @throws
+	 */
+	public void setVUser(List<UserRegLogS> content) {
+		for (UserRegLogS userRegLogS : content) {
+			UserRegistLog log=findOneByUserId(userRegLogS.getvUserId());
+			if(log!=null){
+				userRegLogS.setUserNick(log.getvUserNick());
+				userRegLogS.setUserId(log.getvUserId());
+			}
+		}
+		
+	}
+
+	/**
+	 * 
+	 * @Title: add
+	 * @auther Tangli
+	 * @Description: 添加一个注册日志
+	 * @param a
+	 * @param user void
+	 * @throws
+	 */
+	public void add(String a, User user) {
+		 if(StringUtil.isBlank(a)&&user!=null){
+			 Ad ad=adService.findOne(a);
+			 if(ad!=null&&user!=null){
+				 UserRegistLog userRegistLog=new UserRegistLog(ad,user);
+				 save(userRegistLog);
+			 }
+		 }
+		
+	}
+	
+	/**
+	 * 
+	 * @Title: addByUserName 
+	 * @auther Tangli 邀请注册 日志
+	 * @param userName
+	 * @param user void
+	 * @throws
+	 */
+	public void addByUserName(String userName, User user) {
+		try {
+			User cUser=userService.getUser(userName);
+			if(cUser!=null&&user!=null){
+				UserRegistLog userRegistLog=new UserRegistLog(cUser,user);
+				save(userRegistLog);
+			}
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	
+}

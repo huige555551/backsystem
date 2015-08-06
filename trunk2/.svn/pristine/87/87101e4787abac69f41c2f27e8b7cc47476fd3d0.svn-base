@@ -1,0 +1,58 @@
+package operation.service.tags;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.ansj.domain.Term;
+import org.ansj.splitWord.analysis.BaseAnalysis;
+import org.junit.Test;
+import org.springframework.stereotype.Service;
+
+/**
+ * 
+* @ClassName: LocalTagService
+* @Description: 用于标签操作
+* @author tangli
+* @date 2015年3月31日 下午1:27:20
+*
+ */
+@Service
+public class LocalTagService {
+	/**
+	 * 
+	 * @Title: getTagNamesByAnalysis
+	 * @auther tangli
+	 * @Description: 通过关键词获取标签名称 以,分割
+	 * @param words
+	 * @return String  java,net,php
+	 * 	 * @throws
+	 */
+	public String getTagNamesByAnalysis(String words) {
+		List<Term> parse = BaseAnalysis.parse(words);
+		List<String> inkeyWords = new ArrayList<String>();
+		List<String>tagsList=new ArrayList<String>();
+		for (Term tempvalue : parse) {
+			inkeyWords.add(tempvalue.getName());
+		}
+		for (String string : inkeyWords) {
+			if(!tagsList.contains(string)&&string.length()>1){
+				if (tagsList.size()<=5) {
+					tagsList.add(string);
+				}else {
+					break;
+				}
+			}
+		}		
+		StringBuilder tagNames=new StringBuilder();
+		for (String string : tagsList) {
+			tagNames.append(string+",");
+		}
+		tagNames.deleteCharAt(tagNames.lastIndexOf(","));
+		return tagNames.toString();
+	}
+	
+	@Test
+	public void test(){
+		getTagNamesByAnalysis("java net");
+	}
+}

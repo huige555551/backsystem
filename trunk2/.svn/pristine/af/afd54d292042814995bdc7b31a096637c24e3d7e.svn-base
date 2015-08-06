@@ -1,0 +1,192 @@
+package operation.service.vo;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.Knowledge;
+import operation.pojo.course.NewCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.topics.Topic;
+import operation.repo.group.GroupRepository;
+import operation.repo.vo.SearchGroupVoReposity;
+import operation.service.tags.TagService;
+import operation.service.group.GroupService;
+import operation.vo.SearchGroupVo;
+
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+/**
+ * 
+* @ClassName: SearchGroupVoService
+* @Description: 群搜索VO
+* @author Jack Tang
+* @date 2015年1月14日 下午5:16:38
+*
+ */
+@Service
+public class SearchGroupVoService {
+   @Autowired
+   private SearchGroupVoReposity searchGroupVoReposity;
+   @Autowired
+   private TagService tagService;
+   @Autowired
+   private GroupService groupService;
+   
+   @Autowired
+   private GroupRepository groupRepository;
+   
+   public SearchGroupVo findOne(String id) throws XueWenServiceException{
+	   if(StringUtil.isBlank(id)){
+		   throw new XueWenServiceException(Config.STATUS_201, "id不能为空", null);  
+	   }
+	   return searchGroupVoReposity.findOne(id);
+   }
+   
+   public SearchGroupVo findOneByGroupId(String id) throws XueWenServiceException{
+	   if(StringUtil.isBlank(id)){
+		   throw new XueWenServiceException(Config.STATUS_201, "id不能为空", null);  
+	   }
+	   return searchGroupVoReposity.findOneByGroupId(id);
+   }
+   public void save(SearchGroupVo vo){
+	    searchGroupVoReposity.save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: create
+    * @Description: 根据群创建一个vo
+    * @param group void
+    * @throws
+    */
+   public SearchGroupVo create(XueWenGroup group){
+	   SearchGroupVo vo=new SearchGroupVo(group);
+	   save(vo);
+	   return vo;
+   }
+   
+   /**
+    * 
+    * @Title: updateByTopic
+    * @Description: 根据Topic更新Vo
+    * @param topic
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByTopic(Topic topic,String groupId) throws XueWenServiceException{
+	   	SearchGroupVo vo=findOneByGroupId(groupId);
+	   	if(vo==null){
+	   		vo=createByGroupId(groupId);
+	   	}	
+	   	vo.updateTopicInf(topic);
+	   	save(vo);
+	   }
+   
+   /**
+    * 
+    * @Title: updateByKng
+    * @Description: 根据kng更新Vo
+    * @param kng
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByKng(Knowledge kng,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+	    if(vo==null){
+	   		vo=createByGroupId(groupId);
+	   	}
+	    vo.updateKngInf(kng);
+  		save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: updateByDry
+    * @Description:根据 干货 更新Vo
+    * @param dry
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByDry(Drycargo db,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+	    if(vo==null){
+	   		vo=createByGroupId(groupId);
+	   	}
+	    vo.updateDryInf(db);
+ 		save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: updateByCourse
+    * @Description: 根据 课程 更新Vo
+    * @param course
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByCourse(NewCourse course,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+	    if(vo==null){
+	   		vo=createByGroupId(groupId);
+	   	}
+	    vo.updateCourseInf(course);
+		save(vo); 
+   }
+   /**
+    * 
+    * @Title: findGroupsByTag
+    * @Description: 分页
+    * @param tagName
+    * @param pageable
+    * @return
+    * @throws XueWenServiceException Page<XueWenGroup>
+    * @throws
+    */
+   public Page<SearchGroupVo> findVosByTag(String tagName,Pageable pageable)
+			throws XueWenServiceException {
+		Page<SearchGroupVo> group=null;
+		if(StringUtil.isBlank(tagName)){
+			group =searchGroupVoReposity.findAll(pageable);
+		}else{
+			List<String> ids=tagService.findItemIds(Config.YXTDOMAIN, tagName, Config.TAG_TYPE_GROUP,1000);
+			group =searchGroupVoReposity.findByGroupIdIn(ids, pageable);
+		}
+		return group;
+	}
+   /**
+	 * 关键字查询话题列表，支持分页功能
+	 * 
+	 * @param p
+	 * @return
+	 */
+	public Page<SearchGroupVo> findVoByKeywords(String keywords,Pageable pageable)
+			throws XueWenServiceException {
+		Page<SearchGroupVo> group=null;
+		if(StringUtil.isBlank(keywords)){
+			group =searchGroupVoReposity.findAll(pageable);
+		}else{
+			group = searchGroupVoReposity.findByGroupNameLike(keywords, pageable);
+		}
+		return group;
+	}
+   public SearchGroupVo createByGroupId(String groupId) throws XueWenServiceException{
+	   XueWenGroup group=groupService.findRoleGroup(groupId);
+	   return create(group);
+   }
+
+	public Page<SearchGroupVo> findAll(Pageable pageable) {
+		return searchGroupVoReposity.findAll(pageable);
+	}
+	
+}

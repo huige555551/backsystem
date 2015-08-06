@@ -1,0 +1,641 @@
+package operation.service.course;
+
+import java.util.ArrayList;
+import java.util.List;
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.UserGroupCourse;
+import operation.pojo.user.ResponseUser;
+import operation.pojo.course.GroupCourse;
+import operation.pojo.course.Lesson;
+import operation.pojo.course.NewChapter;
+import operation.pojo.course.NewCourse;
+import operation.pojo.course.UserChapter;
+import operation.pojo.course.UserLesson;
+import operation.repo.course.UserGroupCourseRepository;
+import operation.repo.course.UserGroupCourseTemplate;
+import operation.service.fav.FavService;
+import operation.service.group.GroupService;
+import operation.service.user.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+/**
+ * UserGroupCourse service实现类
+ * @author hjn
+ *
+ */
+@Service
+@Component
+
+public class UserGroupCourseService {
+
+	
+	@Autowired
+	private UserGroupCourseRepository userGroupCourseRepository;
+	@Autowired
+	private UserGroupCourseTemplate userGroupCourseTemplate;
+	@Autowired
+	private NewCourseService newCourseService;
+	@Autowired
+	private NewChapterService newChapterService;
+	@Autowired
+	private LessonService lessonService;
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	@Autowired
+	private GroupService groupService;
+	@Autowired
+	public UserService userService;
+	@Autowired
+	public FavService favService;
+	
+	public UserGroupCourseService(){
+		super();
+	}
+	
+	/**
+	 * 将用户小组课程收藏学习转成用户列表
+	 * @param groupCourses
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<ResponseUser> toResponeses(List<UserGroupCourse> ugcList ,String userId)throws XueWenServiceException{
+		UserGroupCourse ugc = null;
+		List<Object>  userIds = new ArrayList<Object>();
+		for(int i = 0 ; i < ugcList.size() ; i++){
+			ugc = ugcList.get(i);
+			userIds.add(ugc.getUserId());
+		}
+		List<ResponseUser> ru = userService.toResponseUserList(userIds,userId);
+		return ru;
+	}
+	/**
+	 * 获得该群、该课程下的用户学习、收藏列表
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @param pageable
+	 * @param flag
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserGroupCourse> getUserList(String userId,String groupId,String courseId,Pageable pageable,String flag)throws XueWenServiceException{
+		if(StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId)){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_NODATA_201, null);
+		}
+		if("0".equals(flag)){ 
+			return userGroupCourseRepository.findByGroupIdAndCourseAndStudyed(groupId, courseId, true, pageable);
+		}else if("1".equals(flag)){
+			return userGroupCourseRepository.findByGroupIdAndCourseAndFaved(groupId, courseId, true, pageable);
+		}
+		return null;
+		
+	}
+	/**
+	 * 
+	 * @param groupCourses
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<GroupCourse> toResponseNewGroupsCourseList(List<GroupCourse> groupCourses)throws XueWenServiceException{
+		return null;
+	}
+	
+	/**
+	 * 通过用户ID，群组ID，课程ID获取用户课程实例
+	 * @author hjn
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserGroupCourse one(String userId,String groupCourseId,String groupId,String courseId)throws XueWenServiceException{
+		//参数判断
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupCourseId) || StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		UserGroupCourse ugc=userGroupCourseRepository.findOneUserGroupCourseByUserIdAndGroupCourseId(userId, groupCourseId);
+		if(ugc == null ){
+			return createRspUserGroupCourse(userId,groupCourseId,groupId,courseId);
+		}else{
+			return formateUserGroupCourse(ugc);
+		}
+	}
+	/**
+	 * 根据用户ID和groupCourseId判断是否存在
+	 * @author hjn
+	 * @param userId
+	 * @param groupCourseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserAndGroupCourseId(String userId,String groupCourseId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupCourseId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return userGroupCourseTemplate.isExiseByUserAndGroupCourseId(userId, groupCourseId);
+	}
+	
+	/**
+	 * 群组课程收藏
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @param groupCourseId
+	 * @param appkey
+	 * @throws XueWenServiceException
+	 */
+	public void favGroupCourse(String userId,String groupId,String courseId,String groupCourseId,String appkey)throws XueWenServiceException{
+		//参数判断
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId) || StringUtil.isBlank(groupCourseId) || StringUtil.isBlank(appkey)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//判断userGroupCourse记录是否存在如果不存在
+		if(!isExiseByUserAndGroupCourseId(userId,groupCourseId)){
+			//不存在则新建记录并保存
+			UserGroupCourse ugc=createBasicUserGroupCourse(userId, groupCourseId, groupId, courseId);
+			ugc.setFaved(true);
+			userGroupCourseRepository.save(ugc);
+		}else{
+			//存在则更新为已收藏
+			userGroupCourseTemplate.updateUserGroupCourseFaved(userId, groupCourseId);
+		}
+		//判断课程池课程是否收藏
+	    if(!newCourseService.isCourseFavByUser(courseId, userId)){
+		   //课程池课程未收藏，增加课程池课程收藏记录
+		   newCourseService.courseFav(courseId, userId, appkey);
+		   //课程池课程未收藏，课程收藏数量+1
+		   newCourseService.increaseFavCount(courseId, 1);
+	    }
+		//判断群组课程是否收藏
+	    if(!newGroupCourseService.isGroupCourseFavByUser(groupCourseId, userId)){
+	    	//群组课程未收藏,增加群组课程收藏记录
+	    	newGroupCourseService.groupCourseFav(groupCourseId, userId, appkey);
+		   //群组课程为收藏,增加群组课程收藏数量
+	    	newGroupCourseService.increaseFavCount(groupCourseId, 1);
+	    }
+	}
+	
+//	/**
+//	 * 新建UserGroupCourse对象，并保存到数据库
+//	 * @param userId
+//	 * @param groupCourseId
+//	 * @param groupId
+//	 * @param courseId
+//	 */
+//	public void createUserGroupCourseAndSave(String userId,String groupCourseId,String groupId,String courseId){
+//		//参数判断
+//		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId) || StringUtil.isBlank(groupCourseId) || StringUtil.isBlank(appkey)){
+//			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+//		}
+//	}
+	
+	/**
+	 * 根据用户Id，群组Id，课程ID组装UserGroupCourse对象(插入数据库中的对象)
+	 * @author hjn
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserGroupCourse createBasicUserGroupCourse(String userId,String groupCourseId,String groupId,String courseId)throws XueWenServiceException{
+		//参数校验
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupCourseId) || StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//判断此小组课程是否存在
+		if(!newGroupCourseService.isExiseByGroupIdAndCourseId(groupId, courseId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//根据courseId获取课程，取得课程ID，和chapter List
+		NewCourse nc=newCourseService.findOneNewCourseByIdRspOnlyIdAndChapters(courseId);
+		if(nc == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		UserGroupCourse ugc=new UserGroupCourse(userId, groupId, courseId);
+		ugc.setGroupCourseId(groupCourseId);
+		//组装UserChapter集合
+		ugc.setUserChapters(createBasicUserChapterList(nc.getChapters()));
+		//组装此课程所有的课时数量
+		ugc.setAllLessonNum(countAllCourseLessonsNum(ugc.getUserChapters()));
+		//判断是否
+		ugc.setAllPermissions(groupService.isUserInGroupByGroupIdAndUserId(groupId, userId));
+		return ugc;
+	}
+	
+	/**
+	 * 根据用户Id，群组Id，课程ID组装UserGroupCourse对象(返回前端的对象)
+	 * @author hjn
+	 * @param userId
+	 * @param groupId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserGroupCourse createRspUserGroupCourse(String userId,String groupCourseId,String groupId,String courseId)throws XueWenServiceException{
+		//参数校验
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(groupCourseId)  || StringUtil.isBlank(groupId) || StringUtil.isBlank(courseId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//根据courseId获取课程，取得课程ID，和chapter List
+		NewCourse nc=newCourseService.findOneNewCourseByIdBasicInfoIncludeChapter(courseId);
+		if(nc == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		UserGroupCourse ugc=new UserGroupCourse();
+		ugc.setGroupCourseId(groupCourseId);
+		//组装课程信息
+		ugc.setCourse(formateCourse(nc));
+		ugc.setGroupId(groupId);
+		ugc.setUserId(userId);
+		ugc.setFaved(false);
+		ugc.setStudyed(false);
+		//组装UserChapter集合
+		ugc.setUserChapters(createRspUserChapterList(nc.getChapters()));
+		//组装此课程所有的课时数量
+		ugc.setAllLessonNum(countAllCourseLessonsNum(ugc.getUserChapters()));
+		return ugc;
+	}
+	
+	/**
+	 * 根据UserChapter集合 计算课程拥有的课时总数
+	 * @param chaptes
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int countAllCourseLessonsNum(List<UserChapter> chaptes)throws XueWenServiceException{
+		int allCourseLessonsNum=0;
+		for(UserChapter uc:chaptes){
+			allCourseLessonsNum=allCourseLessonsNum+uc.getLessonNum();
+		}
+		return allCourseLessonsNum;
+	}
+	/**
+	 * 根据UserChapter集合 计算课程已学完的课时总数
+	 * @param chaptes
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int countAllCourseLessonsStudyedNum(List<UserChapter> chaptes)throws XueWenServiceException{
+		int allCourseLessonsStudyedNum=0;
+		for(UserChapter uc:chaptes){
+			allCourseLessonsStudyedNum=allCourseLessonsStudyedNum+uc.getLessonStudedNum();
+		}
+		return allCourseLessonsStudyedNum;
+	}
+	
+	/**
+	 * 根据newChapter Id集合 组装UserChapter 对象集合（同userGroupCourse一起插入数据库的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserChapter> createBasicUserChapterList(List<Object> chapters)throws XueWenServiceException{
+		//参数校验
+		if(chapters == null || chapters.size() == 0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//获取newChapter 集合
+		List<NewChapter> ncs=newChapterService.findChapterListByIdListRspOnlyIdAndLessons(chapters);
+		//获取UserChpater集合
+		return createBasicUserChapterListByNewChapterList(ncs);
+	}
+	
+	/**
+	 * 根据newChapter Id集合 组装UserChapter 对象集合（返回前端的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserChapter> createRspUserChapterList(List<Object> chapters)throws XueWenServiceException{
+		//参数校验
+		if(chapters == null || chapters.size() == 0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//获取newChapter 集合
+		List<NewChapter> ncs=newChapterService.findChapterList(chapters);
+		//获取UserChpater集合
+		return createRspUserChapterListByNewChapterList(ncs);
+	}
+	
+	/**
+	 * 根据newChapter对象集合 组装UserChapter 对象集合（同userGroupCourse一起插入数据库的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserChapter> createBasicUserChapterListByNewChapterList(List<NewChapter> newChapters)throws XueWenServiceException{
+		//参数校验
+		if(newChapters == null || newChapters.size() == 0 ) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		List<UserChapter> ucs=new ArrayList<UserChapter>();
+		for(NewChapter newChapter:newChapters){
+			ucs.add(createBasicUserChapter(newChapter));
+		}
+		return ucs;
+	}
+	
+	
+	/**
+	 * 根据newChapter对象集合 组装UserChapter 对象集合（返回前端的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserChapter> createRspUserChapterListByNewChapterList(List<NewChapter> newChapters)throws XueWenServiceException{
+		//参数校验
+		if(newChapters == null || newChapters.size() == 0 ) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		List<UserChapter> ucs=new ArrayList<UserChapter>();
+		for(NewChapter newChapter:newChapters){
+			ucs.add(createRspUserChapter(newChapter));
+		}
+		return ucs;
+	}
+	
+	
+	/**
+	 * 根据newChapter对象 组装UserChapter 对象（同userGroupCourse一起插入数据库的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserChapter createBasicUserChapter(NewChapter newChapter)throws XueWenServiceException{
+		//参数校验
+		if(newChapter == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//组装UsrChapter对象
+		UserChapter uc=new UserChapter();
+		uc.setChapter(newChapter.getId());
+		uc.setStudyed(false);
+		List<UserLesson> uls=createBasicUserLessonList(newChapter.getLessons());
+		uc.setLessonNum(uls.size());
+		uc.setUserLessones(uls);
+		return uc;
+	}
+	/**
+	 * 根据newChapter对象 组装UserChapter 对象（返回前端的对象）
+	 * @author hjn
+	 * @param newChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserChapter createRspUserChapter(NewChapter newChapter)throws XueWenServiceException{
+		//参数校验
+		if(newChapter == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//组装UsrChapter对象
+		UserChapter uc=new UserChapter();
+		//组装前端需要的chapter信息
+		uc.setChapter(formateChapter(newChapter));
+		uc.setStudyed(false);
+		//组装前端需要的userLesson结合
+		List<UserLesson> uls=createRspUserLessonList(newChapter.getLessons());
+		uc.setLessonNum(uls.size());
+		uc.setUserLessones(uls);
+		return uc;
+	}
+	
+	/**
+	 * 根据lesson List 组装UserLesson 对象集合（同userGroupCourse一起插入数据库的对象）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserLesson> createBasicUserLessonList(List<Lesson> lessons )throws XueWenServiceException{
+		//参数校验
+		if(lessons == null || lessons.size()== 0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		List<UserLesson> userLessons=new ArrayList<UserLesson>();
+		for(Lesson lesson:lessons){
+			userLessons.add(createBasicUserLesson(lesson.getId()));
+		}
+		return userLessons;
+	}
+	
+	/**
+	 * 根据lesson List 组装UserLesson 对象集合（返回前端的对象）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserLesson> createRspUserLessonList(List<Lesson> lessons )throws XueWenServiceException{
+		//参数校验
+		if(lessons == null || lessons.size()== 0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		List<UserLesson> userLessons=new ArrayList<UserLesson>();
+		for(Lesson lesson:lessons){
+			userLessons.add(createRspUserLesson(lesson));
+		}
+		return userLessons;
+	}
+	
+	/**
+	 * 根据lessonId 组装UserLesson 对象（同userGroupCourse一起插入数据库的对象）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserLesson createBasicUserLesson(String lessonId)throws XueWenServiceException{
+		//参数校验
+		if(StringUtil.isBlank(lessonId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return new UserLesson(lessonId);
+	}
+	
+	/**
+	 * 根据Lesson对象 组装UserLesson 对象（返回前端的对象）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserLesson createRspUserLesson(Lesson lesson)throws XueWenServiceException{
+		//参数校验
+		if(lesson == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		UserLesson ul=new UserLesson();
+		//组装前端需要的lesson对象
+		ul.setLesson(formateLesson(lesson));
+		ul.setLastProess(0);
+		ul.setStudyed(false);
+		return  ul;
+	}
+	
+	/**
+	 * 格式化UserGroupCourse 返回前端需要的对象
+	 * @author hjn
+	 * @param userGroupCourse
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserGroupCourse formateUserGroupCourse(UserGroupCourse userGroupCourse)throws XueWenServiceException{
+		//参数校验
+		if(userGroupCourse == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		NewCourse nc=newCourseService.findOneNewCourseByIdBasicInfo(userGroupCourse.getCourse().toString());
+		//组装课程基本信息
+		userGroupCourse.setCourse(formateCourse(nc));
+		//格式化userChapter集合
+		userGroupCourse.setUserChapters(formateUserChapterList(userGroupCourse.getUserChapters()));
+		return userGroupCourse;
+	}
+	
+	/**
+	 * 格式化newCourse对象，只包含返回前端需要属性
+	 * @author hjn
+	 * @param lesson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject formateCourse(NewCourse newCourse)throws XueWenServiceException{
+		//参数校验
+		if(newCourse == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//去掉无需返回前端的属性,只包含以下属性
+		String[] include = {"id","title","intro","tags","logoUrl"};
+		return  YXTJSONHelper.includeAttrJsonObject(newCourse, include);
+				
+	} 
+
+	
+	/**
+	 * 格式化UserChapter 对象集合，包含前端必须信息
+	 * @author hjn
+	 * @param userChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserChapter> formateUserChapterList(List<UserChapter> userChapters)throws XueWenServiceException{
+		//参数校验
+		if(userChapters == null || userChapters.size()==0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		for(UserChapter userChapter:userChapters){
+			formateUserChapter(userChapter);
+		}
+		return userChapters;
+	}
+	
+	/**
+	 * 格式化UserChapter 对象，包含前端必须信息
+	 * @author hjn
+	 * @param userChapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserChapter formateUserChapter(UserChapter userChapter)throws XueWenServiceException{
+		//参数校验
+		if(userChapter == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		NewChapter nc=newChapterService.findOneChapterByIdRspExcLessons(userChapter.getChapter().toString());
+		//组装chapter信息
+		userChapter.setChapter(formateChapter(nc));
+		//格式化UserLesson List 信息
+		fromateUserLessonList(userChapter.getUserLessones());
+		return null;
+	}
+	
+	/**
+	 * 格式化newChapter对象，只包含返回前端属性,去掉lesson属性
+	 * @author hjn
+	 * @param lesson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject formateChapter(NewChapter newChapter)throws XueWenServiceException{
+		//参数校验
+		if(newChapter == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//去掉无需返回前端的属性,只包含以下属性
+		String[] exclude = {"lessons"};
+		return  YXTJSONHelper.excludeAttrJsonObject(newChapter, exclude);
+	} 
+	
+	/**
+	 * 格式化UserLesson对象集合
+	 * @author hjn
+	 * @param userLessons
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserLesson> fromateUserLessonList(List<UserLesson> userLessons)throws XueWenServiceException{
+		//参数校验
+		if(userLessons == null || userLessons.size()== 0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		for(UserLesson userLesson:userLessons){
+			formateUserLesson(userLesson);
+		}
+		return userLessons;
+	}
+	/**
+	 * 格式化UserLesson对象
+	 * @author hjn
+	 * @param userLesson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public UserLesson formateUserLesson(UserLesson userLesson)throws XueWenServiceException{
+		//参数校验
+		if(userLesson == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		Lesson lesson=lessonService.findOneLessonBasicInfoById(userLesson.getLesson().toString());
+		//组装Lesson基本信息
+		userLesson.setLesson(formateLesson(lesson));
+		return userLesson;
+	}
+	
+	/**
+	 * 格式化lesson对象，只包含返回前端属性
+	 * @author hjn
+	 * @param lesson
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject formateLesson(Lesson lesson)throws XueWenServiceException{
+		//参数校验
+		if(lesson == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		//去掉无需返回前端的属性,只包含以下属性
+		String[] include = {"id","title","length","timer","logoUrl","order","localUrl","type"};
+		return  YXTJSONHelper.includeAttrJsonObject(lesson, include);
+	}
+	
+	
+	
+	
+	
+}

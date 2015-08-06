@@ -1,0 +1,494 @@
+package operation.pojo.topics;
+
+
+import java.util.List;
+import java.util.Set;
+
+import operation.pojo.praise.UserPraiseResponse;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+
+/**
+ * 
+ * @author yangquanliang
+ * 主题
+ */
+public class TopicResponse {
+
+	@Id
+	private String topicId; // 主题tid
+	private String sourceId; // 来源编号 群组id
+	private String sourceName; // 来源名称
+	
+	private String courseId;//课程ID
+
+	private String authorId; // 创建人id
+	private String authorName; // 创建人id
+	private String authorLogoUrl; //创建者图片
+
+	private String title; // 标题
+	private String content;//内容
+	private long ctime; // 创建时间
+	private long utime; //更新时间
+
+	private int viewCount; // 查看数
+	private int replyCount; // 回复数
+	private int newReplyCount;//主题的新回复数
+	
+	private int likesCount; // 被点赞的次数
+	
+	private int unLikeCount;//不赞数量
+	
+	private int shareCount;
+		
+	private int favoritesCount; // 被收藏的次数 TODO 是否保留
+
+	private int displayOrder; // >0为置顶,<0不显示,==0正常 -1为回收站 -2待审核 -3为被忽略
+
+	private int digestLevel; // 精华级别,1~3
+	
+	private boolean hasImage = false; // 是否有图片
+	
+	
+	private boolean isDeleted = false; //是否删除
+	
+	private String picUrl; //图片
+
+	private double [] position;//位置
+	
+	private boolean like;//态度 0无态度 1赞
+	private boolean unlike; //态度 0无态度 1踩
+	private boolean share; //态度 0无态度1分享
+	
+	private List<Post> post;//主楼回复
+	
+	private List<UserPraiseResponse> praiseResponse; //赞列表
+	
+	private boolean authority; //是否有权限回复 0无权限1有权限
+	
+	private float picWidth;  //图片宽度
+	
+	private float picHeight; //图片高度
+	
+	private String picLocal; //图片
+	
+	
+	//private Set<String> tagName;//话题的标签
+	private Object tagName;//话题的标签
+	
+	private String localName;//地理位置名称
+	
+	private boolean anonymous;//匿名
+	
+	private double  distance; //两点坐标距离
+	
+	private boolean isGeoOpen;//地理坐标是否打开
+	
+	private Object group;//群信息
+	
+	private  String barCode;
+	
+	private Object categoryId;//一级分类id;
+	private Object childCategoryId;//二级分类Id
+	
+	private List<Images> images;
+	@Indexed
+	private boolean review;//审核标示
+	
+	public boolean isReview() {
+		return review;
+	}
+
+
+	public void setReview(boolean review) {
+		this.review = review;
+	}
+
+
+	public TopicResponse(Topic topic){
+		super();
+		this.setTopicId(topic.getTopicId());
+		this.setSourceId(topic.getSourceId());
+		this.setSourceName(topic.getSourceName());
+		this.setCourseId(topic.getCourseId());
+		this.setAuthorId(topic.getAuthorId());
+		this.setAuthorName(topic.getAuthorName());
+		this.setAuthorLogoUrl(topic.getAuthorLogoUrl());
+		this.setTitle(topic.getTitle());
+		this.setContent(topic.getContent());
+		this.setCtime(topic.getCtime());
+		this.setUtime(topic.getUtime());
+		this.setViewCount(topic.getViewCount());
+		this.setReplyCount(topic.getReplyCount());
+		this.setNewReplyCount(topic.getNewReplyCount());
+		this.setLikesCount(topic.getLikesCount());
+		this.setUnLikeCount(topic.getUnLikeCount());
+		this.setShareCount(topic.getShareCount());
+		this.setFavoritesCount(topic.getFavoritesCount());
+		this.setDisplayOrder(topic.getDisplayOrder());
+		this.setDigestLevel(topic.getDigestLevel());
+		this.setHasImage(topic.isHasImage());
+		this.setDeleted(topic.isDeleted());
+		this.setPicUrl(topic.getPicUrl());
+		this.setPosition(topic.getPosition());
+		this.setPicLocal(topic.getPicLocal());
+		this.setLocalName(topic.getLocalName());
+		this.setAnonymous(topic.isAnonymous());
+		this.setPicWidth(topic.getPicWidth());
+		this.setPicHeight(topic.getPicHeight());
+		this.setGeoOpen(topic.isGeoOpen());
+		this.setBarCode(topic.getBarCode());
+		this.setImages(topic.getImages());
+		this.setReview(topic.isReview());
+	}
+	
+	
+	public String getTopicId() {
+		return topicId;
+	}
+	public void setTopicId(String topicId) {
+		this.topicId = topicId;
+	}
+	
+	
+	public String getBarCode() {
+		return barCode;
+	}
+
+
+	public void setBarCode(String barCode) {
+		this.barCode = barCode;
+	}
+
+
+	public String getSourceId() {
+		return sourceId;
+	}
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+	public String getSourceName() {
+		return sourceName;
+	}
+	public void setSourceName(String sourceName) {
+		this.sourceName = sourceName;
+	}
+	public String getCourseId() {
+		return courseId;
+	}
+	public void setCourseId(String courseId) {
+		this.courseId = courseId;
+	}
+	public String getAuthorId() {
+		return authorId;
+	}
+	public void setAuthorId(String authorId) {
+		this.authorId = authorId;
+	}
+	public String getAuthorName() {
+		return authorName;
+	}
+	public void setAuthorName(String authorName) {
+		this.authorName = authorName;
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
+	}
+	public long getCtime() {
+		return ctime;
+	}
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+	public long getUtime() {
+		return utime;
+	}
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+	public int getViewCount() {
+		return viewCount;
+	}
+	public void setViewCount(int viewCount) {
+		this.viewCount = viewCount;
+	}
+	public int getReplyCount() {
+		return replyCount;
+	}
+	public void setReplyCount(int replyCount) {
+		this.replyCount = replyCount;
+	}
+	public int getNewReplyCount() {
+		return newReplyCount;
+	}
+	public void setNewReplyCount(int newReplyCount) {
+		this.newReplyCount = newReplyCount;
+	}
+	
+	public int getLikesCount() {
+		return likesCount;
+	}
+	public void setLikesCount(int likesCount) {
+		this.likesCount = likesCount;
+	}
+	
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+	
+	public int getShareCount() {
+		return shareCount;
+	}
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+	public int getFavoritesCount() {
+		return favoritesCount;
+	}
+	public void setFavoritesCount(int favoritesCount) {
+		this.favoritesCount = favoritesCount;
+	}
+	public int getDisplayOrder() {
+		return displayOrder;
+	}
+	public void setDisplayOrder(int displayOrder) {
+		this.displayOrder = displayOrder;
+	}
+	public int getDigestLevel() {
+		return digestLevel;
+	}
+	public void setDigestLevel(int digestLevel) {
+		this.digestLevel = digestLevel;
+	}
+	public boolean isHasImage() {
+		return hasImage;
+	}
+	public void setHasImage(boolean hasImage) {
+		this.hasImage = hasImage;
+	}
+	public boolean isDeleted() {
+		return isDeleted;
+	}
+	public void setDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
+	
+	public double[] getPosition() {
+		return position;
+	}
+	public void setPosition(double[] position) {
+		this.position = position;
+	}
+	
+	public String getPicUrl() {
+		return picUrl;
+	}
+	public void setPicUrl(String picUrl) {
+		this.picUrl = picUrl;
+	}
+	public boolean isLike() {
+		return like;
+	}
+
+
+	public void setLike(boolean like) {
+		this.like = like;
+	}
+
+
+	public boolean isUnlike() {
+		return unlike;
+	}
+
+
+	public void setUnlike(boolean unlike) {
+		this.unlike = unlike;
+	}
+
+
+	public boolean isShare() {
+		return share;
+	}
+
+
+	public void setShare(boolean share) {
+		this.share = share;
+	}
+
+
+	public void setAuthority(boolean authority) {
+		this.authority = authority;
+	}
+
+
+	public String getAuthorLogoUrl() {
+		return authorLogoUrl;
+	}
+
+
+	public void setAuthorLogoUrl(String authorLogoUrl) {
+		this.authorLogoUrl = authorLogoUrl;
+	}
+
+
+	public String getContent() {
+		return content;
+	}
+
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+
+	public List<Post> getPost() {
+		return post;
+	}
+
+
+	public void setPost(List<Post> post) {
+		this.post = post;
+	}
+
+
+	public List<UserPraiseResponse> getPraiseResponse() {
+		return praiseResponse;
+	}
+
+
+	public void setPraiseResponse(List<UserPraiseResponse> praiseResponse) {
+		this.praiseResponse = praiseResponse;
+	}
+
+
+	public boolean isAuthority() {
+		return authority;
+	}
+
+	public float getPicWidth() {
+		return picWidth;
+	}
+
+
+	public void setPicWidth(float picWidth) {
+		this.picWidth = picWidth;
+	}
+
+
+	public float getPicHeight() {
+		return picHeight;
+	}
+
+
+	public void setPicHeight(float picHeight) {
+		this.picHeight = picHeight;
+	}
+
+
+	public String getPicLocal() {
+		return picLocal;
+	}
+
+
+	public void setPicLocal(String picLocal) {
+		this.picLocal = picLocal;
+	}
+
+
+	public String getLocalName() {
+		return localName;
+	}
+
+
+	public void setLocalName(String localName) {
+		this.localName = localName;
+	}
+
+
+	public boolean isAnonymous() {
+		return anonymous;
+	}
+
+
+	public void setAnonymous(boolean anonymous) {
+		this.anonymous = anonymous;
+	}
+
+
+	public double getDistance() {
+		return distance;
+	}
+
+
+	public void setDistance(double distance) {
+		this.distance = distance;
+	}
+
+
+	public boolean isGeoOpen() {
+		return isGeoOpen;
+	}
+
+
+	public void setGeoOpen(boolean isGeoOpen) {
+		this.isGeoOpen = isGeoOpen;
+	}
+
+
+	public Object getTagName() {
+		return tagName;
+	}
+
+
+	public void setTagName(Object tagName) {
+		this.tagName = tagName;
+	}
+
+
+	public Object getGroup() {
+		return group;
+	}
+
+
+	public void setGroup(Object group) {
+		this.group = group;
+	}
+
+
+	public Object getCategoryId() {
+		return categoryId;
+	}
+
+
+	public void setCategoryId(Object categoryId) {
+		this.categoryId = categoryId;
+	}
+
+
+	public Object getChildCategoryId() {
+		return childCategoryId;
+	}
+
+
+	public void setChildCategoryId(Object childCategoryId) {
+		this.childCategoryId = childCategoryId;
+	}
+
+
+	public List<Images> getImages() {
+		return images;
+	}
+
+
+	public void setImages(List<Images> images) {
+		this.images = images;
+	}
+
+}

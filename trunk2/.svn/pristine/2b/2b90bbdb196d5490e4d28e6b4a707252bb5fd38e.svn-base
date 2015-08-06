@@ -1,0 +1,320 @@
+package operation.controller.user;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.user.ContactUser;
+import operation.pojo.user.User;
+import operation.service.user.ContactUserService;
+import operation.service.user.UserContactListService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+/**
+ * 联系人相关controller
+ * @author hjn
+ *
+ */
+@RestController
+@RequestMapping("/contactUser")
+@Configuration
+public class ContactUserController extends BaseController{
+	private static final Logger logger=Logger.getLogger(BaseController.class);
+	@Autowired 
+	private ContactUserService contactUserService;
+	
+	@Autowired
+	public UserContactListService userContactListService;
+	
+	public ContactUserController(){
+		super();
+	}
+	
+	/**
+	 * 关注
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("apply")
+	public @ResponseBody ResponseContainer apply(HttpServletRequest request){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			String toUserId = request.getParameter("toUserId");
+			contactUserService.apply(currentUser, toUserId);
+			return addResponse(Config.STATUS_200, Config.MSG_CONTACTAPPLYSUCCESS_200 , true,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 取消关注
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("delete")
+	public @ResponseBody ResponseContainer delete(HttpServletRequest request){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			String toUserId = request.getParameter("toUserId");
+			contactUserService.delete(currentUser.getId(), toUserId);
+			return addResponse(Config.STATUS_200, Config.MSG_DELETECONTACTSUCESS_200, true,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 添加黑名单
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("addBlack")
+	public @ResponseBody ResponseContainer addBlack(HttpServletRequest request){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			String toUserId = request.getParameter("toUserId");
+			contactUserService.setBlack(currentUser.getId(), toUserId);
+			return addResponse(Config.STATUS_200, Config.MSG_ADDBULACKSUCESS_200, true,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("reBlack")
+	public @ResponseBody ResponseContainer reBlack(HttpServletRequest request){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			String toUserId = request.getParameter("toUserId");
+			contactUserService.reBlack(currentUser.getId(), toUserId);
+			return addResponse(Config.STATUS_200, Config.MSG_DELETEBULACKSUCESS_200, true,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 获取所有关注关系列表
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("all")
+	public @ResponseBody ResponseContainer all(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser> all=contactUserService.getAllList(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(rsData, all);
+			this.rsData.setResult(contactUserService.rspContactUserList(all.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 相互关注列表
+	 * @author hjn
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("each")
+	public @ResponseBody ResponseContainer each(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser> each=contactUserService.getEachList(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(rsData, each);
+			this.rsData.setResult(contactUserService.rspContactUserList(each.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 粉丝列表
+	 * @author hjn
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("follower")
+	public @ResponseBody ResponseContainer follower(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser> follower=contactUserService.getFoller(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(rsData, follower);
+			this.rsData.setResult(contactUserService.rspContactUserList(follower.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 关注列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("followed")
+	public @ResponseBody ResponseContainer followed(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser> followed=contactUserService.getFolled(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(rsData, followed);
+			this.rsData.setResult(contactUserService.rspContactUserList(followed.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	
+	/**
+	 * 获取黑名单列表
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("black")
+	public @ResponseBody ResponseContainer black(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser> black=contactUserService.getBlack(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(rsData, black);
+			this.rsData.setResult(contactUserService.rspContactUserList(black.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			logger.error("申请添加好友业务错误："+e);
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			logger.error("申请添加好友系统错误："+e);
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+
+	/**
+	 * 获取用户邀请入群时的粉丝列表
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("friend")
+	public @ResponseBody ResponseContainer friend(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			
+			String groupId = request.getParameter("groupId");
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser>  cu = userContactListService.getInviteFoller(currentUser.getId(),groupId,pageable);
+			this.rsData.setResult(contactUserService.rspContactUserList(cu.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+				// TODO Auto-generated catch block                                                
+			e.printStackTrace();
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	/**
+	 * 获取用户邀请入群时的关注列表
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("followedFriend")
+	public @ResponseBody ResponseContainer followedFriend(HttpServletRequest request,QueryModel dm){
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			
+			String groupId = request.getParameter("groupId");
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<ContactUser>  cu = userContactListService.getInviteFolled(currentUser.getId(),groupId,pageable);
+			this.rsData.setResult(contactUserService.rspContactUserList(cu.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		}catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block                                                
+			e.printStackTrace();
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+}

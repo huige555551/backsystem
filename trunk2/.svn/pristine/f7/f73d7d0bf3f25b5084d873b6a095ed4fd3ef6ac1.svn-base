@@ -1,0 +1,129 @@
+package operation.controller.course;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.NewGroupCourse;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.user.User;
+import operation.service.course.NewGroupCourseService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+/**
+ * 最新的群组课程controller
+ * @author hjn
+ *
+ */
+@RestController
+@RequestMapping("/newGroupCourse")
+public class NewGroupCourseController extends BaseController{
+
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	
+	public NewGroupCourseController(){
+		super();
+	}
+	
+	/**
+	 * 从课程池中将课程分享到小组课堂
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/shareToMyGroup")
+	public @ResponseBody ResponseContainer shareToMyGroup(HttpServletRequest request) {
+		try {
+			String groupId = request.getParameter("groupId");
+			String courseId = request.getParameter("courseId");
+			String token = request.getParameter("token");
+			String appKey = request.getParameter("appKey");
+			User currentUser = this.getCurrentUser(token);
+			newGroupCourseService.share(groupId, courseId,currentUser.getId(),appKey);
+			return addResponse(Config.STATUS_200, Config.MSG_SHARESUCESS_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 分页获取小组课堂列表
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/groupCourses")
+	public @ResponseBody ResponseContainer groupCourses(HttpServletRequest request,QueryModel dm) {
+		try {
+			String groupId = request.getParameter("groupId");
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<NewGroupCourse> newGroupCourses=newGroupCourseService.findOpenPageGroupCourseByGroupId(groupId, pageable);
+			ReponseDataTools.getClientReponseData(rsData, newGroupCourses);
+			this.rsData.setResult(newGroupCourseService.formateGroupCourseList(newGroupCourses.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 分页获取小组课堂列表
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/indexGroupCourses")
+	public @ResponseBody ResponseContainer indexGroupCourses(HttpServletRequest request,QueryModelMul dm) {
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			List<String> sort = new ArrayList<String>();
+			sort.add("studyCount");
+			sort.add("ctime");
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<NewGroupCourse> newGroupCourses=newGroupCourseService.findOpenPageGroupCourse(pageable);
+			ReponseDataTools.getClientReponseData(rsData, newGroupCourses);
+			this.rsData.setResult(newGroupCourseService.formateGroupCourseList(newGroupCourses.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+}

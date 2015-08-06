@@ -1,0 +1,67 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.UserGroupCourse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class UserGroupCourseTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public UserGroupCourseTemplate(){
+		super();
+	}
+	
+	/**
+	 * 根据UserId和groupCourseId判断是否存在
+	 * @param userId
+	 * @param groupCourseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserAndGroupCourseId(String userId,String groupCourseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userId").is(userId).and("groupCourseId").is(groupCourseId));
+		return mongoTemplate.exists(query, UserGroupCourse.class);
+		
+	}
+	
+	
+	/**
+	 * 根据UserId和groupCourseId更新为已收藏
+	 * @param userId
+	 * @param groupCourseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void updateUserGroupCourseFaved(String userId,String groupCourseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userId").is(userId).and("groupCourseId").is(groupCourseId));
+		Update update=new Update();
+		update.set("faved", true);
+		mongoTemplate.updateMulti(query, update, UserGroupCourse.class);
+	}
+	
+	/**
+	 * 根据群组课程列表删除用户群组课程记录
+	 * @author hjn
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupCourseIds(List<Object> groupCourseIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("groupCourseId").in(groupCourseIds));
+		mongoTemplate.remove(query, UserGroupCourse.class);
+	}
+	
+	
+}

@@ -1,0 +1,58 @@
+package operation.repo.course;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.UserBuyCourse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+
+
+/**
+ * 课程实例 template 操作 
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class UserBuyCourseTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public UserBuyCourseTemplate(){
+		super();
+	}
+	
+	/**
+	 * 判断用户是否已经购买该课程
+	 * @param userId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean findOneByUserIdAndCourseId(String userId,String courseId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userId").is(userId).and("courseId").is(courseId));
+		return mongoTemplate.exists(query, UserBuyCourse.class);
+	}
+	
+	
+	/**
+	 * 增加课程收藏统计数量
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+//	public void increaseFavCount(String courseId,int increaseNum)throws XueWenServiceException{
+//		Query query=new Query(Criteria.where("id").is(courseId));
+//		Update update=new Update();
+//		update.inc("favCount", increaseNum);
+//		mongoTemplate.updateMulti(query, update, NewCourse.class);
+//	}
+	
+	
+}

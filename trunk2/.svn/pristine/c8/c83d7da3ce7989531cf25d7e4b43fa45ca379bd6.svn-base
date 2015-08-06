@@ -1,0 +1,53 @@
+package operation.controller.oss;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import operation.BaseController;
+import operation.pojo.category.Category;
+import operation.pojo.pub.QueryModel;
+import operation.service.category.CategoryService;
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+@RestController
+@RequestMapping(value="oss/category")
+public class OssCategoryController extends BaseController{
+	@Autowired
+	private CategoryService categoryService;
+	
+	/**
+	 * 
+	 * @Title: getSuperCategory
+	 * @Description: 上传hyhnjhn
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getSuperCategory")
+	public ResponseContainer getSuperCategory(QueryModel  dm){
+		dm.setS(999);
+		Pageable pageable=PageRequestTools.pageRequesMake(dm);
+		Page<Category> categorys=categoryService.getSuperCategory(pageable);
+		if(categorys!=null){
+			ReponseDataTools.getClientReponseData(getReponseData(), categorys);
+		}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	@RequestMapping("getSecondCategory")
+	public ResponseContainer getSecondCategory(QueryModel  dm,String id){
+		Pageable pageable=PageRequestTools.pageRequesMake(dm);
+		Page<Category> categorys=categoryService.getSecondCategory(pageable,id);
+		if(categorys!=null){
+			ReponseDataTools.getClientReponseData(getReponseData(), categorys);
+		}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	
+}

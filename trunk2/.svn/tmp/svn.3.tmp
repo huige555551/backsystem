@@ -1,0 +1,59 @@
+#####################  数据库配置 ####################################
+#mongo.service=chat.yunxuetang.com
+#mongo.service=s2
+mongo.service=s1.of.yunxuetang.com
+mongo.database=yxttest
+
+mongo.primary.host=s2
+mongo.primary.port=8084
+#mongo.primary.port=27017
+mongo.secend.host=s1
+mongo.secend.port=8083
+mongo.heart.host=s1
+mongo.heart.port=8090
+mongo.database.online=online
+#mongo.database.online=yxttest
+#mongo.database=test
+#####################  文件上传配置 ####################################
+##上传文件时文件最大值
+file.maxFileSize=8MB
+##上传文件时请求最大值
+file.maxRequestSize=8MB
+#####################  openfire s1s ####################################
+openfire.service=s1.of.yunxuetang.com
+openfire.port=5222
+openfire.group.service=conference.s1.of.yunxuetang.com
+#openfire.admin=hjn
+#openfire.admin.password=123456
+openfire.admin=yunxuetang3
+openfire.admin.password=yunxuetang3
+#openfire.admin=xuewenadmin
+#openfire.admin.password=xuewen123456
+#####################  openfire s2配置 ####################################
+#openfire.service=chat.yunxuetang.com
+#openfire.port=5222
+#openfire.group.service=conference.chat.yunxuetang.com
+#openfire.admin=naenshunadmin
+#openfire.admin.password=123456
+#openfire.admin=yxtadmin
+#openfire.admin.password=yunxuetang
+#####################  JPush连接配置 #####################################
+jpush.masterSecret=d5c8b9e35193f525ca27c4af
+jpush.appKey=41047d033c8a46d6409a4b5e
+jpush.timeToLive=86400
+#####################  JPush1连接配置 ####################################
+jpush1.masterSecret=af052fa33d9962941060cee8
+jpush1.appKey=e766ed8fba8461ce1ed03c05
+#####################  云存储 ############################################
+qnAccessKey=PN6SV6Fm-Ueu-D8NYN_NfJwpPuedsQALNKmwL_IQ
+qnSecretKey=O6sBs8dw9cJjamEx2d6vgY1sXnPnIlg5Nsn6CwPH
+qnBucketName=yxt-bj
+#####################  软件下载地址(html地址) ############################################
+app.download.url=http://media.yunxuetang.cn/t/yxt/iphone/yxt/beta/install.html
+#####################  标签服务地址 ############################################
+tag.service.url=http://s1.xuewen.yunxuetang.com:8161/
+#####################  用户/群组头像默认 地址 ############################################
+#服务器存放路径#
+image.default.path=/var/www/html/default/gqrwtxb
+#网络访问路径前缀#
+image.default.url=http://s1.xuewen.yunxuetang.com/default/gqrwtxb/

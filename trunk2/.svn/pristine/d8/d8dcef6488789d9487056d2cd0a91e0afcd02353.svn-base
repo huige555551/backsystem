@@ -1,0 +1,39 @@
+package tools;
+
+import java.util.Map;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import net.sf.json.JSONObject;
+@Service
+@Component
+@Configuration
+public class RestfulTemplateUtil {
+
+	/**
+	 * 传入Map，Post到对一个的地址（为了兼容之前传入的Map参数）
+	 * @param url
+	 * @param requestParams
+	 * @return JSONObject
+	 */
+	public static JSONObject getRestApiData(String url,Map<String, String> requestParams) {
+		String courSharResoStr;
+		
+		MultiValueMap<String, String> map = new LinkedMultiValueMap<String,String>(); 
+		map.setAll(requestParams);
+		
+		RestTemplate restTemplate = new RestTemplate();
+		courSharResoStr = restTemplate.postForObject(url, map, String.class,"");
+		try {
+			JSONObject objj = JSONObject.fromObject(courSharResoStr);
+			return objj;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+}

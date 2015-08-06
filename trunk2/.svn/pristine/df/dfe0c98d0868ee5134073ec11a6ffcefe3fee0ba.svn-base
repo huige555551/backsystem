@@ -1,0 +1,85 @@
+package operation.repo.user;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.user.User;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/**
+ * user template mongo数据持久层操作 
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class UserTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public UserTemplate(){
+		super();
+	}
+	
+	/**
+	 * 根据用户ID返回联系人列表所需的用户信息，包括ID，userName,nickName,sex,logoUrl,phoneNumber,email,intro,openFireUser等，其他字段为空
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public User getContactOfRspUserById(String id)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id));
+		query.fields().include("id").include("userName").include("nickName").include("sex").include("logoURL").include("phoneNumber").include("email").include("intro").include("openFireUser");
+		return mongoTemplate.findOne(query, User.class);
+	}
+	
+	/**
+	 * 根据用户名判断用户是否存在
+	 * @author hjn
+	 * @param userName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserName(String userName)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userName").is(userName));
+		return mongoTemplate.exists(query, User.class);
+	}
+	
+	/**
+	 * 根据用户名查找用户，只返回用户ID
+	 * @author hjn
+	 * @param userName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public User findByUserNameRspOnlyId(String userName)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userName").is(userName));
+		query.fields().include("userName");
+		return mongoTemplate.findOne(query, User.class);
+	}
+	
+	
+	/**
+	 * 根据用户id删除用户
+	 * @author xurui
+	 * @param userName
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean deleUserById(String id)throws XueWenServiceException{
+		try {
+			Query query=new Query(Criteria.where("id").is(id));
+			mongoTemplate.remove(query, User.class);
+			return true;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
+}

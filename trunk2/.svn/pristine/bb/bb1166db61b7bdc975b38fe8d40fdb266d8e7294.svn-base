@@ -1,0 +1,69 @@
+package tools;
+
+import java.util.Comparator;
+import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
+
+import net.sf.json.JSONObject;
+
+
+public class ListComparator implements Comparator<Object>{
+    private String keyName;
+    public ListComparator(String key) {
+    		keyName=key;
+    }
+	@Override
+	public int compare(Object o1, Object o2) {
+		JSONObject a=(JSONObject)o1;
+		JSONObject b=(JSONObject)o2;
+		if(a.getLong(keyName)<=b.getLong(keyName)){
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+	@Override
+	public Comparator<Object> reversed() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public Comparator<Object> thenComparing(Comparator<? super Object> other) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public <U> Comparator<Object> thenComparing(
+			Function<? super Object, ? extends U> keyExtractor,
+			Comparator<? super U> keyComparator) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public <U extends Comparable<? super U>> Comparator<Object> thenComparing(
+			Function<? super Object, ? extends U> keyExtractor) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public Comparator<Object> thenComparingInt(
+			ToIntFunction<? super Object> keyExtractor) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public Comparator<Object> thenComparingLong(
+			ToLongFunction<? super Object> keyExtractor) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public Comparator<Object> thenComparingDouble(
+			ToDoubleFunction<? super Object> keyExtractor) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+}

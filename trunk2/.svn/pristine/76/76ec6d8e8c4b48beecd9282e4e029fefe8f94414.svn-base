@@ -1,0 +1,536 @@
+package operation.service.drycargo;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.drycargo.DrycargoBean;
+import operation.pojo.drycargo.DrycargoBeanResponse;
+import operation.pojo.user.User;
+import operation.pojo.user.UserShort;
+import operation.repo.drycargo.DrycargoBeanRepository;
+import operation.repo.drycargo.DrycargoTemplate;
+import operation.service.fav.FavService;
+import operation.service.praise.PraiseService;
+import operation.service.praise.UnPraiseService;
+import operation.service.share.ShareService;
+import operation.service.tags.TagService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import tools.Config;
+import tools.DateUtil;
+import tools.HttpRequestUtil;
+import tools.JSON2ObjUtil;
+import tools.StringUtil;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+@Service
+@Component
+@EnableScheduling
+public class DrycargoBeanService {
+	private static final Logger logger = Logger.getLogger(DrycargoBeanService.class);
+
+	@Autowired
+	public DrycargoBeanRepository drycargoBeanRepository;
+
+	@Autowired
+	public DrycargoService drycargoService;
+
+	@Autowired
+	public PraiseService praiseService;
+
+	@Autowired
+	public UnPraiseService unPraiseService;
+
+	@Autowired
+	public TagService tagService;
+	
+	@Autowired
+	public FavService favService;
+	
+	@Autowired
+	public ShareService shareService;
+	
+	@Value("${tag.service.url}")
+	private String tagServiceUrl;
+
+	public DrycargoBeanService() {
+		super();
+	}
+
+	@Autowired
+	private DrycargoTemplate drycargoTemplate;
+
+	public DrycargoBean saveDrycargo(DrycargoBean dry) {
+		return drycargoBeanRepository.save(dry);
+	}
+
+	/**
+	 * 存储干货
+	 * 
+	 * @param user
+	 * @param drycargo
+	 * @param picUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public DrycargoBean createDrycargo(User user, Drycargo drycargo, long time)
+			throws XueWenServiceException {
+		DrycargoBean dryBean = findOneByUrl(drycargo.getUrl());
+		if (dryBean == null) {
+			DrycargoBean db = new DrycargoBean();
+			db.setCtime(time);
+			UserShort us = new UserShort();
+			us.setUserId(user.getId());
+			us.setUserName(user.getUserName());
+			List<UserShort> list = new ArrayList<UserShort>();
+			list.add(us);
+			db.setSharePerList(list);
+			// 查询使用
+			List<Object> listId = new ArrayList<Object>();
+			listId.add(user.getId());
+			db.setShareids(listId);
+
+			drycargo.setCtime(time);
+			Map<String, Long> whoView = new HashMap<String, Long>();
+			whoView.put(user.getId(), System.currentTimeMillis());
+			db.setWhoView(whoView);
+			db.setUrl(drycargo.getUrl());
+			db.setFileUrl(drycargo.getFileUrl());
+			db.setMessage(drycargo.getMessage());
+			return drycargoBeanRepository.save(db);
+		} else {
+			if (!dryBean.getShareids().contains(user.getId())) {
+				UserShort usr = new UserShort();
+				usr.setUserId(user.getId());
+				usr.setUserName(user.getUserName());
+				dryBean.getSharePerList().add(usr);
+				dryBean.getShareids().add(user.getId());
+				dryBean.setUtime(time);
+			}
+			return drycargoBeanRepository.save(dryBean);
+		}
+
+	}
+
+	/**
+	 * 通过url查询该干货
+	 * 
+	 * @param url
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public DrycargoBean findOneByUrl(String url) throws XueWenServiceException {
+		return drycargoBeanRepository.findOneByUrl(url);
+	}
+
+	/**
+	 * 发现干货
+	 * 
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<DrycargoBean> findAll(Pageable pageable)
+			throws XueWenServiceException {
+		Page<DrycargoBean> drycargo = drycargoBeanRepository.findAll(pageable);
+		return drycargo;
+	}
+
+	public DrycargoBean uploadDry(User user, Drycargo drycargo, String tagName)
+			throws XueWenServiceException {
+		if(tagName!=null){
+			tagName = JSON2ObjUtil.getArrayFromString(tagName);
+		}
+		DrycargoBean db = findOneByUrl(drycargo.getUrl());
+		long time = System.currentTimeMillis();
+		if (db == null) {
+			db = new DrycargoBean();
+			// 显示使用
+			db.setCtime(time);
+			UserShort us = new UserShort();
+			us.setUserId(user.getId());
+			us.setUserName(user.getUserName());
+			List<UserShort> list = new ArrayList<UserShort>();
+			list.add(us);
+			db.setSharePerList(list);
+			// 查询使用
+			List<Object> listId = new ArrayList<Object>();
+			listId.add(user.getId());
+			db.setShareids(listId);
+			drycargo.setCtime(time);
+			Map<String, Long> whoView = new HashMap<String, Long>();
+			whoView.put(user.getId(), System.currentTimeMillis());
+			db.setUrl(drycargo.getUrl());
+			db.setFileUrl(drycargo.getFileUrl());
+			db.setMessage(drycargo.getMessage());
+			db.setDescription(drycargo.getDescription());
+			db = drycargoBeanRepository.save(db);
+			RestTemplate restTemplate=new RestTemplate();
+			restTemplate.getForObject(tagServiceUrl+"tag/createTagBatch?domain="+"yxtapp"+"&itemId="+db.getId()+"&userId="+user.getId()+"&userName="+user.getNickName()+"&itemType="+6+"&tagNames="+tagName, String.class);
+			drycargoService.uploadDry(user, drycargo, tagName, db.getId());
+
+		} else {
+			drycargoService
+					.isDrycargoExist(user, drycargo, tagName, db.getId());
+		}
+		return db;
+	}
+
+	/**
+	 * 查询某一干货
+	 * 
+	 * @param dryCargoId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public DrycargoBean oneDry(String dryCargoId) throws XueWenServiceException {
+		return drycargoBeanRepository.findOneById(dryCargoId);
+	}
+	
+	/**
+	 * 删除某一干货
+	 * 
+	 * @param dryCargoId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean deleteOneDry(String dryCargoId) throws XueWenServiceException {
+		try {
+			drycargoBeanRepository.delete(dryCargoId);
+			return true;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	/**
+	 * 查询干货详情(从干货管)
+	 * 
+	 * @param user
+	 * @param dryCargoId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public DrycargoBeanResponse dryDetail(User user, String dryCargoId)
+			throws XueWenServiceException {
+		DrycargoBean db = drycargoBeanRepository.findOneById(dryCargoId);
+		Map<String, Long> whoView = db.getWhoView();
+		long time = System.currentTimeMillis();
+		if (whoView != null && whoView.size() > 0) {
+			Set<String> users = whoView.keySet();
+			if (users.contains(user.getId())) {
+				// 该客户已经浏览过
+				db.setUtime(time);
+				db.setViewCount(db.getViewCount() + 1);
+			} else {
+				// 该客户未浏览过
+				whoView.put(user.getId(), time);
+				db.setWhoView(whoView);
+				db.setViewCount(db.getViewCount() + 1);
+				db.setUtime(time);
+			}
+		} else {
+			whoView = new HashMap<String, Long>();
+			// 该客户未浏览过
+			whoView.put(user.getId(), time);
+			db.setWhoView(whoView);
+			db.setViewCount(db.getViewCount() + 1);
+			db.setUtime(time);
+		}
+		DrycargoBeanResponse dbr = new DrycargoBeanResponse(db);
+		dbr.setLike(praiseService.isUserPraise(user.getId(), "yxtapp",
+				db.getId(), "0") ? true : false);
+		dbr.setUnlike(unPraiseService.isUserUnPraise(user.getId(), "yxtapp",
+				db.getId(), "0") ? true : false);
+		drycargoBeanRepository.save(db);
+		return dbr;
+	}
+
+	/**
+	 * 计算分享次数
+	 * @param userId
+	 * @param dryCargoId
+	 * @throws XueWenServiceException
+	 */
+	public void countOperation(String userId, String dryCargoId,String appkey,String toType,String toAddr)
+			throws XueWenServiceException {
+		DrycargoBean db = oneDry(dryCargoId);
+		if (db == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		} else {
+			Map<String, Long> whoShare = db.getWhoShare();
+			if (whoShare == null) {
+				whoShare = new LinkedHashMap<String, Long>();
+			}
+
+			if (!whoShare.containsKey(userId)) {
+				long time = System.currentTimeMillis();
+				whoShare.put(userId, time);
+				db.setWhoShare(whoShare);
+				db.setShareCount(db.getShareCount() + 1);
+				
+			} else {
+				// 不增加分享人d，只增加分享数量
+				db.setShareCount(db.getShareCount() + 1);
+				
+			}
+			shareService.addShare(userId, Config.YXTDOMAIN, appkey, db.getId(), Config.TYPE_DRYCARGO, toType, toAddr);
+			drycargoBeanRepository.save(db);
+			
+		}
+	}
+	/**
+	 * 计算收藏次数次数
+	 * @param userId
+	 * @param dryCargoId
+	 * @throws XueWenServiceException
+	 */
+	public void countOperationFav(String userId, String dryCargoId,String appkey)
+			throws XueWenServiceException {
+		DrycargoBean db = oneDry(dryCargoId);
+		if (db == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		} else {
+			Map<String, Long> whoFav = db.getWhoFav();
+			if (whoFav == null) {
+				whoFav = new LinkedHashMap<String, Long>();
+			}
+			if (!whoFav.containsKey(userId)) {
+				long time = System.currentTimeMillis();
+				whoFav.put(userId, time);
+				db.setWhoFav(whoFav);
+				db.setFavCount(db.getFavCount() + 1);
+				drycargoBeanRepository.save(db);
+				favService.addFavNotCheck(Config.YXTDOMAIN, appkey, db.getId(), Config.TYPE_DRYCARGO, userId);
+				
+			}
+		}
+	}
+
+	public DrycargoBean findOneById(String dryCargoId) {
+		return drycargoBeanRepository.findOneById(dryCargoId);
+	}
+
+	/**
+	 * 
+	 * @Title: Drycargo
+	 * @Description: 每天凌晨00:00:00定时采集数据
+	 * @throws
+	 */
+	@Scheduled(cron = "0 0 0 ? * *")
+	public void updateDrycargo() {
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		// format.format(date)
+		Calendar c = Calendar.getInstance();
+		c.setTime(new Date());
+		c.add(Calendar.DATE, -1);
+		c.set(Calendar.HOUR_OF_DAY, 0);
+		c.set(Calendar.MINUTE, 0);
+		c.set(Calendar.SECOND, 0);
+		Date date = c.getTime();
+		String time = format.format(date);
+		logger.info("--------开启从内容纵向添加数据任务：时间，" + time);
+		try {
+			getDrycargofromCenter(time);
+			logger.info("--------从内容纵向添加数据任务顺利结束");
+		} catch (XueWenServiceException e) {
+			logger.error("------从内容纵向添加数据任务失败--------00");
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * @throws XueWenServiceException
+	 * 
+	 * @Title: getDrycargofromCenter
+	 * @Description: 从数据中心采集干货内容并保存到数据库
+	 * @throws
+	 */
+	public List<DrycargoBean> getDrycargofromCenter(String time)
+			throws XueWenServiceException {
+
+		String resString = getDatefromCenter(time);
+		List<DrycargoBean> drycargoBeans = parseDrycargoJsonString(resString);
+		deleteReCourse(drycargoBeans);
+		drycargoBeanRepository.save(drycargoBeans);
+		return drycargoBeans;
+
+	}
+
+	/**
+	 * 
+	 * @Title: getDatefromCenter
+	 * @Description: 从数据中心获取数据
+	 * @param time
+	 * @return
+	 * @throws XueWenServiceException
+	 *             String
+	 * @throws
+	 */
+	private String getDatefromCenter(String time) throws XueWenServiceException {
+
+		long t1 = System.currentTimeMillis();
+		String url = Config.CENTER_BASEURL + "drycargo/list";
+		Map<String, Object> p = new HashMap<String, Object>();
+		p.put("apikey", Config.CENTER_APIKEY);
+		p.put("salt", Config.CENTER_SALT);
+		p.put("signature", Config.CENTER_SIGNATURE);
+		p.put("PublishDate", time);
+		String resObj = HttpRequestUtil.sendPost(url, p);
+		long t = System.currentTimeMillis() - t1;
+		logger.info("-------课程中心响应结束，耗时：" + t + " ms");
+		if (StringUtil.isEmpty(resObj)) {
+			throw new XueWenServiceException(Config.STATUS_504, Config.MSG_504,
+					null);
+
+		}
+		return resObj;
+
+	}
+
+	/**
+	 * 
+	 * @Title: parseDrycargoJsonString
+	 * @Description: 解析json
+	 * @param jsonString
+	 * @return
+	 * @throws XueWenServiceException
+	 *             List<DrycargoBean>
+	 * @throws
+	 */
+	private List<DrycargoBean> parseDrycargoJsonString(String jsonString)
+			throws XueWenServiceException {
+		List<DrycargoBean> drycargoBeans = new ArrayList<DrycargoBean>();
+		JsonParser parser = new JsonParser();
+		JsonElement jsonEl = parser.parse(jsonString);
+		JsonObject jsonObj = jsonEl.getAsJsonObject();// 转换成Json对象
+		JsonArray carrys = jsonObj.get("data").getAsJsonArray();
+		for (Iterator iter = carrys.iterator(); iter.hasNext();) {
+			JsonObject obj = (JsonObject) iter.next();
+			DrycargoBean drycargoBean = json2DrycargoBean(obj);
+			if (drycargoBean != null) {
+				drycargoBeans.add(drycargoBean);
+			}
+
+		}
+
+		return drycargoBeans;
+	}
+
+	/**
+	 * @throws XueWenServiceException
+	 * 
+	 * @Title: json2DrycargoBean
+	 * @Description: 将Json转为DrycargoBean Bean
+	 * @param obj
+	 * @return DrycargoBean
+	 * @throws
+	 */
+	private DrycargoBean json2DrycargoBean(JsonObject obj)
+			throws XueWenServiceException {
+		DrycargoBean drycargoBean = new DrycargoBean();
+		if (obj.get("DryType").isJsonNull()) {
+			return null;
+		} else {
+			// 过滤
+			if (!"Link".equals(obj.get("DryType").getAsString())) {
+				return null;
+			} else {
+				// 开始解析
+				if (!obj.get("ID").isJsonNull()) {
+					drycargoBean.setSourceId(obj.get("ID").getAsString());
+				}
+
+				if (!obj.get("Summary").isJsonNull()) {
+					drycargoBean.setMessage(obj.get("Summary").getAsString());
+				}
+
+				if (!obj.get("DryUrl").isJsonNull()) {
+					drycargoBean.setUrl(obj.get("DryUrl").getAsString());
+				}
+				if (!obj.get("ImgUrl").isJsonNull()) {
+					drycargoBean.setFileUrl(obj.get("ImgUrl").getAsString());
+
+				}
+				if (!obj.get("CreateDate").isJsonNull()) {
+					String sdate = obj.get("CreateDate").getAsString()
+							.replaceAll("T", " ");
+					long ctime = DateUtil.Sdate2Long(sdate);
+					drycargoBean.setCtime(ctime);
+				}
+				// TODO 添加一个添加人的信息 暂未定
+				return drycargoBean;
+			}
+
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Title: deleteReCourse
+	 * @Description: 删除重复的干货
+	 * @param drycargoBeans
+	 *            void
+	 * @throws
+	 */
+	private void deleteReCourse(List<DrycargoBean> drycargoBeans) {
+		List<DrycargoBean> dryBuffer = new ArrayList<DrycargoBean>();
+		for (int i = 0; i < drycargoBeans.size(); i++) {
+			DrycargoBean drycargoBean = drycargoBeans.get(i);
+			List<DrycargoBean> isHavaBeans = drycargoBeanRepository
+					.findBySourceId(drycargoBean.getSourceId());
+			if (isHavaBeans.size() > 0) {
+				dryBuffer.add(drycargoBeans.get(i));
+			}
+		}
+		drycargoBeans.removeAll(dryBuffer);
+	}
+	
+	public Page<DrycargoBean>  searchByKeyWords(String keywords,Pageable pageable) throws XueWenServiceException{
+		return drycargoBeanRepository.findByMessageLike(keywords,pageable);
+		
+	}
+	/**
+	 * 
+	 * @Title: addFav
+	 * @Description: 收藏数量加1
+	 * @param id void
+	 * @throws
+	 */
+	public void addFav(String id){
+		DrycargoBean drycargoBean=drycargoBeanRepository.findOne(id);
+		drycargoBean.setFavCount(drycargoBean.getFavCount());
+		drycargoBeanRepository.save(drycargoBean);
+	}
+}

@@ -1,0 +1,102 @@
+package operation.service.email;
+
+import java.io.IOException;
+import java.util.Properties;
+
+import javax.mail.Authenticator;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMessage.RecipientType;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.email.YxtRegMail;
+
+import org.apache.log4j.Logger;
+import org.junit.Test;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.MailTemple;
+
+@Service
+public class EmailService {
+	
+	private static final Logger logger=Logger.getLogger(EmailService.class);
+	/**
+	 * @throws IOException 
+	 * @throws XueWenServiceException 
+	 * @author Jack Tang
+	 * @Title: sendYxtRegMail
+	 * @Description:  发送邀请注册邮箱
+	 * @param yxtRegMail void
+	 * @throws
+	 */
+	public void sendYxtRegMail(YxtRegMail yxtRegMail) throws XueWenServiceException, IOException{
+		Multipart mailTemple=MailTemple.getYxtRegMailTemple(yxtRegMail.getToUserRegUrl(), yxtRegMail.getGroupName(), yxtRegMail.getUserNick());
+		sendMail(mailTemple,Config.MAIL_FROM_ADDR, Config.MAIL_FROM_NAME,Config.MAIL_YXTMAILREG_SUBJECT, yxtRegMail.getToEmailAddress());
+	}
+		
+	public void sendMail(Multipart mailTemple,String from,String fromName,String subject,String toAddr)throws XueWenServiceException{
+		 try {
+			// 配置javamail
+			Properties props = System.getProperties();
+			props.setProperty("mail.transport.protocol",Config.MAIL_TRANSPORT_PROTOCOL);
+			props.put("mail.smtp.host", Config.MAIL_SMTP_HOST);
+			props.put("mail.smtp.port", Config.MAIL_SMTP_PORT);
+			props.setProperty("mail.smtp.auth", Config.MAIL_SMTP_AUTH);
+			props.put("mail.smtp.connectiontimeout", Config.MAIL_SMTP_CONNECTIONTIMEOUT);
+			props.put("mail.smtp.timeout",Config.MAIL_SMTP_TIMEOUT);
+			props.setProperty("mail.mime.encodefilename", Config.MAIL_MIME_ENCODEFILENAME);
+
+			// 使用api_user和api_key进行验证
+			Session mailSession = Session.getInstance(props, new Authenticator() {
+			    @Override
+			    protected PasswordAuthentication getPasswordAuthentication() {
+			        return new PasswordAuthentication(Config.MAIL_API_USER, Config.MAIL_API_KEY);
+			    }
+			});
+
+			Transport transport = mailSession.getTransport();
+			MimeMessage message = new MimeMessage(mailSession);
+			message.setContent(mailTemple);          
+			// 发信人，用正确邮件地址替代 
+			message.setFrom(new InternetAddress(from, fromName, "UTF-8"));
+			// 收件人地址，用正确邮件地址替代
+			message.addRecipient(RecipientType.TO, new InternetAddress(toAddr));
+			// 邮件主题
+			message.setSubject(subject, "UTF-8");
+			// 连接sendcloud服务器，发送邮件
+			transport.connect();
+			transport.sendMessage(message, message.getRecipients(RecipientType.TO));
+			transport.close();
+		}  catch (Exception e) {
+			logger.error("发送邮件失败"+e);
+			throw new XueWenServiceException(Config.STATUS_201, "邮件发送失败",e);
+		}
+		 
+		 
+	}
+	@Test
+	 public void test() throws XueWenServiceException, IOException{
+		 YxtRegMail yxtRegMail=new YxtRegMail();
+		 yxtRegMail.setGroupName("测试");
+		 yxtRegMail.setToEmailAddress("121455175@qq.com");
+		 yxtRegMail.setToUserRegUrl("http://www.yunxuetang.com/");
+		 yxtRegMail.setUserNick("小木");
+		 sendYxtRegMail(yxtRegMail);
+		 
+	 }
+
+	public void sendMails(YxtRegMail yxtRegMail, String addresses) throws XueWenServiceException, IOException {
+		String[] address=addresses.split(",");
+		for (String ads : address) {
+			yxtRegMail.setToEmailAddress(ads);
+			sendYxtRegMail(yxtRegMail);
+		}
+		
+	}
+}

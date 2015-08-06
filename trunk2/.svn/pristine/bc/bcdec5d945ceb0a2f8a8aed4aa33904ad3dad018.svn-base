@@ -1,0 +1,18 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.pojo.course.GroupCourse;
+import operation.pojo.course.NewGroupCourse;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface NewGroupCourseRepository extends MongoRepository<NewGroupCourse, String>{
+
+	Page<NewGroupCourse> findByGroupAndDisPlay(String groupId,int disPlay,Pageable pageable);
+	NewGroupCourse findByGroupAndCourse(String groupId,String courseId);
+	Page<NewGroupCourse> findByGroupIn(List<Object> groupId,Pageable pageable);
+	int countByGroup(String groupId);
+}

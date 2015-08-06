@@ -1,0 +1,75 @@
+package operation.controller.oss;
+import java.util.List;
+
+import operation.BaseController;
+import operation.pojo.log.UserRegLogS;
+import operation.pojo.log.UserRegistLog;
+import operation.pojo.pub.QueryModel;
+import operation.service.log.UserRegLogService;
+import operation.service.log.UserRegistLogService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("oss/user/log")
+public class OssUserRegistLogController extends BaseController {
+	@Autowired
+	private UserRegistLogService userRegistLogService;
+	@Autowired 
+	private  UserRegLogService userRegLogService;
+	
+	@RequestMapping("search")
+	public @ResponseBody  ResponseContainer search(long ctime,long etime,String vkey,String ukey,QueryModel dm){
+		Pageable pageable=PageRequestTools.pageRequesMake(dm);
+		Page<UserRegistLog>losg=userRegistLogService.search(ctime,etime,vkey,ukey,pageable);
+		getReponseData().setResult(losg);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	@RequestMapping("searchUser")
+	public @ResponseBody ResponseContainer searchUser(long ctime, long etime,
+			String userKey, String qdId, QueryModel dm) {
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<UserRegistLog> losg = userRegistLogService.searchQd(ctime, etime,
+				userKey, qdId, pageable);
+		userRegistLogService.setloginTime(losg.getContent());
+		ReponseDataTools.getClientReponseData(getReponseData(), losg);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200,
+				getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	@RequestMapping("save")
+	public @ResponseBody  ResponseContainer save(UserRegistLog log){
+		userRegistLogService.save(log);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	@RequestMapping("saveRlog")
+	public @ResponseBody  ResponseContainer saveRlog(UserRegLogS log){
+		userRegLogService.save(log);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	@RequestMapping("searchRlog")
+	public @ResponseBody  ResponseContainer searchRlog(String key,long ctime,long etime,QueryModel dm){
+		Pageable pageable=PageRequestTools.pageRequesMake(dm);
+		Page<UserRegLogS>logs=userRegLogService.searchByKey(key, ctime, etime, pageable);
+		ReponseDataTools.getClientReponseData(getReponseData(), logs);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+	}
+	
+	
+	
+	
+
+}

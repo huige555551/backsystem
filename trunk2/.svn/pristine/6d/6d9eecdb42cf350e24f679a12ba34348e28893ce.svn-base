@@ -1,0 +1,150 @@
+package operation.pojo.course;
+
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection="userBuyCourse")
+public class UserBuyCourse {
+	
+	@org.springframework.data.annotation.Id
+	private String Id;  
+	private String userId;//用户
+	private String nickName;
+	private String logoUrl;
+	
+	private String courseId;//课程
+	private String courseTitle;//课程标题
+	private String courseLogo;//课程logo
+	private String coursePrice;//课程价格
+	
+	private long ctime;//创建时间
+	private long utime;//更新时间
+	
+	private String groupId;//群ID
+	private String groupName;//群名称
+	private String groupLogoUrl;//群logo
+	
+
+	public UserBuyCourse(){
+		super();
+	}
+	
+	public UserBuyCourse(String userId,String courseId){
+		this.userId=userId;
+		this.courseId=courseId;
+		long time=System.currentTimeMillis();
+		this.ctime=time;
+		this.utime=time;
+	}
+
+	public String getId() {
+		return Id;
+	}
+
+	public void setId(String id) {
+		Id = id;
+	}
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getNickName() {
+		return nickName;
+	}
+
+	public void setNickName(String nickName) {
+		this.nickName = nickName;
+	}
+
+	public String getLogoUrl() {
+		return logoUrl;
+	}
+
+	public void setLogoUrl(String logoUrl) {
+		this.logoUrl = logoUrl;
+	}
+
+	public String getCourseId() {
+		return courseId;
+	}
+
+	public void setCourseId(String courseId) {
+		this.courseId = courseId;
+	}
+
+	public String getCourseTitle() {
+		return courseTitle;
+	}
+
+	public void setCourseTitle(String courseTitle) {
+		this.courseTitle = courseTitle;
+	}
+
+	public String getCourseLogo() {
+		return courseLogo;
+	}
+
+	public void setCourseLogo(String courseLogo) {
+		this.courseLogo = courseLogo;
+	}
+
+	public String getCoursePrice() {
+		return coursePrice;
+	}
+
+	public void setCoursePrice(String coursePrice) {
+		this.coursePrice = coursePrice;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public String getGroupLogoUrl() {
+		return groupLogoUrl;
+	}
+
+	public void setGroupLogoUrl(String groupLogoUrl) {
+		this.groupLogoUrl = groupLogoUrl;
+	}
+
+
+
+
+
+	
+	
+}

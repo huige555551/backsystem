@@ -1,0 +1,170 @@
+package operation.pojo.ad;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+/**
+ * 纸条广告
+ * @author hjn
+ *
+ */
+@Document(collection="ztiaoAd")
+public class ZtiaoAd {
+
+	@Id
+	private String id;
+	private String adId;//广告位id   标示广告位的位置标号 如： 0  app首页
+	private String name;//广告位名称  如：App首页
+	private String adSid;//渠道商Id  0:站内  10：站外
+	private String adSellerId;//渠道商Id号 如 0 ：站内话题 1：站内干货 2：站内课程  3:站内群组  10.站外资源 
+	private String adSellerName;//渠道商名称	 如  站内话题
+	private String creater;//创建人 
+	private String linkUrl;//外链跳转地址
+	private String picUrl; //广告位图片
+	private float picWidth;//广告位图片宽度
+	private float picHeight;//广告位图片高度
+	private long ctime; //广告创建时间
+	private long utime;//广告更新时间
+	private boolean effective;//广告是否有效(控制显示)
+	private int index;//广告序列
+	private String groupId;//群组Id
+	private String topicId;//话题Id
+	private String courseId;//课程Id
+	private String groupCourseId;//群组课程ID
+	private String dryCargoId;//干货Id
+	private long ccount;//点击数量
+	private String sourceName;//资源名称
+	public String getSourceName() {
+		return sourceName;
+	}
+	public void setSourceName(String sourceName) {
+		this.sourceName = sourceName;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getAdId() {
+		return adId;
+	}
+	public void setAdId(String adId) {
+		this.adId = adId;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getAdSid() {
+		return adSid;
+	}
+	public void setAdSid(String adSid) {
+		this.adSid = adSid;
+	}
+	public String getAdSellerId() {
+		return adSellerId;
+	}
+	public void setAdSellerId(String adSellerId) {
+		this.adSellerId = adSellerId;
+	}
+	public String getAdSellerName() {
+		return adSellerName;
+	}
+	public void setAdSellerName(String adSellerName) {
+		this.adSellerName = adSellerName;
+	}
+	public String getCreater() {
+		return creater;
+	}
+	public void setCreater(String creater) {
+		this.creater = creater;
+	}
+	public String getLinkUrl() {
+		return linkUrl;
+	}
+	public void setLinkUrl(String linkUrl) {
+		this.linkUrl = linkUrl;
+	}
+	public String getPicUrl() {
+		return picUrl;
+	}
+	public void setPicUrl(String picUrl) {
+		this.picUrl = picUrl;
+	}
+	public float getPicWidth() {
+		return picWidth;
+	}
+	public void setPicWidth(float picWidth) {
+		this.picWidth = picWidth;
+	}
+	public float getPicHeight() {
+		return picHeight;
+	}
+	public void setPicHeight(float picHeight) {
+		this.picHeight = picHeight;
+	}
+	public long getCtime() {
+		return ctime;
+	}
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+	public long getUtime() {
+		return utime;
+	}
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+	public boolean isEffective() {
+		return effective;
+	}
+	public void setEffective(boolean effective) {
+		this.effective = effective;
+	}
+	public int getIndex() {
+		return index;
+	}
+	public void setIndex(int index) {
+		this.index = index;
+	}
+	public String getGroupId() {
+		return groupId;
+	}
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+	public String getTopicId() {
+		return topicId;
+	}
+	public void setTopicId(String topicId) {
+		this.topicId = topicId;
+	}
+	public String getCourseId() {
+		return courseId;
+	}
+	public void setCourseId(String courseId) {
+		this.courseId = courseId;
+	}
+	public String getGroupCourseId() {
+		return groupCourseId;
+	}
+	public void setGroupCourseId(String groupCourseId) {
+		this.groupCourseId = groupCourseId;
+	}
+	public String getDryCargoId() {
+		return dryCargoId;
+	}
+	public void setDryCargoId(String dryCargoId) {
+		this.dryCargoId = dryCargoId;
+	}
+	public long getCcount() {
+		return ccount;
+	}
+	public void setCcount(long ccount) {
+		this.ccount = ccount;
+	}
+	
+}

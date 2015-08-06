@@ -1,0 +1,33 @@
+package operation.repo.box;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.box.BoxPost;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class BoxPostTemplate {
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public BoxPostTemplate(){
+		super();
+	}
+	/**
+	 * 根据Id获取boxPost的长度
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public BoxPost getBoxPostSizeById(String id)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id));
+		query.fields().include("size");
+		return mongoTemplate.findOne(query, BoxPost.class);
+	}
+}

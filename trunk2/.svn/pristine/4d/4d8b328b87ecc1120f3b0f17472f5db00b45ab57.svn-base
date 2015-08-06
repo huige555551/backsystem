@@ -1,0 +1,57 @@
+package operation.repo.dynamic;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.dynamic.GroupDynamic;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class GroupDynamicTemplate {
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	/**
+	 * 
+	 * @Title: deleteBySourceIdId
+	 * @Description: 删除动态
+	 * @param sourceId
+	 * @throws XueWenServiceException void
+	 * @throws
+	 */
+	public void deleteBySourceIdId(String sourceId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("sourceId").is(sourceId));
+		mongoTemplate.remove(query, GroupDynamic.class);
+	}
+	/**
+	 * 
+	 * @Title: deleteBySourceIdIds
+	 * @Description: 批量删
+	 * @param idList
+	 * @throws XueWenServiceException void
+	 * @throws
+	 */
+	public void deleteBySourceIdIds(List<Object> idList)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("sourceId").in(idList));
+		mongoTemplate.remove(query, GroupDynamic.class);
+	}
+	/**
+	 * 判断是否存在此动态
+	 * @param sourceId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean dynamicExiseBySourceId(String sourceId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("sourceId").is(sourceId));
+		return mongoTemplate.exists(query, GroupDynamic.class);
+	}
+	
+	
+}

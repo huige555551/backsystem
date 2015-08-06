@@ -1,0 +1,86 @@
+package operation.service.openfire;
+
+import java.io.IOException;
+
+import javax.inject.Inject;
+
+import org.apache.log4j.Logger;
+import org.jivesoftware.smack.AccountManager;
+import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
+import org.jivesoftware.smack.SmackException;
+import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.SmackException.NotConnectedException;
+import org.jivesoftware.smack.tcp.XMPPTCPConnection;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+@Configuration
+public class OpenFireConnection implements InitializingBean{
+	private static final Logger logger=Logger.getLogger(OpenFireConnection.class);
+	
+	@Inject Environment env;
+	
+	public XMPPConnection connection;
+
+	public XMPPConnection getConnection() {
+		if(!connection.isConnected()){
+			try {
+				this.connect();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return this.connection;
+	}
+
+	public OpenFireConnection() {
+		
+	}
+
+	protected void finalize() throws NotConnectedException {
+		this.connection.disconnect();
+	}
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// TODO Auto-generated method stub
+		this.connect();
+	}
+	
+	private void connect() throws IOException{
+		
+		
+		logger.info("openfire服务器地址："+env.getProperty("openfire.service")+"openfire端口号："+env.getProperty("openfire.port"));
+		ConnectionConfiguration ccf = new ConnectionConfiguration(env.getProperty("openfire.service"),Integer.parseInt(env.getProperty("openfire.port")));
+		//ConnectionConfiguration ccf = new ConnectionConfiguration(test.getAdrr(),5222);
+		ccf.setCompressionEnabled(true);
+		ccf.setReconnectionAllowed(true);
+		ccf.setSecurityMode(SecurityMode.disabled);
+		ccf.setSecurityMode(ConnectionConfiguration.SecurityMode.disabled);
+		connection = new XMPPTCPConnection(ccf);
+		try {
+			connection.connect();
+		} catch (SmackException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+
+
+
+}

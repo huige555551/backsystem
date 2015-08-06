@@ -1,0 +1,55 @@
+package operation;
+
+import operation.pojo.user.User;
+import tools.Config;
+import tools.ReponseData;
+import tools.ResponseContainer;
+
+public class BaseController {
+	public ResponseContainer responseContainer;
+	public ReponseData rsData;
+
+	public BaseController() {
+		this.responseContainer = new ResponseContainer();
+		this.rsData = new ReponseData();
+	}
+
+	public User getCurrentUser(String token) {
+		return (User) Config.map.get(token);
+
+	}
+	
+	public ResponseContainer addResponse(int status,String msg,Object obj,int mode,String md5){
+		responseContainer.setStatus(status);
+		responseContainer.setMsg(msg);
+		rsData.setResult(obj);
+		rsData.resetPageInfo();//清除分页相关信息
+		responseContainer.setData(rsData);
+		responseContainer.setMode(mode);
+		responseContainer.setMd5(md5);
+		return responseContainer;
+	}
+
+	public ResponseContainer addPageResponse(int status,String msg,ReponseData  rspData,int mode,String md5){
+		responseContainer.setStatus(status);
+		responseContainer.setMsg(msg);
+		responseContainer.setData(rspData);
+		responseContainer.setMode(mode);
+		responseContainer.setMd5(md5);
+		return responseContainer;
+	}
+	/*
+	 * public ResponseContainer reponse(Object rsData, int status){
+	 * this.responseContainer.setStatus(status); this.rsData.setResult(rsData);
+	 * this.responseContainer.setData(this.rsData);
+	 * this.responseContainer.setMode(Config.RESP_MODE_10);
+	 * this.responseContainer.setMd5(null); return this.responseContainer; }
+	 * public ResponseContainer reponse(Object rsData, int status, String msg){
+	 * this.responseContainer.setStatus(status);
+	 * this.responseContainer.setMsg(msg); this.rsData.setResult(rsData);
+	 * this.responseContainer.setData(this.rsData);
+	 * this.responseContainer.setMode(Config.RESP_MODE_10);
+	 * this.responseContainer.setMd5(null); return this.responseContainer; }
+	 */
+
+}

@@ -1,0 +1,11 @@
+package operation.repo.praise;
+
+
+
+import operation.pojo.praise.UnPraise;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface UnPraiseRepository extends MongoRepository<UnPraise, String> {
+	UnPraise findByUserIdAndAppKeyAndSourceIdAndType(String userId,String appkey,String sourceId,String type);
+}

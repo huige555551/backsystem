@@ -1,0 +1,62 @@
+package operation.service.study;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.fav.Fav;
+import operation.pojo.study.Study;
+import operation.repo.study.StudyRepository;
+import operation.repo.study.StudyTemplate;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+public class StudyService {
+
+	@Autowired
+	private StudyRepository studyRepository;
+	@Autowired
+	private StudyTemplate studyTemplate;
+	
+	/**
+	 * 用户收藏,不进行是否收藏判断
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addStudyNotCheck(String domain,String appkey,String sourceId,int studyType ,String  userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		Study study=new Study();
+		study.setDomain(domain);
+		study.setAppKey(appkey);
+		study.setSourceId(sourceId);
+		study.setStudyType(studyType);
+		study.setUserId(userId);
+		long time=System.currentTimeMillis();
+		study.setCtime(time);
+		study.setUtime(time);
+		studyRepository.save(study);
+	}
+	
+	/**
+	 * 用户是否学习
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserFav(String userId,String domain,String sourceId,int studyType)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId)){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return studyTemplate.existsByUserIdAndDomainAndSourceIdAndStudyType(userId,domain,sourceId,studyType);
+	}
+}

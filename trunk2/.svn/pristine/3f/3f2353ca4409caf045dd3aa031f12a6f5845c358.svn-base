@@ -1,0 +1,74 @@
+package operation.pojo.subject;
+
+import operation.pojo.user.User;
+
+import org.springframework.data.annotation.Id;
+
+
+public class SubjectChatMessage{
+	@Id
+	private String id;
+	
+	private String subjectId;
+	
+	private String type ;  //0 : 单对单 1：群组聊天 2：话题聊天
+	
+	private User sender;  // 发送人
+	
+	private String content;  // 内容
+	
+	private long sTime; // 发送时间
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getSubjectId() {
+		return subjectId;
+	}
+
+	public void setSubjectId(String subjectId) {
+		this.subjectId = subjectId;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public User getSender() {
+		return sender;
+	}
+
+	public void setSender(User sender) {
+		this.sender = sender;
+	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
+	}
+
+	public long getsTime() {
+		return sTime;
+	}
+
+	public void setsTime(long sTime) {
+		this.sTime = sTime;
+	}
+	
+	
+	
+	
+
+}

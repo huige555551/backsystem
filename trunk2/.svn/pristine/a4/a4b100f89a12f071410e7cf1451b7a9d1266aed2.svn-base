@@ -1,0 +1,109 @@
+package operation.pojo.share;
+
+import org.springframework.data.annotation.Id;
+
+public class Share {
+
+	@Id
+	private String id;
+	
+	private String userId;  //用户Id
+	
+	private String userName;
+	
+	private String userLogoUrl;
+	
+	private String appKey;  //域
+	
+	private String sourceId; //类型ID
+	
+	private String type; //类型，0代表话题1代表课程
+	
+	private String toAddr;//目标地址
+	
+	private String utime;//更新时间
+	
+	private String ctime;//创建时间
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getUserLogoUrl() {
+		return userLogoUrl;
+	}
+
+	public void setUserLogoUrl(String userLogoUrl) {
+		this.userLogoUrl = userLogoUrl;
+	}
+
+	public String getAppKey() {
+		return appKey;
+	}
+
+	public void setAppKey(String appKey) {
+		this.appKey = appKey;
+	}
+
+	public String getSourceId() {
+		return sourceId;
+	}
+
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getToAddr() {
+		return toAddr;
+	}
+
+	public void setToAddr(String toAddr) {
+		this.toAddr = toAddr;
+	}
+
+	public String getUtime() {
+		return utime;
+	}
+
+	public void setUtime(String utime) {
+		this.utime = utime;
+	}
+
+	public String getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(String ctime) {
+		this.ctime = ctime;
+	}
+	
+	
+}

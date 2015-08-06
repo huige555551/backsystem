@@ -1,0 +1,61 @@
+package operation.repo.topics;
+
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.topics.Post;
+import operation.pojo.topics.SubPost;
+import operation.pojo.topics.Topic;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+/**
+ * 
+* @ClassName: TopicTemplate
+* @Description: TODO(这里用一句话描述这个类的作用)
+* @author shenb
+* @date 2014年12月18日 下午1:56:29
+*
+ */
+public class TopicTemplate {
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	public long getCountsByGroupId(String groupId){
+		Criteria criteria2 = Criteria.where("sourceId").is(groupId);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		return mongoTemplate.count(query, Topic.class);
+	}
+	
+	public boolean deleteSubPost(String PostId){
+
+		//mongoTemplate.updateMulti(new Query(Criteria.where("parentId").is(PostId)), new Update().set("isDeleted", true),SubPost.class);
+		mongoTemplate.remove(new Query(Criteria.where("parentId").is(PostId)), SubPost.class);
+		return true;
+	}
+	
+	public boolean deletePost(String topicId){
+
+		//mongoTemplate.updateMulti(new Query(Criteria.where("topicId").is(topicId)), new Update().set("isDeleted", true),Post.class);
+		mongoTemplate.remove(new Query(Criteria.where("topicId").is(topicId)), Post.class);
+		return true;
+	}
+	
+	/**
+	 * 根据来源Id 更新群组话题状态为已删除
+	 * @param sourceId
+	 */
+	public void updatePostIsDeleteBySourceId(String sourceId){
+		
+		mongoTemplate.updateMulti(new Query(Criteria.where("sourceId").is(sourceId)), new Update().set("isDeleted", true),Topic.class);
+		
+	}
+	
+	
+}

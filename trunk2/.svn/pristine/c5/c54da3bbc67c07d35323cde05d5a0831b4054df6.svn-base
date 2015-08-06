@@ -1,0 +1,43 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.pojo.course.NewGroupCourse;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.repository.Repository;
+
+public interface NewGroupCourseRepository extends MongoRepository<NewGroupCourse, String>{
+	Page<NewGroupCourse> findByGroupAndDisPlay(String groupId,int disPlay,Pageable pageable);
+	
+	Page<NewGroupCourse> findByDisPlay(int disPlay,Pageable pageable);
+	NewGroupCourse findByGroupAndCourse(String groupId,String courseId);
+	Page<NewGroupCourse> findByGroupIn(List<Object> groupId,Pageable pageable);
+	Page<NewGroupCourse> findByCourseIn(List<Object> courses,Pageable pageable);
+	Page<NewGroupCourse> findByCategoryId(String categoryId,Pageable pageable);
+	int countByCategoryId(String categoryId);
+	Page<NewGroupCourse> findByChildCategoryId(String childCategoryId,Pageable pageable);
+	int countByChildCategoryId(String childCategoryId);
+	int countByGroupAndDisPlay(String groupId,int disPlay);
+
+	NewGroupCourse findOneByCourse(String courseId);
+
+	List<NewGroupCourse> findByGroup(String groupId);
+	
+	List<NewGroupCourse> findByChildCategoryId(String childCategoryId);
+
+	List<NewGroupCourse> findByIdIn(List<Object> ids);
+
+	Page<NewGroupCourse> findByIdIn(List<Object> ids, Pageable pageable);
+	
+	Page<NewGroupCourse> findByDisPlayAndReview(int disPlay,boolean review,Pageable pageable);
+	
+	List<NewGroupCourse> findByWhoImport(String userId);
+	
+	Page<NewGroupCourse> findByCourseNotIn(List<Object> courses,Pageable pageable);
+
+	List<NewGroupCourse> findByCourseAndDisPlay(String courseId,int disPlay);
+
+}

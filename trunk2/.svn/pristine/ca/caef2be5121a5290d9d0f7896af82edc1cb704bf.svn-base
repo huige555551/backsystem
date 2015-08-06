@@ -1,0 +1,193 @@
+package operation.service.push;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.push.ZtiaoPush;
+import operation.service.rabbitmq.RabbitmqService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+@Service
+@Component
+public class ZtiaoPushService {
+	private static final Logger logger = Logger.getLogger(ZtiaoPushService.class);
+	
+	@Autowired
+	private RabbitmqService rabbitmqService;
+	
+	
+	/**
+	 * 发送系统广播
+	 * @param title
+	 * @param content
+	 * @throws Exception
+	 */
+	public void sendNormal(String title,String content)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush(title, content, Config.PUSH_NORMAL_TYPE,"","","","","","","");
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 发送系统通知
+	 * @param title
+	 * @param content
+	 * @throws Exception
+	 */
+	public void sendHeadline(String title,String content)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush(title, content, Config.PUSH_HEADLINE_TYPE,"","","","","","","");
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 提升为管理员通知推送
+	 * @param toUserId
+	 * @param groupId
+	 * @throws Exception
+	 */
+	public void sendSetUpAdmin(String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			String toUserId,String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_SETUPADMIN_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl
+				,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 取消管理员通知推送
+	 * @param toUserId
+	 * @param groupId
+	 * @throws Exception
+	 * String title,String content,String pushType,String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+	 * String toUserId,String sourceId,String sourceName,String sourceLogoUrl
+	 */
+	public void sendCancelAdmin(String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			String toUserId,String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_CANCELADMIN_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl
+				,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 根据群组成员，给所有的人推送群组解散消息
+	 * @param toUserIds
+	 * @param groupId
+	 * @param groupName
+	 * @throws Exception
+	 */
+	public void sendDeleteGroups(String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			List<Object> toUserIds,String groupId,String groupName,String groupLogoUrl)throws Exception{
+		if(toUserIds !=null && toUserIds.size()>0){
+			for(Object obj:toUserIds){
+				sendDeleteGroup(fromUserId,fromUserNickName,fromUserLogoUrl
+						,obj.toString(),groupId,groupName,groupLogoUrl);
+			}
+		}
+	}
+	/**
+	 * 删除群组推送
+	 * @param toUserId
+	 * @param groupId
+	 * @param groupName
+	 * @throws Exception
+	 */
+	public void sendDeleteGroup(String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			String toUserId,String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_DELETEGROUP_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl
+				,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 加入群组推送
+	 * @param toUserId
+	 * @param groupId
+	 * @param groupName
+	 * @throws Exception
+	 * *String title,String content,String pushType,String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+	 * String toUserId,String sourceId,String sourceName,String sourceLogoUrl
+	 */
+	public void sendJoinGroup(String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+			String toUserId,String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_JOINGROUP_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl
+				,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	
+	/**
+	 * 发送邀请入群推送
+	 * @param fromUserId
+	 * @param fromUserNickName
+	 * @param fromUserLogoUrl
+	 * @param toUserId
+	 * @param groupId
+	 * @param groupName
+	 * @throws Exception
+	 */
+	public void sendApplyJoinGroup(String fromUserId,String fromUserNickName,String fromUserLogoUrl,String toUserId,
+			String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_APPLYJOINGROUP_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 移除群组，给被移出人发送推送
+	 * @param fromUserId
+	 * @param fromUserNickName
+	 * @param fromUserLogoUrl
+	 * @param toUserId
+	 * @param groupId
+	 * @param groupName
+	 * @throws Exception
+	 */
+	public void sendRemoveGroup(String fromUserId,String fromUserNickName,String fromUserLogoUrl,String toUserId,
+			String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_REMOVEGROUP_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	/**
+	 * 邀请好友入群通知
+	 * @param fromUserId
+	 * @param fromUserNickName
+	 * @param fromUserLogoUrl
+	 * @param toUserId
+	 * @param groupId
+	 * @param groupName
+	 * @param groupLogoUrl
+	 * @throws Exception
+	 */
+	public void sendInviteInGroup(String fromUserId,String fromUserNickName,String fromUserLogoUrl,String toUserId,
+			String groupId,String groupName,String groupLogoUrl)throws Exception{
+		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_INVITEINGROUP_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl,toUserId,groupId,groupName,groupLogoUrl);
+		rabbitmqService.sendPushMessage(zp);
+	}
+	
+	
+//	/**
+//	 * 关注消息
+//	 * @param fromUserId
+//	 * @param fromUserNickName
+//	 * @param fromUserLogoUrl
+//	 * @param toUserId
+//	 * @throws Exception
+//	 * String title,String content,String pushType,String fromUserId,String fromUserNickName,String fromUserLogoUrl,
+//	 * String toUserId,String sourceId,String sourceName,String sourceLogoUrl
+//	 * 
+//	 */
+//	public void sendApply(String fromUserId,String fromUserNickName,String fromUserLogoUrl,String toUserId)throws Exception{
+//		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_APPLY_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl,toUserId,"","","");
+//		rabbitmqService.sendPushMessage(zp);
+//	}
+//	
+//	/**
+//	 * 
+//	 * @param fromUserId
+//	 * @param fromUserNickName
+//	 * @param fromUserLogoUrl
+//	 * @param toUserId
+//	 * @throws Exception
+//	 */
+//	public void sendApply(String fromUserId,String fromUserNickName,String fromUserLogoUrl,String toUserId,String sourceId,String sourceName)throws Exception{
+//		ZtiaoPush zp=new ZtiaoPush("", "", Config.PUSH_LIKE_TYPE,fromUserId,fromUserNickName,fromUserLogoUrl,toUserId,"","","");
+//		rabbitmqService.sendPushMessage(zp);
+//	}
+	
+}

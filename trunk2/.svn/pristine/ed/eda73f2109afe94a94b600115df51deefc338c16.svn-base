@@ -1,0 +1,51 @@
+package operation.service.activity;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.ActivityUser;
+import operation.repo.activity.ActivityUserRepo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rabbitmq.client.AMQP.Basic.Return;
+
+import tools.Config;
+import tools.StringUtil;
+@Service
+public class ActivityUserServie{
+	 @Autowired
+	 private ActivityUserRepo activityUserRepo;
+	 
+	 /**
+	  * 
+	  * @Title: save
+	  * @auther tangli
+	  * @Description: 保存 更新
+	  * @param user void
+	  * @throws
+	  */
+	 public ActivityUser save(ActivityUser user){
+		 user.setCtime(System.currentTimeMillis());
+		 return activityUserRepo.save(user);		 
+	 }
+	 
+	 /**
+	  * 
+	  * @Title: findByActivityId
+	  * @auther tangli
+	  * @Description: 通过活动Id取
+	  * @param id
+	  * @param pageable
+	  * @return
+	  * @throws XueWenServiceException Page<ActivityUser>
+	  * @throws
+	  */
+	 public Page<ActivityUser>findByActivityId(String id,Pageable pageable) throws XueWenServiceException{
+		if(StringUtil.isBlank(id)){
+			 throw new XueWenServiceException(Config.STATUS_201, "参数不能为空", null);
+		 }
+		 return activityUserRepo.findByActivityId(id ,pageable);
+	 }
+}

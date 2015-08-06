@@ -1,0 +1,27 @@
+package operation.pojo.course;
+
+import java.util.List;
+
+public class CourseShareResponse{
+	private Object course;//课程
+	
+	private List<Course> courseRelevant;//相关课程
+
+	public Object getCourse() {
+		return course;
+	}
+
+	public void setCourse(Object course) {
+		this.course = course;
+	}
+
+	public List<Course> getCourseRelevant() {
+		return courseRelevant;
+	}
+
+	public void setCourseRelevant(List<Course> courseRelevant) {
+		this.courseRelevant = courseRelevant;
+	}
+
+	
+}

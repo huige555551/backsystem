@@ -1,0 +1,148 @@
+package operation.service.course;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.NewChapter;
+import operation.pojo.course.Lesson;
+import operation.repo.course.NewChapterRepository;
+import operation.repo.course.NewChapterTemplate;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+/**
+ * 
+ * @ClassName: ChapterService
+ * @Description: 章节Service
+ * @author JackTang
+ * @date 2014年12月19日 上午9:10:07
+ *
+ */
+@Service
+public class NewChapterService {
+	@Autowired
+	private NewChapterRepository chapterRepository;
+	@Autowired
+	private NewChapterTemplate newChapterTemplate;
+	@Autowired
+	private LessonService lessonService;
+
+	/**
+	 * 
+	 * @Title: save
+	 * @Description: 插入章节
+	 * @param chapter
+	 *            void
+	 * @throws
+	 */
+	public void save(NewChapter chapter) {
+		chapterRepository.save(chapter);
+
+	}
+
+	/**
+	 * 
+	 * @Title: save
+	 * @Description: 批量插入章节
+	 * @param chapters
+	 *            void
+	 * @throws
+	 */
+	public void save(List<NewChapter> chapters) {
+		chapterRepository.save(chapters);
+	}
+
+	/**
+	 * @throws XueWenServiceException
+	 * 
+	 * @Title: json2Chapter
+	 * @Description:将json转成chapter Bean
+	 * @return Chapter
+	 * @throws
+	 */
+	@SuppressWarnings("rawtypes")
+	public NewChapter json2Chapter(JsonObject obj)
+			throws XueWenServiceException {
+		NewChapter chapter = new NewChapter();
+		if (!obj.get("OrderIndex").isJsonNull()) {
+			chapter.setOrder(obj.get("OrderIndex").getAsInt());
+		}
+		if (!obj.get("Name").isJsonNull()) {
+			chapter.setTitle(obj.get("Name").getAsString());
+		} else {
+			chapter.setTitle(Config.CHAPTER_DEFAULE_NAME);
+		}
+
+		List<Lesson> lessons = new ArrayList<Lesson>();
+		// 取課程
+		JsonArray carrys = obj.get("Coursewares").getAsJsonArray();
+		for (Iterator iter = carrys.iterator(); iter.hasNext();) {
+			JsonObject lessonObj = (JsonObject) iter.next();
+
+			Lesson lesson = lessonService.json2Lesson(lessonObj);
+			lessons.add(lesson);
+		}
+		chapter.setLessons(lessons);
+
+		return chapter;
+	}
+	
+	/**
+	 * 根据多章节ID查询章节集合
+	 * @param chapter
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> findChapter(List<Object> chapter)throws XueWenServiceException{
+		return chapterRepository.findByIdIn(chapter);
+	}
+	
+	/**
+	 * 根据多章节ID查询章节集合（集合中对象为NewChapter）
+	 * @param chapters
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewChapter> findChapterList(List<Object> chapters)throws XueWenServiceException{
+		return chapterRepository.findNewChapterByIdIn(chapters);
+	}
+	
+	/**
+	 * 根据chapterId 返回newChapter对象 只有Id和lessons节点
+	 * @author hjn
+	 * @param chapterId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewChapter findOneChapterByIdRspOnlyIdAndLessons(String chapterId)throws XueWenServiceException{
+		return newChapterTemplate.findOneChapterByIdRspOnlyIdAndLessons(chapterId);
+	}
+	/**
+	 * 根据chapterId List 返回newChapter 对象集合 每个对象 只有Id和lessons节点
+	 * @author hjn
+	 * @param chapterId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<NewChapter> findChapterListByIdListRspOnlyIdAndLessons(List<Object> chapterIds)throws XueWenServiceException{
+		return newChapterTemplate.findChapterListByIdListRspOnlyIdAndLessons(chapterIds);
+	}
+	/**
+	 * 根据chapterId  返回newChapter 对象 不包括lesson节点
+	 * @author hjn
+	 * @param chapterId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewChapter findOneChapterByIdRspExcLessons(String chapterId)throws XueWenServiceException{
+		return newChapterTemplate.findOneChapterByIdRspExcLessons(chapterId);
+	}
+}

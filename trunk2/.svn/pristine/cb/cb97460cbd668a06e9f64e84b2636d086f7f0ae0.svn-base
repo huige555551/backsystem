@@ -1,0 +1,18 @@
+package operation.repo.category;
+
+import java.util.List;
+
+import operation.pojo.category.Category;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface CategoryRepository extends MongoRepository<Category, String>{
+	Category findOneByCategoryName(String er);
+	//Category findOneByCategoryName(String categoryName);
+	List<Category> findAllByParentIdIsNull();
+	List<Category> findAllByParentId(String Id);
+	Category findOneByCategoryNameAndParentId(String categoryName, String parentId);
+	
+	Category findOneById(String categoryId);
+
+}

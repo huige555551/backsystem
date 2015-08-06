@@ -1,0 +1,36 @@
+package operation.pojo.group;
+
+import java.util.List;
+
+public class MyAllGroup {
+	
+	List<ResponseGroup>  owner;
+	List<ResponseGroup>  admin;
+	List<ResponseGroup>  member;
+	public MyAllGroup(List<ResponseGroup> owner, List<ResponseGroup> admin, List<ResponseGroup> member){
+		this.owner = owner;
+		this.admin = admin;
+		this.member = member;
+	}
+	
+	public List<ResponseGroup> getOwner() {
+		return owner;
+	}
+	public void setOwner(List<ResponseGroup> owner) {
+		this.owner = owner;
+	}
+	public List<ResponseGroup> getAdmin() {
+		return admin;
+	}
+	public void setAdmin(List<ResponseGroup> admin) {
+		this.admin = admin;
+	}
+	public List<ResponseGroup> getMember() {
+		return member;
+	}
+	public void setMember(List<ResponseGroup> member) {
+		this.member = member;
+	}
+
+
+}

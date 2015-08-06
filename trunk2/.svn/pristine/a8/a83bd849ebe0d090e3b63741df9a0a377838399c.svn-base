@@ -1,0 +1,267 @@
+package operation.service.openfire;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.security.sasl.SaslException;
+
+import net.sf.json.JSONObject;
+import operation.pojo.group.OpenFireGroup;
+import operation.pojo.user.UserGroup;
+
+import org.apache.log4j.Logger;
+import org.jivesoftware.smack.ChatManager;
+import org.jivesoftware.smack.Chat;
+import org.jivesoftware.smack.SmackException;
+import org.jivesoftware.smack.SmackException.NoResponseException;
+import org.jivesoftware.smack.SmackException.NotConnectedException;
+import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.XMPPException.XMPPErrorException;
+import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smackx.muc.MultiUserChat;
+import org.jivesoftware.smackx.xdata.Form;
+import org.jivesoftware.smackx.xdata.FormField;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+@Service
+@Component
+@Configuration
+public class OpenFireGroupService implements InitializingBean {
+	private static final Logger logger=Logger.getLogger(OpenFireGroupService.class);
+	
+	@Inject Environment env;
+	
+	@Autowired
+	public OpenFireConnection openFireConnection;
+
+	public OpenFireGroupService() {
+	}
+	/**
+	 * 申请加入群
+	 */
+	public void sendJoinRequest(UserGroup userGroup){
+		
+//		MultiUserChat muc = new MultiUserChat(
+//				openFireConnection.getConnection(),userGroup.getGroupName()+"@"+Config.groupServer);
+		MultiUserChat muc = new MultiUserChat(
+				openFireConnection.getConnection(),userGroup.getGroupName()+"@"+env.getProperty("openfire.group.service"));
+		try {
+			muc.join("管理员");
+		} catch (NoResponseException e1 ) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}catch (XMPPErrorException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}catch ( NotConnectedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			Message msg = muc.createMessage();
+			JSONObject object = JSONObject.fromObject(userGroup);
+			msg.addBody("",object.toString());
+			muc.sendMessage(msg);
+		} catch (NotConnectedException  e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}catch ( XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 拒绝加入群
+	 */
+	public void sendNOJoinRequest(UserGroup userGroup){
+		try {
+			//Chat c=ChatManager.getInstanceFor(openFireConnection.getConnection()).createChat(userGroup.getUserName()+"@"+Config.openfireAdrr, null);
+			Chat c=ChatManager.getInstanceFor(openFireConnection.getConnection()).createChat(userGroup.getUserName()+"@"+env.getProperty("openfire.service"), null);
+			c.sendMessage("您被拒绝加入"+userGroup.getGroupName()+"群组");
+		} catch (NotConnectedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (XMPPException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+
+	public void create(OpenFireGroup openFireGroup) {
+		String roomName = openFireGroup.getGroupName() + "@"
+				+ openFireGroup.getGroupService();
+		MultiUserChat muc = new MultiUserChat(
+				openFireConnection.getConnection(), roomName);
+		try {
+			muc.create(openFireGroup.getGroupName());
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SmackException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Form form = null;
+		Form submitForm = null;
+
+		try {
+			form = muc.getConfigurationForm();
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		submitForm = form.createAnswerForm();
+
+		List<FormField> fields = form.getFields();
+
+		for (int i = 0; i < fields.size(); i++) {
+			FormField field = fields.get(i);
+			if (!FormField.TYPE_HIDDEN.equals(field.getType())
+					&& field.getVariable() != null) {
+				// Sets the default value as the answer
+				submitForm.setDefaultAnswer(field.getVariable());
+			}
+		}
+		//增加判断管理员是否在线
+		String  strUrl = env.getProperty("openfire.online.user")+env.getProperty("openfire.admin")+"@"+env.getProperty("openfire.service")+"&type=xml";
+		int status = IsUserOnLine(strUrl);
+		//2代表离线
+		if(2==status){
+			this.loginAsAdmin();//重新登录
+		}
+		
+		List<String> owners = new ArrayList<String>();
+		//owners.add("admin@api.yunxuetang.com");
+		//owners.add("donny@api.yunxuetang.com");
+		//owners.add(Config.openadmin+"@"+Config.openfireAdrr);
+		owners.add(env.getProperty("openfire.admin")+"@"+env.getProperty("openfire.service"));
+//		owners.add(openFireGroup.getGroupCreater().getOpenFireUserName()
+//				+ "@api.yunxuetang.com");
+		owners.add(openFireGroup.getGroupCreater().getOpenFireUserName()+"@"
+				+ env.getProperty("openfire.service"));
+		submitForm.setAnswer("muc#roomconfig_roomowners", owners);
+		submitForm.setAnswer("muc#roomconfig_roomdesc", openFireGroup.getGroupDesc());
+		//submitForm.setTitle(openFireGroup.getGroupDesc());
+		//submitForm.setInstructions(openFireGroup.getGroupDesc());
+		
+		try {
+			muc.sendConfigurationForm(submitForm);
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	public void destroy(OpenFireGroup openFireGroup,String reason, String ownerId) {
+		String roomName = openFireGroup.getGroupName() + "@"
+				+ openFireGroup.getGroupService();
+		MultiUserChat muc = new MultiUserChat(
+				openFireConnection.getConnection(), roomName);
+		try {
+			muc.destroy(reason, ownerId);
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void loginAsAdmin() {
+		try {
+			openFireConnection.getConnection().login(env.getProperty("openfire.admin"), env.getProperty("openfire.admin.password"));
+			//openFireConnection.getConnection().login("naenshunadmin", "123456");
+		} catch (SaslException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SmackException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// TODO Auto-generated method stub
+		this.loginAsAdmin();
+	}
+	
+	/**
+	 * 判断管理员是否已经登录
+	 * @param strUrl
+	 * @return
+	 */
+	public int IsUserOnLine(String strUrl)
+	{
+	    int shOnLineState = 0;    //-不存在-
+	    try{
+		    URL oUrl = new URL(strUrl);
+		    URLConnection  oConn     = oUrl.openConnection();
+		    if(oConn!=null){
+		        BufferedReader     oIn = new BufferedReader(new InputStreamReader(oConn.getInputStream()));
+		        if(null!=oIn){
+		            String strFlag = oIn.readLine();
+		            oIn.close();
+		            if(strFlag.indexOf("type=\"unavailable\"")>=0)
+		            {
+		                shOnLineState = 2;
+		            }
+		            if(strFlag.indexOf("type=\"error\"")>=0)
+		            {
+		                shOnLineState = 0;
+		            }
+		            else if(strFlag.indexOf("priority")>=0 || strFlag.indexOf("id=\"")>=0)
+		            {
+		                shOnLineState = 1;
+		            }
+		        }
+		    }
+	    }
+	    catch(Exception e)
+	    {            
+	    }
+	    return shOnLineState;
+	}
+
+}

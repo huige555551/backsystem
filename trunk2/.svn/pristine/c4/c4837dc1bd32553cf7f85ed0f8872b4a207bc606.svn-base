@@ -1,0 +1,17 @@
+package operation.repo.course;
+
+
+
+import java.util.List;
+
+import operation.pojo.course.NewCourse;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface NewCourseRepository extends  MongoRepository<NewCourse,String> {
+		List<NewCourse> findBySourceId(String sourceId);
+		
+		List<NewCourse> findByChaptersIn(String id);
+		
+		
+}

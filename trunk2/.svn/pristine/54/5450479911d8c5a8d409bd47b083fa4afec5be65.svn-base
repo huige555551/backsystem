@@ -1,0 +1,921 @@
+package operation.controller.oss;
+
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import net.sf.json.JSONObject;
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.topics.Post;
+import operation.pojo.topics.SubPost;
+import operation.pojo.user.User;
+import operation.service.drycargo.DrycargoService;
+import operation.service.group.GroupService;
+//import operation.service.drycargo.DrycargoBeanService;
+import operation.service.topics.PostService;
+import operation.service.user.UserService;
+
+import org.jsoup.helper.StringUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+//import operation.pojo.drycargo.DrycargoBean;
+
+@RestController
+@RequestMapping("/oss/dry")
+@Configuration
+public class OssDryController extends OssController {
+
+	@Autowired
+	public DrycargoService drycargoService;
+
+	@Autowired
+	public UserService userService;
+
+//	@Autowired
+//	public DrycargoBeanService drycargoBeanService;
+	
+	@Autowired
+	private PostService postService;
+	
+	@Autowired
+	public GroupService groupService;
+
+	public OssDryController() {
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * 查询干货详情（从小组课堂查看干货详情）
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getOneDry")
+	public @ResponseBody ResponseContainer getOneDry(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			JSONObject db = drycargoService.getOneWithGroupInfo(dryCargoId);
+			return addResponse(Config.STATUS_200, Config.MSG_200, db, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 更新干货
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/updateOne")
+	public @ResponseBody ResponseContainer updateOne(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			String fileUrl = request.getParameter("fileUrl");
+			String groupid = request.getParameter("groupid");
+			String tagName = request.getParameter("tagName");
+			String height = request.getParameter("height");
+			String width = request.getParameter("width");
+			String categoryId = request.getParameter("categoryId");
+			String childCategoryId = request.getParameter("childCategoryId");
+			if (fileUrl != null) {
+				fileUrl = URLDecoder.decode(fileUrl, "utf-8");
+			}
+
+			String message = request.getParameter("message");
+			
+			String description = request.getParameter("description");
+			
+			Drycargo db = drycargoService.findOneById(dryCargoId);
+
+			
+			 
+				db.setCategoryId(categoryId);
+				db.setChildCategoryId(childCategoryId);
+			 
+				db.setFileUrl(fileUrl);
+				db.setMessage(message);
+				db.setDescription(description);
+				
+				db.setDrycargoTagName(tagName);
+				if(!("".equals(height))&&!("".equals(width))){
+					db.setPicHeight(Float.parseFloat(height));
+					db.setPicWidth(Float.parseFloat(width));
+				}
+				
+
+			drycargoService.updateDrycargo(db,tagName);
+
+			return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 创建干货
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/createDry")
+	public @ResponseBody ResponseContainer createDry(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			String fileUrl = request.getParameter("fileUrl");
+			String groupid = request.getParameter("groupid");
+			String tagName = request.getParameter("tagName");
+			String height = request.getParameter("height");
+			String width = request.getParameter("width");
+			String url = request.getParameter("url");
+			String uid = request.getParameter("uid");
+			User user=userService.findOne(uid);
+			
+			String dryFlag = request.getParameter("dryFlag");
+			
+			String image = request.getParameter("image");
+			 
+			if (fileUrl != null) {
+				fileUrl = URLDecoder.decode(fileUrl, "utf-8");
+			}
+
+			String message = request.getParameter("message");
+			
+			String description = request.getParameter("description");
+			
+			Drycargo db = new Drycargo();
+
+			db.setFileUrl(fileUrl);
+				db.setMessage(message);
+				db.setDescription(description);
+				db.setUrl(url);
+				db.setAuthorId(uid);
+				db.setAuthorLogoUrl(user.getLogoURL());
+				db.setAuthorName(user.getNickName());
+				db.setDryFlag(Integer.parseInt(dryFlag));
+				long l=System.currentTimeMillis();
+				db.setCtime(l);
+				db.setDrycargoTagName(tagName);
+				if(!("".equals(height))&&!("".equals(width))&&height!=null&&width!=null){
+					db.setPicHeight(Float.parseFloat(height));
+					db.setPicWidth(Float.parseFloat(width));
+				}
+				db = drycargoService.changePicUrlToImage(db,image,db.getFileUrl(),"");
+				
+				if (groupid != null) {
+
+					db.setGroup(groupid);
+					XueWenGroup x=groupService.findGroup(groupid);
+					db.setCategoryId(x.getCategoryId().toString());
+					db.setChildCategoryId(x.getChildCategoryId().toString());
+					db.setGroupName(x.getGroupName());
+					db.setGroupLogoUrl(x.getLogoUrl());
+					
+				} 
+				else{
+					db.setCategoryId("");
+					db.setChildCategoryId("");
+					db.setAuthorLogoUrl("");
+					db.setAuthorName("");
+					db.setGroup("");
+					db.setGroupName("");
+					db.setGroupLogoUrl("");
+				}
+				
+				Drycargo d=drycargoService.saveDrycargo(db,tagName);
+				drycargoService.createGroupDrycargoDynamic(d);
+				
+
+			return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 关联群组
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/bindGroup")
+	public @ResponseBody ResponseContainer bindGroup(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			 
+			String groupid = request.getParameter("groupid");
+			
+			Drycargo db = drycargoService.findOneById(dryCargoId);
+
+			XueWenGroup x=groupService.findGroup(groupid);
+			 
+				db.setGroup(groupid); 
+				db.setCategoryId(x.getCategoryId().toString());
+				db.setChildCategoryId(x.getChildCategoryId().toString());
+				drycargoService.saveDrycargo(db);
+				drycargoService.createGroupDrycargoDynamic(db);
+			return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+
+	/**
+	 * 根据群组查询干货列表Pc
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("findDryByGroup")
+	public @ResponseBody ResponseContainer findDryByGroup(HttpServletRequest request,String keyWords, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String groupId = request.getParameter("groupId");
+			if(StringUtil.isBlank(keyWords)||"null".equals(keyWords)){
+				keyWords="";
+				
+			}
+			dryCargoResult= drycargoService.allPc(groupId, keyWords, pageable);
+			if(dryCargoResult.getContent().size()==0){
+				return addResponse(Config.STATUS_200, Config.MSG_200, null, Config.RESP_MODE_10, "");
+			}else{
+				return addResponse(Config.STATUS_200, Config.MSG_200, dryCargoResult.getContent(), Config.RESP_MODE_10, "");
+			}
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 查询干货列表 包括没有关联群组的
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchDrys")
+	public @ResponseBody ResponseContainer searchDrys(HttpServletRequest request, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String keywords = request.getParameter("keywords");
+			dryCargoResult = drycargoService.searchByKeyWordsAndTagNamesLike(keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 查询自动抓取干货列表 包括没有关联群组的
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchCatchDrys")
+	public @ResponseBody ResponseContainer searchCatchDrys(HttpServletRequest request, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String keywords = request.getParameter("keywords");
+			dryCargoResult = drycargoService.searchCatchByKeyWordsAndTagNamesLike(keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 查询未审核干货列表 
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchNoCheckDrys")
+	public @ResponseBody ResponseContainer searchNoCheckDrys(HttpServletRequest request, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String keywords = request.getParameter("keywords");
+			dryCargoResult = drycargoService.searchByKeyWordsAndTagNamesLikeAndNoCheck(keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 查询未审核干货列表 
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchNoCheckXuanYe")
+	public @ResponseBody ResponseContainer searchNoCheckXuanYe(HttpServletRequest request, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String keywords = request.getParameter("keywords");
+			dryCargoResult = drycargoService.searchByKeyWordsAndTagNamesLikeAndNoCheckXuanYe(keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 查询干货列表（绑定推荐）
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchDrysNotInBox")
+	public @ResponseBody ResponseContainer searchDrysNotInBox(HttpServletRequest request, QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		// sort.add("weightSort");
+		// sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+			String keywords = request.getParameter("keywords");
+			String boxpostId = request.getParameter("boxpostId");
+			dryCargoResult = drycargoService.search(keywords, pageable);
+			
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 创建干货
+	 * 
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("uploadDrycargo")
+	public @ResponseBody ResponseContainer uploadDrycargo(HttpServletRequest request) {
+		try {
+
+			String id = request.getParameter("uid");
+			User currentUser = userService.findUser(id);
+			String tagName = request.getParameter("tagName");
+			if("".equals(tagName)){
+				tagName=null;
+			}
+			String group = request.getParameter("group");
+			if("null".equals(group)){
+				group=null;
+			}
+			String url = request.getParameter("url");
+			String fileUrl = request.getParameter("fileUrl");
+			String message = request.getParameter("message");
+			String description = request.getParameter("description");
+			String dryFlag = request.getParameter("dryFlag");
+			String image = request.getParameter("image");
+			int i=Integer.parseInt(dryFlag);
+			
+			Drycargo drycargo=new Drycargo();
+			drycargo.setGroup(group);
+			drycargo.setUrl(url);
+			drycargo.setFileUrl(fileUrl);
+			drycargo.setMessage(message);
+			drycargo.setDescription(description);
+			drycargo.setDryFlag(i);
+			
+			Drycargo db=null;
+			// 非空校验
+			if (StringUtil.isBlank(drycargo.getUrl()) || currentUser == null) {
+				return addResponse(Config.STATUS_500, Config.MSG_500, false, Config.RESP_MODE_10, "");
+			}
+			// 干货增加回复流程
+			if(drycargo.getGroup()!=null){
+				 db = drycargoService.uploadDry(currentUser, drycargo, tagName,"0",image);
+			}
+			else {
+				 db = drycargoService.uploadDryOss(currentUser, drycargo, tagName,"0",image);
+			}
+			
+			//Drycargo db = drycargoService.uploadDry(currentUser, drycargo, tagName);
+			return addResponse(Config.STATUS_200, Config.MSG_200, db, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 删除
+	 * 
+	 * @param request
+	 * @return
+	 * @throws
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/deleteDry")
+	public @ResponseBody ResponseContainer deleteDry(HttpServletRequest request) {
+		try {
+			String dryCargoId = request.getParameter("dryCargoId");
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200, drycargoService.deleteById(dryCargoId), Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: searchDry
+	 * @Description:干货搜索
+	 * @param keywords
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/searchDry")
+	public @ResponseBody ResponseContainer searchDry(String keywords,QueryModel dm){
+		Pageable pageable= PageRequestTools.pageRequesMake(dm);
+		 try {
+			Page<Drycargo> drys= drycargoService.searchByKeyWordsAndTagNamesLike(keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), drys);
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		}
+		
+	}
+	/**
+	 * 
+	 * @Title: searchInGroup
+	 * @Description:干货搜索(群组下的)
+	 * @param keywords
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/searchInGroup")
+	public @ResponseBody ResponseContainer searchInGroup(String groupId,String keywords,QueryModel dm){
+		Pageable pageable= PageRequestTools.pageRequesMake(dm);
+		 try {
+			Page<Drycargo> drys= drycargoService.searchByKeyWordsAndTagNamesLikeInGroupInGroup(groupId, keywords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), drys);
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		}
+		
+	}
+	
+//	@RequestMapping("tagserch")
+//	public @ResponseBody ResponseContainer searchByTag(String tagName,QueryModel dm){
+//		Pageable pageable=PageRequestTools.pageRequesMake(dm);		
+//		try {
+//			drycargoBeanService.serchByTag(tagName,pageable);
+//			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+//					Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			e.printStackTrace();
+//			return addResponse(e.getCode(), e.getMessage(), false,
+//					Config.RESP_MODE_10, "");
+//		}
+//	}
+	
+	/**
+	 * 根据群组查询干货列表Pc
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("allPc")
+	public @ResponseBody ResponseContainer allPc(HttpServletRequest request,String keyWords,QueryModelMul dm) {
+		
+		try {
+			String groupId = request.getParameter("groupId");
+			if(StringUtil.isBlank(keyWords)||"null".equals(keyWords)){
+				keyWords="";
+				
+			}
+			List<String> sorts=dm.getSort();
+			List<Order>orders=new ArrayList<Order>();
+			Order order=new Order(Direction.DESC, "displayOrder");
+			orders.add(order);
+			for (String string : sorts) {
+				Direction d=Direction.DESC;
+				if("ASC".equals(dm.getMode())){
+					d=Direction.ASC;
+				}
+				Order o=new Order(d, string);
+				orders.add(o);
+
+			}
+			Sort sort=new Sort(orders);
+			Pageable pageable = new PageRequest(dm.getN(),dm.getS(),sort);
+			
+			
+//			List<String> sort = new ArrayList<String>();
+//			sort.add("displayOrder");
+//			sort.add("displayTime");
+//			sort.add("ctime");
+//			dm.setSort(sort);
+//			
+//			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Drycargo> dryCargoResult= drycargoService.allPc(groupId, keyWords, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult(dryCargoResult.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: getTop10
+	 * @Description: 获取top10干货
+	 * @return ResponseContainer
+	 * @throws
+	 */
+//	@RequestMapping("gettop10")
+//	public @ResponseBody ResponseContainer getTop10(){	  
+//		List<JSONObject> drys=drycargoBeanService.getTop10();
+//		return addResponse(Config.STATUS_200, Config.MSG_200, drys, Config.RESP_MODE_10, "");
+//	} 
+	
+	
+	/**
+	 * 查询干货的所有主楼回复与副楼回复  未分页
+	 * 
+	 * @param request
+	 * @return
+	 * @throws
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/searchAllPostAndSubPost")
+	public @ResponseBody ResponseContainer searchAllPostAndSubPost(HttpServletRequest request) {
+		try {
+			// String topicid = request.getParameter("topicid");
+			
+			
+			String dryid = request.getParameter("dryid");
+			List<Post> PostList = postService.getAllDryPost(dryid);
+			 
+			List l = new ArrayList();
+			
+			// 课程下所有副楼回复
+			for (Post post : PostList) {
+				Map m=new HashMap();
+				List<SubPost> subPostList = postService.getAllSubPost(post.getPostId());
+				 
+				m.put("post", post);
+				m.put("number", subPostList.size());
+				m.put("subpost", subPostList);
+				l.add(m);
+			}
+
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200, l, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 回复干货主楼
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="replyDrycargo",method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer replyDrycargo(HttpServletRequest request,Post post) {
+		String uid = request.getParameter("uid");
+		try {
+			User currentUser = userService.findUser(uid);
+			
+			String dryid = request.getParameter("dryid");
+			Drycargo db = drycargoService.findOneById(dryid);
+			
+			Post postResult = postService.replyDrycargo(currentUser,post,db.getGroup().toString());
+			return addResponse(Config.STATUS_200, Config.MSG_200, postResult,
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}	
+	}
+	
+	/**
+	 * 关联群组的取消
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="deleteDryByGroup",method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer deleteDryByGroup(HttpServletRequest request,Post post) {
+		String dryid = request.getParameter("dryid");
+		String gid = request.getParameter("gid");
+		try {
+			
+			Drycargo db = drycargoService.findOneByDrycargoId(dryid,gid);
+			db.setGroup("");
+			drycargoService.saveDrycargo(db);
+			return addResponse(Config.STATUS_200, Config.MSG_200, db,
+					Config.RESP_MODE_10, "");
+		}   catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}	
+	}
+	/**
+	 * 
+	 * @Title: getTop10
+	 * @Description: 获取top10干货
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("gettop10")
+	public @ResponseBody ResponseContainer getTop10(Integer s){	  
+		List<JSONObject> drys=drycargoService.getTop10(s);
+		return addResponse(Config.STATUS_200, Config.MSG_200, drys,
+				Config.RESP_MODE_10, "");
+	}  
+	
+	/**
+	 * 
+	 * 给干货默认增加分类
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/addDrycargoCategory")
+	public @ResponseBody ResponseContainer addDrycargoCategory(String id, HttpServletRequest request) {
+		try {
+			drycargoService.addCategoryForDrycargo();
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+		//	logger.error("==========业务错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+		//	logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * 取干货频道数据
+	 * @param boxPostName
+	 * @return
+	 */
+	@RequestMapping("/getDryindex")
+	public @ResponseBody ResponseContainer getDryindex(String boxPostName, HttpServletRequest request,QueryModel dm) {
+		try {
+			Pageable pageable=PageRequestTools.pageRequesMake(dm);
+			drycargoService.getDryindex(boxPostName,pageable,getReponseData());
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}
+		
+	}
+	
+	/**
+	 * 
+	 * 干货审核
+	 * @param boxPostName
+	 * @return
+	 */
+	@RequestMapping("/dryChecked")
+	public @ResponseBody ResponseContainer dryChecked( HttpServletRequest request ) throws XueWenServiceException {
+		String dryid = request.getParameter("dryid");
+		Drycargo d = drycargoService.findOneById(dryid);
+		d.setReview(true);
+		drycargoService.saveDrycargo(d);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		
+	}
+	
+	/**
+	 * 获得用户创建的干货列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("userDrycargo")
+	public @ResponseBody ResponseContainer userDrycargo(HttpServletRequest request,QueryModelMul dm) {
+		List<String> sort = new ArrayList<String>();
+		sort.add("ctime");
+		/*sort.add("weightSort");
+		sort.add("replyCount");*/
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+		
+			String userId = request.getParameter("userId");
+			String dryFlag = request.getParameter("dryFlag");//0干货1炫页
+			if(StringUtil.isBlank(dryFlag)){
+				dryFlag = "0";
+			}
+			dryCargoResult = drycargoService.getUserDrycargoByDryFlag(userId,Integer.parseInt(dryFlag), pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult((drycargoService.toResponeses(dryCargoResult.getContent(),userId)));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 根据群组查询干货列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("all")
+	public @ResponseBody ResponseContainer all(HttpServletRequest request,QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		List<String> sort = new ArrayList<String>();
+		//sort.add("weightSort");
+		sort.add("ctime");
+		sort.add("replyCount");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		try {
+//			String token = request.getParameter("token");
+//			User currentUser = this.getCurrentUser(token);
+			String keywords = request.getParameter("groupId");
+			String dryFlag = request.getParameter("dryFlag");//0干货1炫页
+			if(StringUtil.isBlank(dryFlag)){
+				dryFlag = "0";
+			}
+			dryCargoResult = drycargoService.allByDryFlag(keywords,Integer.parseInt(dryFlag), pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult((drycargoService.toResponeses(dryCargoResult.getContent(),null)));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+}

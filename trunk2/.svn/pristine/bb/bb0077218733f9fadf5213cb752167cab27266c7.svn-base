@@ -1,0 +1,123 @@
+package operation.pojo.group;
+
+
+
+public class ResponseGroupPc {
+	
+	private String id;
+	
+	private String groupName;
+	
+	private String intro;
+	
+	private String logoUrl;
+	
+	private long memberCount;
+	
+	private long topicCount;
+	
+	private long courseCount;
+	
+	private long drycargoCount;
+	
+	private String tag;
+	
+	private String qrCodeUrl;
+	public ResponseGroupPc(String id, String groupName, String intro,
+			long memberCount, long topicCount, long courseCount,
+			long drycargoCount,String logoUrl,String tag,String qrCodeUrl) {
+		super();
+		this.id = id;
+		this.groupName = groupName;
+		this.intro = intro;
+		this.memberCount = memberCount;
+		this.topicCount = topicCount;
+		this.courseCount = courseCount;
+		this.drycargoCount = drycargoCount;
+		this.logoUrl = logoUrl;
+		this.tag=tag;
+		this.qrCodeUrl=qrCodeUrl;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public String getIntro() {
+		return intro;
+	}
+
+	public void setIntro(String intro) {
+		this.intro = intro;
+	}
+
+	public long getMemberCount() {
+		return memberCount;
+	}
+
+	public void setMemberCount(long memberCount) {
+		this.memberCount = memberCount;
+	}
+
+	public long getTopicCount() {
+		return topicCount;
+	}
+
+	public void setTopicCount(long topicCount) {
+		this.topicCount = topicCount;
+	}
+
+	public long getCourseCount() {
+		return courseCount;
+	}
+
+	public void setCourseCount(long courseCount) {
+		this.courseCount = courseCount;
+	}
+
+	public long getDrycargoCount() {
+		return drycargoCount;
+	}
+
+	public void setDrycargoCount(long drycargoCount) {
+		this.drycargoCount = drycargoCount;
+	}
+
+	public String getLogoUrl() {
+		return logoUrl;
+	}
+
+	public void setLogoUrl(String logoUrl) {
+		this.logoUrl = logoUrl;
+	}
+
+	public String getTag() {
+		return tag;
+	}
+
+	public void setTag(String tag) {
+		this.tag = tag;
+	}
+
+	public String getQrCodeUrl() {
+		return qrCodeUrl;
+	}
+
+	public void setQrCodeUrl(String qrCodeUrl) {
+		this.qrCodeUrl = qrCodeUrl;
+	}
+	
+
+}

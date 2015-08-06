@@ -1,0 +1,492 @@
+package operation.controller.oss;
+
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+
+import net.sf.json.JSONObject;
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.topics.Topic;
+import operation.pojo.user.ResponsePcUser;
+import operation.pojo.user.ResponseUser;
+import operation.pojo.user.User;
+import operation.pojo.user.UserHead;
+import operation.service.course.UserCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.drycargo.UserDrycargoService;
+import operation.service.file.MyFileService;
+import operation.service.group.GroupService;
+import operation.service.jobs.IndustryService;
+import operation.service.openfire.OpenFireUserService;
+import operation.service.queue.QueueService;
+import operation.service.sms.SmsService;
+import operation.service.topics.TopicService;
+import operation.service.user.ContactUserService;
+import operation.service.user.UserContactListService;
+import operation.service.user.UserFriendShipService;
+import operation.service.user.UserInviteService;
+import operation.service.user.UserNameService;
+import operation.service.user.UserNumService;
+import operation.service.user.UserPcService;
+import operation.service.user.UserService;
+import operation.service.user.UserStudyResultService;
+import operation.service.util.ObjCopyPropsService;
+import operation.service.version.VersionService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+import tools.YXTJSONHelper;
+
+@RestController
+@RequestMapping("/oss/user")
+@Configuration
+/**
+ * 用户信息Controller,用于接受客户端传递
+ * 的数据，进行用户相关操作
+ * @author nes
+ *
+ */
+public class OssUserController extends OssController {
+	private static final Logger logger = Logger.getLogger(OssUserController.class);
+
+	@Inject
+	Environment env;
+
+	@Autowired
+	public UserService userService;
+
+	
+	@Autowired
+	public TopicService topicService;
+	
+	@Autowired
+	public DrycargoService drycargoService;
+	
+	
+	@Autowired
+	public UserPcService userPcService;
+
+	@Autowired
+	public OpenFireUserService openFireUserService;
+
+	@Autowired
+	public ObjCopyPropsService objCopyPropsService;
+
+	@Autowired
+	public QueueService queueService;
+
+	@Autowired
+	public UserNumService userNumService; // 20140911 新增创建用户时，创建用户号
+	@Autowired
+	public MyFileService myFileService;
+
+	@Autowired
+	public UserContactListService userContactListService;
+
+	@Autowired
+	public UserFriendShipService userFriendShipService;
+
+	@Autowired
+	public IndustryService industryService;
+
+	@Autowired
+	public UserCourseService userCourseService;
+
+	@Autowired
+	public GroupService groupService;
+
+	@Autowired
+	public VersionService versionService;
+
+	@Autowired
+	public UserInviteService userInviteService;
+
+	@Autowired
+	public UserStudyResultService userStudyResultService;
+
+	@Autowired
+	public SmsService smsService;
+
+	@Autowired
+	private ContactUserService contactUserService;
+
+	@Autowired
+	private UserDrycargoService userDrycargoService;
+
+	@Autowired
+	private UserNameService userNameService;
+	 
+	
+	
+
+	public OssUserController() {
+		super();
+	}
+
+	/**
+	 * 搜索用户 条件：用户名，手机，邮箱
+	 * 
+	 * @param request
+	 * @return
+	 */
+
+	@RequestMapping("/searchbyinfo")
+	public @ResponseBody ResponseContainer searchbyinfo(HttpServletRequest request, QueryModel dm) {
+
+		try {
+
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String keyword = request.getParameter("keyword");
+			String robot = request.getParameter("robot");
+			if (robot == null) {
+				robot = "0";
+			}
+
+			Page<User> users = userService.searchbyInfo(keyword, robot, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), users);
+			this.getReponseData().setResult((userService.toResponseUser(users.getContent())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 根据用户id查找出所有课程
+	 *  
+	 * @param request
+	 * @return
+	 */
+	
+	@RequestMapping("/getMyTopic")
+	public @ResponseBody ResponseContainer getMyTopic(HttpServletRequest request,QueryModel dm) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String userid = request.getParameter("userid");
+			
+			
+			Page<Topic> topics = topicService.findAllByUserID(userid,  pageable);
+			 
+			this.getReponseData().setResult(topics.getContent());
+			//Page<Topic> topics = topicService.findAllByUserID(userid,  pageable);
+			List<Object> newRes = new ArrayList<Object>();
+			
+			for(Topic topic:topics.getContent()){
+				XueWenGroup group = groupService.findGroup(topic.getSourceId());
+				String[] include = {"groupName","id"};
+				JSONObject g = YXTJSONHelper.includeAttrJsonObject(group, include);
+				HashMap<String,Object> t = new HashMap<String,Object>();
+				t.put("groupInfo", g);
+				String[] include2 = {"topicId","content","picUrl","authorLogoUrl","ctime","viewCount","unLikeCount","favoritesCount","localName","replyCount","position"};
+//				JSONObject x = YXTJSONHelper.addAndModifyAttrJsonObject(topic, t);
+				JSONObject x = YXTJSONHelper.getInObjectAttrJsonObject(topic, t, include2);
+				newRes.add(x);
+			}
+			ReponseDataTools.getClientReponseData(getReponseData(), topics);
+			this.getReponseData().setResult(newRes);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 获得用户创建的干货列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("getMyDry")
+	public @ResponseBody ResponseContainer getMyDry(HttpServletRequest request,QueryModelMul dm) {
+		// 根据请求参数封装一个分页信息对象
+		// dm.setSort("c");
+		List<String> sort = new ArrayList<String>();
+		sort.add("weightSort");
+		sort.add("viewCount");
+		sort.add("ctime");
+		dm.setSort(sort);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Drycargo> dryCargoResult;
+		
+		try {
+			String userid = request.getParameter("userid");
+			dryCargoResult = drycargoService.getUserCreateDrycargo(userid, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult((drycargoService.toResponeses(dryCargoResult.getContent(),userid)));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+//	/**
+//	 * 搜索用户
+//	 * 条件：用户名，手机，邮箱
+//	 * @param request
+//	 * @return
+//	 */
+//	
+//	@RequestMapping("/getMyDry")
+//	public @ResponseBody ResponseContainer getMyDry(HttpServletRequest request,QueryModel dm) {
+//		try {
+//			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+//			String userid = request.getParameter("userid");
+//			
+//			
+//			Page<Drycargo> drys = drycargoService.getDrysByUser(userid, pageable);
+//			this.getReponseData().setResult(drys.getContent());
+//			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return addPageResponse(Config.STATUS_500, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+//		}
+//	}
+
+	/**
+	 * 根据用户ID 查询用户信息
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/one/{id}")
+	// @Cacheable()
+	public @ResponseBody ResponseContainer findUser(HttpServletRequest request, @PathVariable("id") String id) {
+		try {
+
+			User user = userService.findUser(id);
+			ResponseUser respUser = new ResponseUser(user);
+
+			return addResponse(Config.STATUS_200, Config.MSG_200, respUser, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+
+	}
+
+	/**
+	 * 用户更新
+	 * 
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value = "/update/{id}", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer updateUser(@PathVariable("id") String id, HttpServletRequest request, User user) {
+		User oldUser = null;
+		try {
+			oldUser = userService.findUser(id);
+			user.setId(id);
+			// 将请求参数中USER的属性拷贝入OLDUSER
+			oldUser = (User) objCopyPropsService.copyPropertiesExclude(user, oldUser, new String[] { "username", "ctime", "expiretime", "logintime",
+					"usernumber", "password" });
+			String lat = request.getParameter("lat"); // 维度
+			String lng = request.getParameter("lng");// 精度
+			if (null != lat && null != lng) {
+				double[] position = new double[] { Double.parseDouble(lng), Double.parseDouble(lat) };
+				oldUser.setLng(Double.parseDouble(lng));
+				oldUser.setLat(Double.parseDouble(lat));
+				oldUser.setLocation(position);
+			}
+			// 处理感兴趣字段
+			String interest = request.getParameter("interest");
+			// 处理擅长字段
+			String special = request.getParameter("special");
+			// 处理方向字段
+			String industry = request.getParameter("industry");
+			user = userService.updateUser(oldUser, interest, special, industry);
+			ResponseUser ru = new ResponseUser(user);
+			return addResponse(Config.STATUS_200, Config.MSG_UPDATE_200, ru, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	
+	/**
+	 * 重置密码
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("resetPassword")
+	public @ResponseBody ResponseContainer resetPassword(HttpServletRequest request){
+		String passWord = request.getParameter("passWord");
+		//String confirmPassWrod = request.getParameter("confirmPassWrod");
+		String uid = request.getParameter("uid");
+		try {
+		 
+			boolean result = userService.resetPasswordbyBackSystem(passWord,uid);
+			return addResponse(Config.STATUS_200, Config.MSG_RESTPASSWORD_200, result,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			 
+			logger.error("===========未知错误，找回密码失败==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	
+}
+	
+	
+	/**
+	 * 删除用户
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("deleuser")
+	public @ResponseBody ResponseContainer deleuser(HttpServletRequest request){
+		//String passWord = request.getParameter("passWord");
+		//String confirmPassWrod = request.getParameter("confirmPassWrod");
+		String uid = request.getParameter("uid");
+		try {
+		 
+			boolean result = userService.deleteUserById(uid);
+			
+			return addResponse(Config.STATUS_200, Config.MSG_DELETE_200, result,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			 
+			logger.error("===========未知错误，找回密码失败==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	
+	}
+	
+	/**
+	 * 用户号
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("initUsreNumber")
+	public @ResponseBody ResponseContainer initUsreNumber(HttpServletRequest request){
+		try {
+			String begin=request.getParameter("begin");
+			String end=request.getParameter("end");
+			userNumService.setUserNumber(Integer.valueOf(begin),Integer.valueOf(end));
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 根据用户ID 查询用户信息pc
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/onePc/{id}")
+	// @Cacheable()
+	public @ResponseBody ResponseContainer findUserPc(
+			@PathVariable("id") String id) {
+		try{
+			ResponsePcUser respUser = userPcService.findUserPc(id);
+			
+		return addResponse(Config.STATUS_200,Config.MSG_200,respUser,Config.RESP_MODE_10,"");
+		}catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 初始化用户头像 通过工具上传到七牛 
+	 * 将上传后头像信息读取写入mongo
+	 * 用户创建时 程序随机读取一张
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("initUsreHead")
+	public @ResponseBody ResponseContainer initUserHead(HttpServletRequest request){
+		try {
+			List<UserHead> list=new ArrayList<UserHead>();
+			
+			for (Enumeration<String> paramNames = request.getParameterNames(); paramNames.hasMoreElements();) {
+				String paramName = paramNames.nextElement();
+				String[] values = request.getParameterValues(paramName);
+				UserHead uh=new UserHead();
+				 if(values!=null && values.length >0)
+				{
+					if(values.length==1)
+					{
+						uh.setUrl(Config.QINIU_IMG+values[0]);
+					}
+					
+				}
+				 
+				 list.add(uh);
+				}	
+			
+			userService.saveUserHeadTodb(list);
+		} 
+		catch (Exception e){
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+		return null;
+	}
+	/**
+	 * 将之前apache的图片转换成七牛
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("changeLogoUrl")
+	public @ResponseBody ResponseContainer changeLogoUrl(HttpServletRequest request){
+		userService.changeLogoUrl();
+		return null;
+	}
+	
+
+}

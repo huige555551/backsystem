@@ -1,0 +1,53 @@
+package operation.repo.topics;
+
+
+import java.util.List;
+
+import operation.pojo.topics.Topic;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface TopicRepository extends MongoRepository<Topic, String>{
+	//通过主题的Ids查找所有主题
+	List<Topic> findByTopicIdIn(List<Object> topicIds);
+	//查询所有话题
+	Page<Topic> findAll(Pageable pageable);
+	//通过群Id查询该群下的话题
+	Page<Topic> findBySourceIdAndAppKeyAndIsDeleted(String sourceId,String appKey,boolean isDeleted,Pageable pageable);
+	//通过课程ID查询该课程下得话题
+	Page<Topic> findByCourseIdAndAppKeyAndIsDeleted(String courseId,String appKey,boolean isDeleted,Pageable pageable);
+	//通过主题ID查询主题详情
+	Topic findByTopicIdAndIsDeleted(String topicId,boolean isDeleted);
+	//通过群组ID查询话题数量
+	int countBySourceIdAndIsDeleted(String sourceId,boolean isDeleted);
+	//查询不需要管理审核的群的话题
+	Page<Topic> findBySourceIdInAndIsDeleted(List<Object> groupId,boolean isDeleted,Pageable pageable);
+	Page<Topic> findByAuthorIdAndIsDeleted(String authorId,boolean isDeleted,Pageable pageable);
+	//根据字符串搜索标题或者内容匹配并未删除的话题
+	Page<Topic> findBySourceIdInAndIsDeletedAndTitleLikeOrContentLike(List<Object> groupId,boolean isDeleted,String title,String Content,Pageable pageable);
+	
+	//根据字符串搜索标题或者内容匹配并未删除的话题
+	Page<Topic> findBySourceIdInAndIsDeletedAndTitleRegexOrSourceIdInAndIsDeletedAndContentRegex(List<Object> groupId,boolean isDeleted,String title,List<Object> groupId1,boolean isDeleted1,String Content,Pageable pageable);
+	
+	//根据字符串搜索标题或者内容匹配并未删除的话题 包含没有关联课程的
+		Page<Topic> findByTitleRegexOrContentRegex(String title,String Content,Pageable pageable);
+		
+	Page<Topic> findByAppKeyAndTypeAndIsDeleted(String appKey,String type,boolean isDeleted,Pageable pageable);
+	List<Topic> findByPositionNearAndAppKeyAndTypeAndIsDeletedAndIsGeoOpen(Point p,String appKey, String type, boolean isDeleted,  boolean isGeoOpen,Distance dis);
+	
+	long countByAppKeyAndTypeAndIsDeleted(String appKey,String type,boolean isDeleted);
+	
+	List<Topic> findBySourceIdAndAppKeyAndIsDeleted(String sourceId,String appKey,boolean isDeleted);
+	Page<Topic> findByAuthorId(String userId, Pageable pageable);
+	
+	Page<Topic> findBySourceIdAndIsDeleted(String sourceId,boolean isDeleted,Pageable pageable);
+	Page<Topic> findByIsDeletedAndTitleLikeOrContentLike(boolean b,
+			String keyWords, String keyWords2, Pageable pageable);
+	Page<Topic> findByIsDeletedAndTitleLikeOrContentLikeOrTagNamesLike(
+			boolean b, String keyWords, String keyWords2, String keyWords3,
+			Pageable pageable);
+}

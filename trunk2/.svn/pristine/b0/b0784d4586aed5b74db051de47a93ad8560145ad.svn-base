@@ -1,0 +1,144 @@
+package operation.service.course;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.GroupShareKnowledge;
+import operation.pojo.course.Knowledge;
+import operation.repo.course.GroupShareKnowledgeRepository;
+import operation.repo.course.KnowledgeRepository;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+/**
+ * 
+ * @ClassName: GroupShareKnowledgeService
+ * @Description:群知识
+ * @author Jack Tang
+ * @date 2014年12月24日 上午11:24:34
+ *
+ */
+@Service
+public class GroupShareKnowledgeService {
+
+	private static final Logger logger = Logger
+			.getLogger(KnowledgeService.class);
+	@Autowired
+	private GroupShareKnowledgeRepository gsknoKnowledgeRepository;
+	
+	
+	@Autowired
+	private KnowledgeRepository knowledgeRepository;
+
+	/**
+	 * @throws XueWenServiceException 
+	 * 
+	 * @Title: insert
+	 * @Description: 插入一条群知识
+	 * @param groupShareKnowledge
+	 *            void
+	 * @throws
+	 */
+	public void insert(GroupShareKnowledge groupShareKnowledge) throws XueWenServiceException {
+		//增加引用次数
+		Knowledge knowledge=knowledgeRepository.findOne(groupShareKnowledge.getKnowledge());
+		knowledge.setArc(knowledge.getArc()+1);
+		knowledgeRepository.save(knowledge);
+		gsknoKnowledgeRepository.save(groupShareKnowledge);
+
+	}
+
+	/**
+	 * @throws XueWenServiceException 
+	 * 
+	 * @Title: add
+	 * @Description:添加群知识
+	 * @param knowledgeId
+	 * @param groupId
+	 * @param userId
+	 * @return GroupShareKnowledge
+	 * @throws
+	 */
+	public GroupShareKnowledge add(String knowledgeId, String groupId,
+			String userId) throws XueWenServiceException {
+		GroupShareKnowledge groupShareKnowledge = new GroupShareKnowledge();
+		groupShareKnowledge.setGroupId(groupId);
+		groupShareKnowledge.setShareUserId(userId);
+		groupShareKnowledge.setKnowledge(knowledgeId);
+		groupShareKnowledge.setShareTime(System.currentTimeMillis());
+		insert(groupShareKnowledge);
+		return groupShareKnowledge;
+	}
+
+	/**
+	 * @param pageable 
+	 * 
+	 * @Title: getByGroupId
+	 * @Description: 通过Group获取关系Bean
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 *             List<GroupShareKnowledge>
+	 * @throws
+	 */
+	public Page<GroupShareKnowledge> getByGroupId(String groupId, Pageable pageable)
+			throws XueWenServiceException {
+		if (StringUtil.isBlank(groupId)) {
+			logger.info("---------参数非法---------");
+			throw new XueWenServiceException(Config.STATUS_200, Config.MSG_201,
+					null);
+		}
+
+		return gsknoKnowledgeRepository.findByGroupId(groupId,pageable);
+
+	}
+	/**
+	 * 
+	 * @Title: findByGidAndKid
+	 * @Description: 通过gid和Kid
+	 * @param gid
+	 * @param kid
+	 * @return GroupShareKnowledge
+	 * @throws
+	 */
+	public GroupShareKnowledge findByGidAndKid(String gid, String kid) {
+		return gsknoKnowledgeRepository.findOneByGroupIdAndKnowledge(gid, kid);
+	}
+	/**
+	 * 
+	 * @Title: del
+	 * @Description: 删除
+	 * @param groupShareKnowledge void
+	 * @throws
+	 */
+	public void del(GroupShareKnowledge groupShareKnowledge){
+		gsknoKnowledgeRepository.delete(groupShareKnowledge);
+	}
+	/**
+	 * 
+	 * @Title: countByGroupId
+	 * @Description: 获取群组分享数量
+	 * @param groupId
+	 * @return int
+	 * @throws
+	 */
+	public int countByGroupId(String groupId){
+		return gsknoKnowledgeRepository.countByGroupId(groupId);
+	}
+	
+	public Page<GroupShareKnowledge> findByKnowledgeIn(List<String> knowledgeIds,Pageable pageable) {
+		return gsknoKnowledgeRepository.findByKnowledgeIn(knowledgeIds,pageable);
+	}
+	
+	public GroupShareKnowledge findOneByKnowledgeId(String knowledgeId){
+		return gsknoKnowledgeRepository.findOneByKnowledge(knowledgeId);
+	}
+
+}

@@ -1,0 +1,263 @@
+package operation.pojo.drycargo;
+
+import java.util.List;
+import java.util.Set;
+
+import operation.pojo.user.UserShort;
+
+import org.springframework.data.annotation.Id;
+
+public class DrycargoResponse {
+	@Id
+	private String id;
+	private Object group;//群组（数据库存储群组ID）
+	private String url; //干货的源地址
+	private String fileUrl; //干货的关键图片或路径
+	private String message;//干货的内容
+	private String description;//干货信息
+	private long ctime;//创建时间
+	private long utime;//修改时间
+	private List<UserShort> sharePerList;// 分享人列表
+	public List<Object> shareids;// 分享人id列表查询使用
+
+	private int viewCount; //浏览量
+	
+	//private Set<String> drycargoTagName;
+	
+	private Object drycargoTagName;
+	
+	private Object drycargoId; //干货资源ID
+	
+	private int replyCount; // 回复数
+	private int newReplyCount;//主题的新回复数
+	private int likesCount; // 被点赞的次数
+	
+	private int unLikeCount;//不赞数量
+	
+	private int shareCount;
+	
+	private int importCount; //把干货分享至此小组课堂的人员统计
+	
+	private boolean like;//态度 0无态度 1赞
+	private boolean unlike; //态度 0无态度 1踩
+	
+	private int weightSort;//权重
+	
+	private boolean authority; //是否有权限回复 0无权限1有权限
+	public DrycargoResponse(){
+		super();
+		
+	}
+	
+	public DrycargoResponse(Drycargo dry){
+		super();
+		this.setId(dry.getId());
+		this.setGroup(dry.getGroup());
+		this.setUrl(dry.getUrl());
+		this.setFileUrl(dry.getFileUrl());
+		this.setMessage(dry.getMessage());
+		this.setCtime(dry.getCtime());
+		this.setUtime(dry.getUtime());
+		this.setViewCount(dry.getViewCount());
+		this.setReplyCount(dry.getReplyCount());
+		this.setLikesCount(dry.getLikesCount());
+		this.setUnLikeCount(dry.getUnLikeCount());
+		this.setShareCount(dry.getShareCount());
+		this.setDrycargoId(dry.getDrycargoId());
+		this.setWeightSort(dry.getWeightSort());
+		this.setShareids(dry.getShareids());
+		this.setSharePerList(dry.getSharePerList());
+		this.setDescription(dry.getDescription());
+		
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public Object getGroup() {
+		return group;
+	}
+
+	public void setGroup(Object group) {
+		this.group = group;
+	}
+
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getFileUrl() {
+		return fileUrl;
+	}
+
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public int getViewCount() {
+		return viewCount;
+	}
+
+	public void setViewCount(int viewCount) {
+		this.viewCount = viewCount;
+	}
+
+
+
+	public List<UserShort> getSharePerList() {
+		return sharePerList;
+	}
+
+	public void setSharePerList(List<UserShort> sharePerList) {
+		this.sharePerList = sharePerList;
+	}
+	public List<Object> getShareids() {
+		return shareids;
+	}
+
+	public void setShareids(List<Object> shareids) {
+		this.shareids = shareids;
+	}
+
+	public Object getDrycargoId() {
+		return drycargoId;
+	}
+
+	public void setDrycargoId(Object drycargoId) {
+		this.drycargoId = drycargoId;
+	}
+
+	public int getReplyCount() {
+		return replyCount;
+	}
+
+	public void setReplyCount(int replyCount) {
+		this.replyCount = replyCount;
+	}
+
+	public int getNewReplyCount() {
+		return newReplyCount;
+	}
+
+	public void setNewReplyCount(int newReplyCount) {
+		this.newReplyCount = newReplyCount;
+	}
+
+	public int getLikesCount() {
+		return likesCount;
+	}
+
+	public void setLikesCount(int likesCount) {
+		this.likesCount = likesCount;
+	}
+
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+
+	public int getShareCount() {
+		return shareCount;
+	}
+
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+
+	public int getImportCount() {
+		return importCount;
+	}
+
+	public void setImportCount(int importCount) {
+		this.importCount = importCount;
+	}
+
+	public boolean isLike() {
+		return like;
+	}
+
+	public void setLike(boolean like) {
+		this.like = like;
+	}
+
+	public boolean isUnlike() {
+		return unlike;
+	}
+
+	public void setUnlike(boolean unlike) {
+		this.unlike = unlike;
+	}
+
+	public int getWeightSort() {
+		return weightSort;
+	}
+
+	public void setWeightSort(int weightSort) {
+		this.weightSort = weightSort;
+	}
+
+	public boolean isAuthority() {
+		return authority;
+	}
+
+	public void setAuthority(boolean authority) {
+		this.authority = authority;
+	}
+
+	public Object getDrycargoTagName() {
+		return drycargoTagName;
+	}
+
+	public void setDrycargoTagName(Object drycargoTagName) {
+		this.drycargoTagName = drycargoTagName;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+
+
+
+}

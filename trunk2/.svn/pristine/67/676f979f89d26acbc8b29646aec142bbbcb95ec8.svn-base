@@ -1,0 +1,77 @@
+package operation.service.activity;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.Activity;
+import operation.pojo.activity.ActivityUser;
+import operation.repo.activity.ActivityUserRepo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import com.rabbitmq.client.AMQP.Basic.Return;
+
+import tools.Config;
+import tools.StringUtil;
+@Service
+public class ActivityUserServie{
+	 @Autowired
+	 private ActivityUserRepo activityUserRepo;
+	 @Autowired
+	 private ActivityService activityService;
+	 
+	 /**
+	  * 
+	  * @Title: save
+	  * @auther tangli
+	  * @Description: 保存 更新
+	  * @param user void
+	  * @throws
+	  */
+	 public ActivityUser save(ActivityUser user){
+		 return activityUserRepo.save(user);		 
+	 }
+	 /**
+	 * @throws XueWenServiceException 
+	  * 
+	  * @Title: add
+	  * @auther shenbin
+	  * @Description: 报名
+	  * @param user void
+	  * @throws
+	  */
+	 public ActivityUser add(ActivityUser user) throws XueWenServiceException{
+		 if(StringUtil.isBlank(user.getActivityId())){
+			 throw new XueWenServiceException(Config.STATUS_201, "活动Id不能为空",null);
+		 }
+		 Activity activity=activityService.findOne(user.getActivityId());
+		 if(activity==null){
+			 throw new XueWenServiceException(Config.STATUS_201, "活动不存在",null);
+		 }
+		 if(activity.getType()==0&&activity.getMaxCount()-activity.getRegistrationCount()==0){
+			 throw new XueWenServiceException(Config.STATUS_201, "报名人数达到上限",null);
+		 }
+		 activity.setRegistrationCount(activity.getRegistrationCount()+1);
+		 activityService.save(activity);
+		 return save(user);		 
+	 }
+	 
+	 /**
+	  * 
+	  * @Title: findByActivityId
+	  * @auther tangli
+	  * @Description: 通过活动Id取
+	  * @param id
+	  * @param pageable
+	  * @return
+	  * @throws XueWenServiceException Page<ActivityUser>
+	  * @throws
+	  */
+	 public Page<ActivityUser>findByActivityId(String id,Pageable pageable) throws XueWenServiceException{
+		if(StringUtil.isBlank(id)){
+			 throw new XueWenServiceException(Config.STATUS_201, "参数不能为空", null);
+		 }
+		 return activityUserRepo.findByActivityId(id ,pageable);
+	 }
+}

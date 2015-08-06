@@ -1,0 +1,65 @@
+package operation.repo.drycargo;
+
+import java.util.List;
+
+import operation.pojo.drycargo.Drycargo;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+
+public interface DrycargoRepository extends MongoRepository<Drycargo, String>{
+
+	Page<Drycargo> findByGroup(String keywords,Pageable page);
+	
+	Page<Drycargo> findByGroupIn(List<Object> groupId,Pageable pageable);
+	List<Drycargo> findByIdIn(List<Object> dryids);
+	Page<Drycargo> findByIdIn(List<Object> dryids,Pageable pageable);
+
+	int countByGroup(String group);
+	
+	List<Drycargo> findOneByUrl(String url);
+	
+	Drycargo findOneByUrlAndGroup(String url,String group);
+
+	Drycargo findOneById(String dryCargoId);
+	
+	Drycargo findByIdAndGroup(String drycargoId,String group);
+//	
+//	Drycargo findOneByDrycargoId(String dryCargoId);
+	
+	Page<Drycargo> findByMessageRegex(String keywords,Pageable pageable);
+
+	Page<Drycargo> findByAuthorId(String shareId,Pageable pageable);
+	
+	List<Drycargo> findByGroup(String groupId);
+	
+	Page<Drycargo> findByDryFlagAndGroupNotNull(int dryType,Pageable pageable);
+	
+	
+	Page<Drycargo> findByGroupAndDryFlag(String keywords,int dryType,Pageable page);
+	
+	Page<Drycargo> findByDryFlagAndMessageRegexOrDryFlagAndDescriptionRegex(int dryType,String keywords,int dryType1,String keywords1,Pageable pageable);
+	
+	Page<Drycargo> findByAuthorIdAndDryFlag(String shareId,int dryType,Pageable pageable);
+	
+	int countByGroupAndDryFlag(String group,int dryType);
+	
+	@Query("{'dryFlag':0,'$or':[{'message':{'$regex':?1}},{'description':{'$regex':?1}}]}")
+ 	Page<Drycargo> findByOthers(int i, String keywords, Pageable pageable);
+	
+	Page<Drycargo> findByCtimeBetween(long t2, long t1, Pageable pageable);
+	
+	@Query("{'$or':[{'message':{'$regex':?0}},{'drycargoTagName':{'$regex':?0}}]}")
+	Page<Drycargo> findByOther(String keywords, Pageable pageable);
+	
+	@Query("{'dryFlag':0,'$or':[{'message':{'$regex':?1}},{'description':{'$regex':?1}}],'group':?2}")
+ 	Page<Drycargo> findByOthers(int i, String keywords,String groupId, Pageable pageable);
+	Page<Drycargo> findByDryFlagAndIdNotIn(int dryType,List<Object> ids,Pageable pageable);
+	
+	Page<Drycargo> findByDryFlagAndCategoryId(int dryType,String categoryId ,Pageable pageable);
+	Page<Drycargo> findByDryFlagAndChildCategoryId(int dryType,String childCategoryId,Pageable pageable);
+	int countByDryFlagAndCategoryId(int dryType,String categoryId);
+	int countByDryFlagAndChildCategoryId(int dryType,String childCategoryId);
+}

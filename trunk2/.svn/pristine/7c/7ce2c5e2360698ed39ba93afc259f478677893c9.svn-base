@@ -1,0 +1,21 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.pojo.course.GroupShareKnowledge;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface GroupShareKnowledgeRepository extends MongoRepository<GroupShareKnowledge, String>{
+	
+	Page<GroupShareKnowledge> findByGroupId(String groupId, Pageable pageable);
+	
+	GroupShareKnowledge findOneByGroupIdAndKnowledge(String groupId,String kid);
+
+	Page<GroupShareKnowledge> findByKnowledgeIn(List<String> knowledgeIds,Pageable pageable);
+	
+	int countByGroupId(String groupId);
+	
+}

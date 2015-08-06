@@ -1,0 +1,341 @@
+package operation.controller.course;
+
+import javax.servlet.http.HttpServletRequest;
+
+import net.sf.json.JSONObject;
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.UserGroupCourse;
+import operation.pojo.fav.Fav;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.study.Study;
+import operation.pojo.user.User;
+import operation.service.course.UserGroupCourseService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("/userGroupCourse")
+public class UserGroupCourseController extends BaseController{
+
+	private static final Logger logger=Logger.getLogger(UserGroupCourseController.class);
+	@Autowired
+	public UserGroupCourseService userGroupCourseService;
+	/**
+	 * 从小组课堂列表查看课程详情
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/one")
+	public @ResponseBody ResponseContainer search(HttpServletRequest request) {
+		
+		try {
+			String groupId=request.getParameter("groupId");
+			String courseId=request.getParameter("courseId");
+			String token = request.getParameter("token");
+			String groupCourseId = request.getParameter("groupCourseId");
+			User currentUser = this.getCurrentUser(token);
+			UserGroupCourse ugc=userGroupCourseService.one(currentUser.getId(),groupCourseId,groupId, courseId);
+			return addResponse(Config.STATUS_200, Config.MSG_200, ugc,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 小组课堂课程收藏
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/fav")
+	public @ResponseBody ResponseContainer fav(HttpServletRequest request) {
+		
+		try {
+			String groupId=request.getParameter("groupId");
+			String courseId=request.getParameter("courseId");
+			String token = request.getParameter("token");
+			String groupCourseId = request.getParameter("groupCourseId");
+			String appkey = request.getParameter("appKey");
+			User currentUser = this.getCurrentUser(token);
+			userGroupCourseService.favGroupCourse(currentUser.getId(), groupId, courseId, groupCourseId, appkey);
+			return addResponse(Config.STATUS_200, Config.MSG_FAV_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，群组课程收藏失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，群组课程收藏失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 小组课堂课程分享
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/share")
+	public @ResponseBody ResponseContainer share(HttpServletRequest request) {
+		
+		try {
+			String groupId=request.getParameter("groupId");
+			String courseId=request.getParameter("courseId");
+			String token = request.getParameter("token");
+			String groupCourseId = request.getParameter("groupCourseId");
+			String appkey = request.getParameter("appKey");
+			String toType = request.getParameter("toType");
+			String toAddr = request.getParameter("toAddr");
+			User currentUser = this.getCurrentUser(token);
+			userGroupCourseService.shareGroupCourse(currentUser.getId(), groupId, courseId, groupCourseId, appkey, toType, toAddr);
+			return addResponse(Config.STATUS_200, Config.MSG_SHARESUCESS_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，群组课程分享失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，群组课程分享失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 小组课堂课程收藏
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/study")
+	public @ResponseBody ResponseContainer study(HttpServletRequest request) {
+		
+		try {
+			String groupId=request.getParameter("groupId");
+			String courseId=request.getParameter("courseId");
+			String token = request.getParameter("token");
+			String groupCourseId = request.getParameter("groupCourseId");
+			String appkey = request.getParameter("appKey");
+			String chapterId = request.getParameter("chapterId");
+			String lessonId = request.getParameter("lessonId");
+			String proess = request.getParameter("proess");
+			String isStudy = request.getParameter("isStudy");
+			User currentUser = this.getCurrentUser(token);
+			userGroupCourseService.studyGroupCourse(currentUser.getId(), groupId, courseId, groupCourseId, appkey,
+					chapterId, lessonId, Integer.valueOf(proess), isStudy);
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，群组课程学习失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，群组课程学习失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 获得小组课程收藏人列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/userFavList")
+	public @ResponseBody ResponseContainer getUserFavList(HttpServletRequest request,QueryModel dm) {
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		String token = request.getParameter("token");
+		
+		String groupCourseId = request.getParameter("groupCourseId");
+		try {
+			User currentUser = this.getCurrentUser(token);
+			Page<Fav> favPage = userGroupCourseService.getUserFavList(currentUser.getId(),groupCourseId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), favPage);
+			this.getReponseData().setResult((userGroupCourseService.toResponeses(favPage.getContent(),currentUser.getId())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("==========业务错误，获得小组课程收藏人列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，获得小组课程收藏人列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 获得用户群组课程收藏学习完成列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/favStudyed")
+	public @ResponseBody ResponseContainer favStudyed(HttpServletRequest request,QueryModel dm) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Page<UserGroupCourse> favStudeds = userGroupCourseService.findUserFavStudyed(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), favStudeds);
+			this.getReponseData().setResult(userGroupCourseService.formateUserGroupCourseRspUserFavOrStudyList(favStudeds.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("==========业务错误，获得用户群组课程收藏学习完成列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，获得用户群组课程收藏学习完成列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 获得用户群组课程收藏学习未完成列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/favStudying")
+	public @ResponseBody ResponseContainer favStudying(HttpServletRequest request,QueryModel dm) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Page<UserGroupCourse> favStudeds = userGroupCourseService.findUserFavStudying(currentUser.getId(), pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), favStudeds);
+			this.getReponseData().setResult(userGroupCourseService.formateUserGroupCourseRspUserFavOrStudyList(favStudeds.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("==========业务错误，获得用户群组课程收藏学习完成列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，获得用户群组课程收藏学习完成列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 用户收藏界面获取用户已学完和未学完课程数目的统计
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/countNum")
+	public @ResponseBody ResponseContainer countNum(HttpServletRequest request) {
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			JSONObject num = userGroupCourseService.userFavStudyCountNum(currentUser);
+			return addResponse(Config.STATUS_200, Config.MSG_200, num,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("==========业务错误，用户收藏界面获取用户已学完和未学完课程数目的统计失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，用户收藏界面获取用户已学完和未学完课程数目的统计失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 获得小组课程学习人列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/userStudyedList")
+	public @ResponseBody ResponseContainer getUserStudyedList(HttpServletRequest request,QueryModel dm) {
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		String token = request.getParameter("token");
+		String groupCourseId = request.getParameter("groupCourseId");
+		try {
+			User currentUser = this.getCurrentUser(token);
+			Page<Study> studyPage = userGroupCourseService.getUserStudyedList(currentUser.getId(),groupCourseId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), studyPage);
+			this.getReponseData().setResult((userGroupCourseService.toResponesesStudy(studyPage.getContent(),currentUser.getId())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，获得小组课程学习人列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，获得小组课程学习人列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 获得某一用户课程学习列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("/userCourseList")
+	public @ResponseBody ResponseContainer userCourseList(HttpServletRequest request,QueryModel dm) {
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		String token = request.getParameter("token");
+		String userId = request.getParameter("userId");
+		try {
+			Page<UserGroupCourse> userGroupCourse = userGroupCourseService.userCourseList(userId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), userGroupCourse);
+			this.getReponseData().setResult(userGroupCourseService.formateUserGroupCourseRspUserFavOrStudyList(userGroupCourse.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，获得用户课程学习列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，获得用户课程学习列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 用户删除收藏课程
+	 * @author hjn
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/deleteFavCourses")
+	public @ResponseBody ResponseContainer deleteFavCourses(HttpServletRequest request) {
+		try {
+			String token = request.getParameter("token");
+			String groupCourseId = request.getParameter("groupCourseId");
+			User currentUser = this.getCurrentUser(token);
+			userGroupCourseService.deleteUserGroupListByUserIdAndGroupCourseIds(currentUser.getId(), groupCourseId);
+			return addResponse(Config.STATUS_200, Config.MSG_DELETE_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，群组管理员删除群组课程失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，群组管理员删除群组课程失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+}

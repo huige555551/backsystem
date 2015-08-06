@@ -1,0 +1,30 @@
+package operation.repo.praise;
+
+
+import love.cq.util.StringUtil;
+import operation.exception.XueWenServiceException;
+import operation.pojo.praise.Praise;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+
+@Service
+@Component
+public class PraiseMongoTemplate {
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public boolean existsByUserIdAndDomainAndSourceIdAndType(String userId,String domain,String sourceId,String type)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(domain) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		Query query=new Query(Criteria.where("userId").is(userId).and("domain").is(domain).and("sourceId").is(sourceId).and("type").is(type));
+		return mongoTemplate.exists(query, Praise.class);
+	}
+}

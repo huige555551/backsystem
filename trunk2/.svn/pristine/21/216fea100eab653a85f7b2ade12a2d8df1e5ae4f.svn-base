@@ -1,0 +1,51 @@
+package operation.controller.activity;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.NewActivity;
+import operation.pojo.user.User;
+import operation.service.activity.NewActivityService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.ResponseContainer;
+@RestController
+@RequestMapping("/activity")
+public class ActivityController extends BaseController {
+	@Autowired
+	private NewActivityService newActivityService;
+	
+	/**
+	 * 
+	 * @Title: create
+	 * @Description:创建渠道商
+	 * @param request
+	 * @param adSeller
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value="/create",method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer create(HttpServletRequest request,NewActivity activity){
+		String group = request.getParameter("group");
+		String token  = request.getParameter("token");
+		
+		try {
+			User currUser = this.getCurrentUser(token);
+			newActivityService.create(activity,group,currUser);
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+		}
+		return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+
+	}
+	
+	
+
+}

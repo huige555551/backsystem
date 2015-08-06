@@ -1,0 +1,121 @@
+package operation.service.vo;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.Knowledge;
+import operation.pojo.course.NewCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.drycargo.DrycargoBean;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.topics.Topic;
+import operation.repo.vo.SearchGroupVoReposity;
+import operation.vo.SearchGroupVo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+/**
+ * 
+* @ClassName: SearchGroupVoService
+* @Description: 群搜索VO
+* @author Jack Tang
+* @date 2015年1月14日 下午5:16:38
+*
+ */
+@Service
+public class SearchGroupVoService {
+   @Autowired
+   private SearchGroupVoReposity searchGroupVoReposity;
+   
+   public SearchGroupVo findOne(String id) throws XueWenServiceException{
+	   if(StringUtil.isBlank(id)){
+		   throw new XueWenServiceException(Config.STATUS_201, "id不能为空", null);  
+	   }
+	   return searchGroupVoReposity.findOne(id);
+   }
+   
+   public SearchGroupVo findOneByGroupId(String id) throws XueWenServiceException{
+	   if(StringUtil.isBlank(id)){
+		   throw new XueWenServiceException(Config.STATUS_201, "id不能为空", null);  
+	   }
+	   return searchGroupVoReposity.findOneByGroupId(id);
+   }
+   public void save(SearchGroupVo vo){
+	    searchGroupVoReposity.save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: create
+    * @Description: 根据群创建一个vo
+    * @param group void
+    * @throws
+    */
+   public void create(XueWenGroup group){
+	   SearchGroupVo vo=new SearchGroupVo(group);
+	   save(vo);   
+   }
+   
+   /**
+    * 
+    * @Title: updateByTopic
+    * @Description: 根据Topic更新Vo
+    * @param topic
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByTopic(Topic topic,String groupId) throws XueWenServiceException{
+	   	SearchGroupVo vo=findOneByGroupId(groupId);
+	   	vo.updateTopicInf(topic);
+	   	save(vo);
+	   }
+   
+   /**
+    * 
+    * @Title: updateByKng
+    * @Description: 根据kng更新Vo
+    * @param kng
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByKng(Knowledge kng,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+  		vo.updateKngInf(kng);
+  		save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: updateByDry
+    * @Description:根据 干货 更新Vo
+    * @param dry
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByDry(Drycargo db,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+ 		vo.updateDryInf(db);
+ 		save(vo);
+   }
+   
+   /**
+    * 
+    * @Title: updateByCourse
+    * @Description: 根据 课程 更新Vo
+    * @param course
+    * @param groupId
+    * @throws XueWenServiceException void
+    * @throws
+    */
+   public void updateByCourse(NewCourse course,String groupId) throws XueWenServiceException{
+	    SearchGroupVo vo=findOneByGroupId(groupId);
+		vo.updateCourseInf(course);
+		save(vo); 
+   }
+   
+   
+}

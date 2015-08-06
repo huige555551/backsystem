@@ -1,0 +1,29 @@
+package operation.service.user;
+
+
+
+import java.util.List;
+
+import operation.pojo.user.NewUserName;
+import operation.pojo.user.UserName;
+import operation.repo.user.NewUserNameRepository;
+import operation.repo.user.UserNameRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+@Service
+@Component
+public class NewUserNameService {
+	@Autowired
+	private NewUserNameRepository newUserNameRepository;
+	
+	public void save(NewUserName userName){
+		newUserNameRepository.save(userName);
+	}
+	
+	public List<NewUserName> getUserName(){
+		return newUserNameRepository.findAll();
+	}
+
+}

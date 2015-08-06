@@ -1,0 +1,54 @@
+package operation.pojo.black;
+
+import java.util.List;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection="black")
+public class Black {
+	@Id
+	private String id;
+	
+	private List<String> blackName;
+	
+	@Indexed
+	private String name;
+	
+	@Indexed
+	private String autho;
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public List<String> getBlackName() {
+		return blackName;
+	}
+
+	public void setBlackName(List<String> blackName) {
+		this.blackName = blackName;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getAutho() {
+		return autho;
+	}
+
+	public void setAutho(String autho) {
+		this.autho = autho;
+	}
+
+}

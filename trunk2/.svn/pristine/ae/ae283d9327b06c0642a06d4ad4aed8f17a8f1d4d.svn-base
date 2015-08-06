@@ -1,0 +1,77 @@
+package operation.pojo.xuanye;
+
+import org.springframework.data.annotation.Id;
+
+public class Xuanye {
+	@Id
+	private String id;
+	private String title;
+	private String img;
+	private String desc;
+	private String url;
+	private Long ctime;
+	private int isRemoved;
+	
+	
+
+	public Xuanye() {
+		super();
+		this.setCtime(System.currentTimeMillis());
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getImg() {
+		return img;
+	}
+
+	public void setImg(String img) {
+		this.img = img;
+	}
+
+	public String getDesc() {
+		return desc;
+	}
+
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public Long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(Long ctime) {
+		this.ctime = ctime;
+	}
+
+	public int getIsRemoved() {
+		return isRemoved;
+	}
+
+	public void setIsRemoved(int isRemoved) {
+		this.isRemoved = isRemoved;
+	}
+}

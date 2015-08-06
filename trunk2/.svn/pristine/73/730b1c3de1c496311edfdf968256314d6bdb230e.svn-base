@@ -1,0 +1,31 @@
+package operation.service.xuanye;
+
+import java.util.List;
+
+import operation.pojo.xuanye.Xuanye;
+import operation.repo.user.UserRepository;
+import operation.repo.xuanye.XuanyeRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class XuanyeService {
+	@Autowired
+	public XuanyeRepository xuanyeRepo;
+
+	public List<Xuanye> all() {
+
+		return xuanyeRepo.findAll();
+	}
+
+	public boolean save(Xuanye xuanye) {
+		if (xuanyeRepo.save(xuanye) != null) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+}

@@ -1,0 +1,1141 @@
+package operation.controller.oss;
+
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+
+import net.sf.json.JSONObject;
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.user.ResponseUser;
+import operation.pojo.user.User;
+import operation.service.course.CourseService;
+import operation.service.course.NewCourseService;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.group.GroupNumService;
+import operation.service.group.GroupNumberCreateService;
+import operation.service.group.GroupPcService;
+import operation.service.group.GroupService;
+import operation.service.group.MyGroupService;
+import operation.service.group.TestGroupNumService;
+import operation.service.queue.QueueService;
+import operation.service.share.ShareService;
+import operation.service.topics.TopicService;
+import operation.service.user.UserPcService;
+import operation.service.user.UserService;
+
+import org.apache.log4j.Logger;
+import org.jivesoftware.smack.util.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.Point;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+import tools.StringUtil;
+
+@RestController
+@RequestMapping("/oss/group")
+@Configuration
+/**
+ * 与service层交互，并将数据反馈给客户端
+ * @author nes
+ *
+ */
+public class OssGroupController extends OssController {
+	private static final Logger logger=Logger.getLogger(OssGroupController.class);
+	
+	@Inject Environment env;
+	@Autowired
+	public GroupService groupService;
+	@Autowired
+	public GroupPcService groupPcService;
+	@Autowired
+	public UserService userService;
+	@Autowired
+	public UserPcService userPcService;
+	@Autowired
+	public GroupNumberCreateService groupNumberCreateService;
+	
+	@Autowired
+	public GroupNumService groupNumService;
+	
+	@Autowired
+	public QueueService queueService;
+	
+	@Autowired
+	public MyGroupService myGroupService;
+	
+	
+	@Autowired
+	public DrycargoService drycargoService;
+	
+	@Autowired
+	public CourseService courseService;
+	
+	@Autowired
+	public ShareService shareService;
+	@Autowired
+	public NewCourseService  newCourseService;
+	
+	@Autowired
+	public TestGroupNumService testGroupNumService;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	public NewGroupCourseService newGroupCourseService;
+	
+
+	public OssGroupController() {
+		super();
+	}
+    
+	
+	/**
+	 * 创建群组表，用于保存地理坐标二维数组
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/createtable")
+	public  void createTable(){
+		try {
+			groupService.creatTable();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}		
+	}
+	
+	/**
+	 * 创建群组Pc时，获取推荐的标签
+	 * 
+	 * @param request
+	 * @return
+	 * @throws
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/groupRecTagPc", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer getGroupRecTagPc(HttpServletRequest request) {
+		try {
+			logger.info("=============Pc开始创建群组==============");
+			String groupName = request.getParameter("groupName");
+			String intro = request.getParameter("intro");
+			List<String> list = groupPcService.getGroupRecTagPc(groupName,intro,10,3);
+			return addResponse(Config.STATUS_200, Config.MSG_200,list, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，Pc创建群失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，Pc创建群失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	 
+	
+	/**
+	 * 创建群组
+	 * 
+	 * @param request
+	 * @return
+	 * @throws
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/create", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer create(HttpServletRequest request,XueWenGroup group) {
+		try {
+			logger.info("=============开始创建群组==============");
+			String uid = request.getParameter("uid");
+			User user = userService.findUser(uid);
+			ResponseUser respUser = new ResponseUser(user);
+			String lat = request.getParameter("lat"); //维度
+			String lng = request.getParameter("lng");//精度
+			String tagName = request.getParameter("tagName");
+			String isGeoOpen = request.getParameter("isGeoOpen");//是否显示地理坐标
+			XueWenGroup groupCreate = groupService.createGroup(group,user,tagName,lat,lng,isGeoOpen);
+			groupCreate=groupService.addResponseGroup(groupCreate);
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200,groupCreate, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			logger.error("==========业务错误，创建群失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，创建群失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 根据群组ID查询群信息,不包含成员列表
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/one/{id}")
+	public @ResponseBody ResponseContainer findGroup(
+			@PathVariable("id") String id, HttpServletRequest request) throws XueWenServiceException {
+		try {
+			
+			 
+			XueWenGroup group = groupService.findGroup(id);
+			return addResponse(Config.STATUS_200, Config.MSG_200, group,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 根据群组ID查询群信息,不包含成员列表
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/ossone/{id}")
+	public @ResponseBody ResponseContainer findGrouppc(
+			@PathVariable("id") String id, HttpServletRequest request) throws XueWenServiceException {
+		try {
+			
+			 
+			XueWenGroup group = groupService.findGroup(id,null);
+			return addResponse(Config.STATUS_200, Config.MSG_200, group,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	 
+	 
+	
+	/**
+	 * 根据群组ID查询群成员列表
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/one/{id}/memberPc")
+	public @ResponseBody ResponseContainer findGroupMmberPage(
+			@PathVariable("id") String id, String userName, HttpServletRequest request) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			Map users = groupService.findPcGroupMmbers(id);
+			return addResponse(Config.STATUS_200, Config.MSG_200, users,
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+
+	 
+
+	/**
+	 * 查询所有群组不支持翻页
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/all/sort")
+	public @ResponseBody ResponseContainer findAllSortGroup(
+			HttpServletRequest request) {
+		try {
+			String sort = request.getParameter("sort");
+			String mode = request.getParameter("mode");	
+			if (StringUtil.isEmpty(sort)) {
+				sort = "ctime";
+			}
+			if (StringUtil.isEmpty(mode)) {
+				mode = "DESC";
+			}
+			Direction d = Direction.DESC;
+			if(mode.equalsIgnoreCase("ASC")){
+				d = Direction.ASC;
+			}
+			Sort st = new Sort(d,sort);
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+
+			List<XueWenGroup> group = groupService.all(st, currentUser.getId());
+			this.getReponseData().setResult(groupService
+					.changeGroupsToResponseGroup(group,currentUser.getId()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，查询所有群组不支持翻页==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，查询所有群组不支持翻页==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 更新群组信息
+	 * 
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value = "{id}/update", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer updateGroup(@PathVariable("id") String id, HttpServletRequest request,XueWenGroup group) {
+		try {
+			String uid = request.getParameter("uid");
+			User user = userService.findUser(uid);
+			 
+			String lat=request.getParameter("lat");
+			String lng=request.getParameter("lng");
+			String tagName = request.getParameter("tagName");
+			String isGeoOpen = request.getParameter("isGeoOpen");//是否显示地理坐标
+			XueWenGroup rg = groupService.updateGroupByOss(group,id,user,tagName,lat,lng,isGeoOpen);
+//			if (null != file && !file.isEmpty()) {
+//				rg = groupService.upLoadLogo(file, rg);
+//			}
+			return addResponse(Config.STATUS_200, Config.MSG_UPDATE_200,groupService.changGroupToResponseGroup(rg,user.getId()),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("===========业务错误，更新群组信息==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，更新群组信息==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 解散群
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/{id}/delete")
+	public @ResponseBody ResponseContainer delete(
+			@PathVariable("id") String id, HttpServletRequest request) {
+			
+		try {
+			
+			XueWenGroup x=groupService.findGroup(id);
+			String a=(String)x.getOwner().get(0);
+			User user=userService.findOne(a);
+			boolean result = groupService.deleteById(id, a,user.getNickName(),user.getLogoURL());
+			return addResponse(Config.STATUS_200, Config.MSG_DELETE_200,
+					result, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("===========业务错误，解散群==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，解散群==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+
+	 
+
+	/**
+	 * 退出群
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	@RequestMapping("/{id}/quit")
+	public @ResponseBody ResponseContainer quit(@PathVariable("id") String id,
+			HttpServletRequest request) {
+		try {
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			boolean result = groupService.quit(id, currentUser.getId(),currentUser.getNickName(),currentUser.getLogoURL());
+			return addResponse(Config.STATUS_200, Config.MSG_OUT_200, result,
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，退出群==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，退出群==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	/**
+	 * 管理员将成员踢出群
+	 * 
+	 * @param groupId
+	 * @return
+	 */
+	@RequestMapping("/{id}/{userId}/kick")
+	public @ResponseBody ResponseContainer kick(@PathVariable("id") String id,@PathVariable("userId") String kickuserId,
+			HttpServletRequest request) {
+		try {
+			String ownerid = request.getParameter("ownerid");
+			User currentUser = userService.findUser(ownerid);
+			boolean result = groupService.kick(id, kickuserId,currentUser.getId(),currentUser.getNickName(),currentUser.getLogoURL());
+			if(result){
+				return addResponse(Config.STATUS_200, Config.KICK_OUT_200, result,
+						Config.RESP_MODE_10, "");
+			}else{
+				return addResponse(Config.STATUS_201, "踢出失败", result,
+						Config.RESP_MODE_10, "");
+			}
+			
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，管理员将成员踢出群==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，管理员将成员踢出群==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+
+	 
+
+	/**
+	 * 模糊查询
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("search")
+	public @ResponseBody ResponseContainer some(HttpServletRequest request) {
+		String keyword = request.getParameter("keyword");
+		if(keyword == null){
+			keyword = "";
+		}
+		try {
+		if(!StringUtil.isEmpty(keyword)){
+			keyword = URLDecoder.decode(keyword,"UTF-8").toString();
+		}
+		String pageNumber = request.getParameter("n");
+		String pageSize = request.getParameter("s");
+		String sort = request.getParameter("sort");
+		String mode = request.getParameter("mode");		
+		if (StringUtil.isEmpty(sort)) {
+			sort = "ctime";
+		}
+		if (StringUtil.isEmpty(mode)) {
+			mode = "DESC";
+		}
+		Direction d = Direction.DESC;
+		if(mode.equalsIgnoreCase("ASC")){
+			d = Direction.ASC;
+		}
+		Sort st = new Sort(d,sort);
+		Pageable pageable = null;
+		if (!StringUtils.isNullOrEmpty(pageNumber)
+				&& !StringUtils.isNullOrEmpty(pageSize)) {
+			pageable = new PageRequest(Integer.parseInt(pageNumber),
+					Integer.parseInt(pageSize),st);
+		} else {
+			pageable = new PageRequest(Integer.parseInt("0"),
+					Integer.parseInt("10"),st);
+		}
+		
+		String lat = request.getParameter("lat"); //维度
+		String lng = request.getParameter("lng");//精度
+		Point p = null;
+		Distance dis = null;
+		
+		if(null!=lat && null!= lng){
+		 p = new Point(Double.parseDouble(lng),Double.parseDouble(lat));
+		 dis = new Distance(1d);
+		
+		}
+			Page<XueWenGroup> group = groupService.findAllByGroupNameRegexOrIntroRegex(keyword,keyword,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), group);
+			
+			this.getReponseData().setResult(groupService
+					.changeGroupsToResponseGroup(group.getContent(),""));
+			
+//			this.getReponseData().setResult(group);
+//			
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，模糊查询==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，模糊查询==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+
+	}
+
+	 
+	
+	/**
+	 * PC通过用户id查询群组
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/myPcGroup/{id}")
+	public @ResponseBody ResponseContainer myPcGroup(HttpServletRequest request,@PathVariable("id") String id) {
+
+		
+		try {
+			User user = userService.findUser(id);
+			ResponseUser respUser = new ResponseUser(user);
+			List<XueWenGroup> group = groupService.findMyGroup(respUser.getId());
+			
+			this.getReponseData().setResult(groupService.changeGroupsToPcResponseGroup(group,respUser.getId()));
+			
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，通过用户ID查找群组==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，通过用户ID查找群组==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * PC通过用户id查询群组
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/myGroup/{id}")
+	public @ResponseBody ResponseContainer myGroup(HttpServletRequest request,@PathVariable("id") String id) {
+
+		
+		try {
+			User user = userService.findUser(id);
+			ResponseUser respUser = new ResponseUser(user);
+			List<XueWenGroup> group = groupService.findMyGroup(respUser.getId());
+			
+			this.getReponseData().setResult(groupService.toGroupResponses(group,user.getId()));
+			
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，通过用户ID查找群组==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，通过用户ID查找群组==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @auther tangli
+	 * @Description: 分页获取我的群组
+	 * @param request
+	 * @param id   用户id
+	 * @return ResponseContainer
+	 * @Date:2015年4月20日
+	 * @throws
+	 */
+	@RequestMapping("/myGroups/{id}")
+	public @ResponseBody ResponseContainer myGroups(HttpServletRequest request,@PathVariable("id") String id,QueryModel dm) {		
+		try {
+			Pageable pageable=PageRequestTools.pageRequesMake(dm);
+			User user = userService.findUser(id);
+			ResponseUser respUser = new ResponseUser(user);
+			Page<XueWenGroup> groups = groupService.findMyGroups(respUser.getId(),pageable);	
+			ReponseDataTools.getClientReponseData(getReponseData(), groups);
+			this.getReponseData().setResult(groupService.toGroupResponses(groups.getContent(),user.getId()));		
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("===========业务错误，通过用户ID查找群组==========="+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("===========未知错误，通过用户ID查找群组==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	  
+	
+	/**
+	 * 加载群号
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/initgroupnum")
+	public @ResponseBody ResponseContainer initGroupNum(HttpServletRequest request) {
+		try {
+			String begin=request.getParameter("begin");
+			String end=request.getParameter("end");
+			groupNumService.setGroupNumber(Integer.valueOf(begin),Integer.valueOf(end));
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 获取一个群号
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getgroupnum")
+	public @ResponseBody ResponseContainer getGroupNum(HttpServletRequest request) {
+		try {
+			String id=groupNumService.getGroupNum();
+			return addResponse(Config.STATUS_200, Config.MSG_200, id,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	 
+	 
+	/**
+	 * 批量添加群组用户
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="registGroupUser", method=RequestMethod.POST)
+	public @ResponseBody ResponseContainer registGroupUserPc(HttpServletRequest request,String users,String groupId,String md5) {
+		try {
+			groupService.registGroupUser(users, groupId, md5);
+			return addResponse(Config.STATUS_200,Config.MSG_200,Config.MSG_JOIN_200,Config.RESP_MODE_10,"");
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return addResponse(e.getCode(),e.getMessage(),false,Config.RESP_MODE_10,"");
+		} catch (Exception e){
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505,Config.MSG_505,false,Config.RESP_MODE_10,"");
+		}
+	}
+	
+	/**
+	 * 根据群组ID查询群成员列表分页
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/one/{id}/memberPcPage")
+	public @ResponseBody ResponseContainer findMemberPcPage(QueryModel dm,
+			@PathVariable("id") String id, String userName,HttpServletRequest request) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<User> pageUser = groupService.memberPcPage(userName,id,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), pageUser);
+			getReponseData().setResult(groupService.toResponsePcUser(pageUser.getContent()));
+			return addPageResponse(Config.STATUS_200,Config.MSG_200,getReponseData(),Config.RESP_MODE_10,"");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 查询我的群组（我加入的，我管理的，我创建的）
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/findMyGroups/{id}")
+	public @ResponseBody ResponseContainer findMyGroups(QueryModel dm,
+			@PathVariable("id") String id, String userName,HttpServletRequest request) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			List<XueWenGroup> GroupByMember = groupService.findMyGroupByMember(id);
+			List<XueWenGroup> GroupByOwner = groupService.findMyGroupByOwner(id);
+			List<XueWenGroup> GroupByAdmin = groupService.findMyGroupByAdmin(id);
+			
+			Map m=new HashMap();
+			
+			m.put("GroupByMember", GroupByMember);
+			m.put("GroupByOwner", GroupByOwner);
+			m.put("GroupByAdmin", GroupByAdmin);
+			getReponseData().setResult(m);
+			return addPageResponse(Config.STATUS_200,Config.MSG_200,getReponseData(),Config.RESP_MODE_10,"");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 查询群组详细信息
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/findOneGroups/{id}")
+	public @ResponseBody ResponseContainer findMyGroups(
+			@PathVariable("id") String id,HttpServletRequest request) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			
+			XueWenGroup x=groupService.findGroup(id);
+			getReponseData().setResult(x);
+			return addPageResponse(Config.STATUS_200,Config.MSG_200,getReponseData(),Config.RESP_MODE_10,"");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 初始化课程
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/initCourse")
+	public @ResponseBody ResponseContainer initCourse(HttpServletRequest request) {
+		try {
+			//根据请求参数封装一个分页信息对象
+			newCourseService.initCourse();
+			return addResponse(Config.STATUS_200,Config.MSG_200,true,Config.RESP_MODE_10,"");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 查询值得加入的群
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("worthGroups")
+	public @ResponseBody ResponseContainer worthGroups(HttpServletRequest request){
+		try{
+			String num = request.getParameter("num");
+			List<JSONObject> group = groupPcService.worthGroups(Integer.valueOf(num));
+			return addResponse(Config.STATUS_200, Config.MSG_200, group, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("===========未知错误，查询值得加入的群==========="+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 根据群组ID查询群信息,不包含成员列表
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/oneNoTokenPc/{id}")
+	public @ResponseBody ResponseContainer oneNoTokenPc(
+			@PathVariable("id") String id, HttpServletRequest request) {
+		try {
+			return addResponse(Config.STATUS_200, Config.MSG_200, groupPcService.findGroupNoToken(id),
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: getGroupNewMembers
+	 * @Description: 取群活跃成员（最新成员）
+	 * @param groupId
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value="getGroupNewMembers")
+	public @ResponseBody ResponseContainer getGroupNewMembers(String groupId,int s){
+		  try {
+			List<JSONObject> users=groupService.getGroupfreshMember(groupId, s);
+			return addResponse(Config.STATUS_200,Config.MSG_200,users,Config.RESP_MODE_10,"");
+
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: getTagByType
+	 * @Description: 查找学习小组的热门标签
+	 * @param request
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/getTagByType")
+	public @ResponseBody ResponseContainer  getTagByType(HttpServletRequest request) {
+		try {
+			return addResponse(Config.STATUS_200, Config.MSG_200, groupPcService.getTagByType(),Config.RESP_MODE_10, "");
+		}catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: findGroupByKeyWords
+	 * @Description: 搜索群组
+	 * @param request
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/findGroupByKeyWords")
+	public @ResponseBody ResponseContainer findGroupByKeyWords(HttpServletRequest request,QueryModel dm){
+		
+		try {
+			dm.setSort("memberCount");
+			dm.setMode("DESC");
+			String keywords=request.getParameter("keywords");
+			Pageable pageable=PageRequestTools.pageRequesMake(dm);
+			Map<String, Object> map = groupPcService.findGroupByKeywords(keywords, pageable);
+			Page<XueWenGroup> page=(Page<XueWenGroup>)map.get("page");
+			ReponseDataTools.getClientReponseData(getReponseData(),page );
+			getReponseData().setResult(map.get("list"));
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: findGroupsByTag
+	 * @Description: 搜索群组
+	 * @param request
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/findGroupsByTag")
+	public @ResponseBody ResponseContainer findGroupsByTag(HttpServletRequest request,QueryModel dm){
+		
+		try {
+			dm.setSort("memberCount");
+			dm.setMode("DESC");
+			String tagName=request.getParameter("tagName");
+			Pageable pageable=PageRequestTools.pageRequesMake(dm);
+			Map<String, Object> map = groupPcService.findGroupsByTag(tagName, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), (Page<XueWenGroup>)map.get("page"));
+			getReponseData().setResult(map.get("list"));
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: findGroupsByTag
+	 * @Description: 搜索群组
+	 * @param request
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/findGroupsByChildCategoryId")
+	public @ResponseBody ResponseContainer findGroupsByCategoryId(HttpServletRequest request,QueryModel dm){
+		
+		try {
+			dm.setSort("memberCount");
+			dm.setMode("DESC");
+			String childCategoryId=request.getParameter("childCategoryId");
+			Pageable pageable=PageRequestTools.pageRequesMake(dm);
+			Map<String, Object> map = groupPcService.findByChildCategoryId(childCategoryId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), (Page<XueWenGroup>)map.get("page"));
+			getReponseData().setResult(map.get("list"));
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 根据群组ID查询群成员
+	 * 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/findGroupMembersPc")
+	public @ResponseBody ResponseContainer findGroupMembers(String id, HttpServletRequest request) {
+		try {
+			XueWenGroup group = groupService.findGroup(id, null);
+			return addResponse(Config.STATUS_200, Config.MSG_200, group,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * 给群默认增加分类
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/addGroupCategory")
+	public @ResponseBody ResponseContainer addGroupCategory(String id, HttpServletRequest request) {
+		try {
+			groupService.addGroupCategory();
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群信息,不包含成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 
+	 * @Title: findGroupMmberPage
+	 * @Description: TODO(这里用一句话描述这个方法的作用)
+	 * @param id
+	 * @param userName
+	 * @param request
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/one/{id}/memberPcNotSort")
+	public @ResponseBody ResponseContainer findGroupMmberPage(QueryModel dm,@PathVariable("id") String id, String userName, HttpServletRequest request) {
+		try {
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Map<String, Object> map = groupService.findPcGroupMmbersNotSort(id,userName,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), (Page<User>)map.get("page"));
+			getReponseData().setResult(map.get("result"));
+			if(getReponseData().getTotal_rows()==0){
+				getReponseData().setResult(null);
+			}
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 修改所有群组的GroupNumber和OpenfireGroupInfo
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/updateAllGroupNumberAndOpenfireGroupInfo")
+	public @ResponseBody ResponseContainer updateAllGroupNumberAndOpenfireGroupInfo(HttpServletRequest request) {
+		try {
+			groupService.updateAllGroupNumAndOpenfireGroupInfo();
+			return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 加载群号
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/inittestgroupnum")
+	public @ResponseBody ResponseContainer inittestgroupnum(HttpServletRequest request) {
+		try {
+			String begin=request.getParameter("begin");
+			String end=request.getParameter("end");
+			testGroupNumService.setGroupNumber(Integer.valueOf(begin),Integer.valueOf(end));
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: getUserAndGroupInfo
+	 * @auther Tangli
+	 * @Description: 获取用户信息
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getUserAndGroupInfo")
+	@ResponseBody
+	public ResponseContainer getUserAndGroupInfo(String userId,String groupId){
+		Map<String, Object>resMap=new HashMap<String, Object>();
+		User user=userService.findOne(userId);
+		XueWenGroup group=groupService.findById(groupId);
+		resMap.put("user", user);
+		resMap.put("group", group);
+		return addResponse(Config.STATUS_200, Config.MSG_200, resMap, Config.RESP_MODE_10, "");
+		
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: getUserAndGroupInfo
+	 * @auther Tangli
+	 * @Description: 获取用户信息
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("getUserInfo")
+	@ResponseBody
+	public ResponseContainer getUserInfo(String email){
+		User user=userService.findOneByEmail(email);
+		return addResponse(Config.STATUS_200, Config.MSG_200, user, Config.RESP_MODE_10, "");	
+	}
+	
+	
+	@RequestMapping("createOldGroupDynamic")
+	@ResponseBody
+	public ResponseContainer createOldGroupDynamic(String email){
+	
+		try {
+//			topicService.createOldGroupTopicDynamic();
+//			drycargoService.creatOldGroupDrycargoDynamic();
+//			newGroupCourseService.creatOldGroupNewGroupCourseDynamic();
+			groupService.createOldGroupCreateDynamic();
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");	
+	}
+	
+	/**
+	 * 
+	 * 群组审核
+	 * @param boxPostName
+	 * @return
+	 */
+	@RequestMapping("/groupChecked")
+	public @ResponseBody ResponseContainer groupChecked( HttpServletRequest request ) throws XueWenServiceException {
+		String groupId = request.getParameter("gid");
+		XueWenGroup group = groupService.findById(groupId);
+		group.setReview(true);
+		groupService.savegroup(group);
+		return addResponse(Config.STATUS_200, Config.MSG_200, true, Config.RESP_MODE_10, "");
+		
+	}
+	
+}

@@ -1,0 +1,123 @@
+package operation.service.ossRecomend;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.index.Explore;
+import operation.pojo.user.User;
+import operation.service.ad.ZtiaoAdService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.RestfulTemplateUtil;
+import tools.YXTJSONHelper;
+
+
+@Service
+@Component
+public class ExploreService {
+	
+	private static final Logger logger=Logger.getLogger(ExploreService.class);
+	
+	public ExploreService(){
+		
+	}
+	
+	@Autowired
+	private ZtiaoAdService ztiaoAdService;
+	
+	@Value("${remmond.data.url}")
+	private String remmondUrl; //推荐干货 课程 话题 群组
+	
+	@Value("${ztiao.special.url}")
+	private String specialUrl; //专题
+	
+	public JSONObject findExplore(User user,String n) throws XueWenServiceException{
+		JSONObject jsonObject = this.findRecommedData(String.valueOf(user.getUserNumber()),n);
+		
+		return jsonObject;
+		
+	}
+	/**
+	 * 查询推荐的群 话题 课程 干货对象
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject findRecommedData(String userNumber,String n) throws XueWenServiceException{
+		String url = remmondUrl + Config.FIND_DATA;
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("unumber", userNumber);
+		map.put("n", n);
+		RestfulTemplateUtil restfulTemplateUtil=new RestfulTemplateUtil();
+		JSONObject obj=restfulTemplateUtil.getRestApiData(url, map);
+		return obj;
+	}
+	public Explore doNewIndex(Object result, User user,List list,int n) throws XueWenServiceException{
+		Explore exp = new Explore();
+		
+		//exp.setExploreData(result);
+//		for(int i =0 ; i < list.size() ; i++){
+//			Object obj = list.get(i);
+//			excludeAttrJsonObject
+//		}
+		String[] exclude = {"viewCount","replyCount","unLikeCount","shareCount","importCount","favCount",
+				"categoryId","childCategoryId","newReplyCount","tagNames"};
+		exp.setExploreData(YXTJSONHelper.getExListObjectAttrJsonArray(list, exclude));
+		if(n == 0){
+			exp.setSpecial(this.findSpecailData());
+			exp.setGroup(this.findGroupData(String.valueOf(user.getUserNumber())));
+			exp.setZtiaoAd(ztiaoAdService.getAppIndexAd("0"));
+		}else{
+			exp.setSpecial(null);
+			exp.setGroup(null);
+			exp.setZtiaoAd(null);
+		}
+		return exp;
+	}
+	
+	/**
+	 * 查询推荐 话题 课程 干货对象
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONArray findSpecailData() throws XueWenServiceException{
+		String url = specialUrl;
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("dataType", "special");
+		RestfulTemplateUtil restfulTemplateUtil=new RestfulTemplateUtil();
+		JSONArray obj=restfulTemplateUtil.getRestApiDataForArray(url, map);
+		obj=obj.fromObject(obj,YXTJSONHelper.initJSONObjectConfig());
+		return obj;
+	}
+	/**
+	 * 查询推荐的群
+	 * @param userNumber
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONArray findGroupData(String userNumber) throws XueWenServiceException{
+		String url = remmondUrl + Config.FIND_GROUP;
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("unumber", userNumber);
+		RestfulTemplateUtil restfulTemplateUtil=new RestfulTemplateUtil();
+		JSONObject obj=restfulTemplateUtil.getRestApiData(url, map);
+		JSONArray result = null;
+		if(obj != null){
+			 result=obj.getJSONArray("result");
+			 result=result.fromObject(result,YXTJSONHelper.initJSONObjectConfig());
+		}
+		return result;
+	}
+	
+	
+}

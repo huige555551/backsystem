@@ -1,0 +1,96 @@
+package operation.repo.group;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.group.XueWenGroup;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/**
+ * group template 数据持久层操作方法
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class GroupTemplate {
+
+	public GroupTemplate(){
+		
+	}
+	
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	/**
+	 * 根据群组ID，查找群组只返回member字段
+	 * @author hjn
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public XueWenGroup findOneXuewenGroupOnlyMember(String id)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id));
+		query.fields().include("member");
+		return mongoTemplate.findOne(query, XueWenGroup.class);
+	}
+	
+	/**
+	 * 根据群组Id，查找相应的群组，只返回群名称和群号
+	 * @author hjn
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public XueWenGroup findOneXuewenGroupOnlyGroupNameAndGroupNum(String id)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id));
+		query.fields().include("groupName").include("groupNumbers");
+		return mongoTemplate.findOne(query, XueWenGroup.class);
+	}
+	
+	/**
+	 * 根据用户Id和群组Id判断用户是否在此群组
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserInGroupByUserIdAndGroupId(String groupId,String userId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupId).and("member").is(userId));
+		return mongoTemplate.exists(query, XueWenGroup.class);
+	}
+	
+	/**
+	 * 根据用户Id和群组Id判断用户是否为群组管理员
+	 * @param groupId
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isGroupOwnerByUserIdAndGroupId(String groupId,String userId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(groupId).and("owner").is(userId));
+		return mongoTemplate.exists(query, XueWenGroup.class);
+	}
+	
+	/**
+	 * 根据群组ID，查找群组只返回群组名称，群组头像，群组成员字段
+	 * @author hjn
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public XueWenGroup findOneXuewenGroupRspGroupNameAndMemberAndLogoUrl(String id)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(id));
+		query.fields().include("id").include("groupName").include("logoUrl").include("member");
+		return mongoTemplate.findOne(query, XueWenGroup.class);
+	}
+	
+	
+}

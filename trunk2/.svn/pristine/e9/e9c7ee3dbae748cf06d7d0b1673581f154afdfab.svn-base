@@ -1,0 +1,133 @@
+package operation.controller.category;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import operation.BaseController;
+import operation.pojo.category.Category;
+import operation.pojo.group.XueWenGroup;
+import operation.service.category.CategoryService;
+import tools.Config;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("/category")
+public class CategoryController extends BaseController{
+	@Autowired
+	public CategoryService categoryService;
+	
+	
+	public CategoryController() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+	/**
+	 * 创建群分类
+	 * @param request
+	 * @param category
+	 * @return
+	 */
+	@RequestMapping("create")
+	public @ResponseBody ResponseContainer create(HttpServletRequest request,
+			Category category) {
+		Category categoryCreate = categoryService.create(category);
+		
+		if (null == categoryCreate) {
+			this.responseContainer.setStatus(Config.STATUS_201);
+			this.responseContainer.setMsg(Config.MSG_201);
+		} else {
+			this.responseContainer.setStatus(Config.STATUS_200);
+			this.responseContainer.setMsg(Config.MSG_200);
+		}
+		this.rsData.setResult(categoryCreate);
+		this.responseContainer.setData(rsData);
+		this.responseContainer.setMode(Config.RESP_MODE_10);
+		this.responseContainer.setMd5("");
+
+		return this.responseContainer;
+	}
+	
+	/**
+	 * 查询所有群组支持翻页
+	 * 
+	 * @param request
+	 * @return
+	 */
+//	@RequestMapping("/all")
+//	public @ResponseBody ResponseContainer findAllCategory(
+//			HttpServletRequest request) {
+//		String pageNumber = request.getParameter("pageNumber");
+//		String pageSize = request.getParameter("pageSize");
+//		Pageable pageable = new PageRequest(Integer.parseInt(pageNumber),
+//				Integer.parseInt(pageSize));
+//
+//		Page<Category> category = categoryService.all(pageable);
+//		if (category.getTotalElements() > 0) {
+//			if (category.getTotalElements() == 0) {
+//				rsData.setCurr_page(category.getNumber());
+//				rsData.setCurr_rows((category.getNumber()) * category.getSize());
+//			} else {
+//				rsData.setCurr_page(category.getNumber() + 1);
+//				rsData.setCurr_rows((category.getNumber() + 1) * category.getSize());
+//			}
+//			this.responseContainer.setStatus(Config.STATUS_200);
+//			this.responseContainer.setMsg(Config.MSG_200);
+//
+//		} else {
+//			this.responseContainer.setStatus(Config.STATUS_201);
+//			this.responseContainer.setMsg(Config.MSG_201);
+//
+//		}
+//		this.rsData.setResult(category.getContent());
+//		this.responseContainer.setData(rsData);
+//		this.responseContainer.setMode(Config.RESP_MODE_10);
+//		this.responseContainer.setMd5("");
+//		return responseContainer;
+//
+//	}
+	
+	/**
+	 * 查询所有群组不支持翻页
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/all/{id}/sort")
+	public @ResponseBody ResponseContainer findAllSortGroup(
+			HttpServletRequest request, @PathVariable("id") String sort) {
+		if (!sort.isEmpty()) {
+			sort = "categoryName";
+		}
+	//	Sort st = new Sort(sort, "ASC");
+		List<Category> category = categoryService.all();
+
+		if (null != category) {
+			if (category.size() > 0) {
+				this.responseContainer.setStatus(Config.STATUS_200);
+				this.responseContainer.setMsg(Config.MSG_200);
+			} else {
+				this.responseContainer.setStatus(Config.STATUS_201);
+				this.responseContainer.setMsg(Config.MSG_201);
+			}
+		}
+
+		this.rsData.setResult(category);
+		this.responseContainer.setData(rsData);
+		this.responseContainer.setMode(Config.RESP_MODE_10);
+		this.responseContainer.setMd5("");
+
+		return this.responseContainer;
+	}
+
+}

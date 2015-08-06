@@ -1,0 +1,537 @@
+package operation.service.category;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.box.Box;
+import operation.pojo.category.Category;
+import operation.pojo.course.NewGroupCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.topics.Topic;
+import operation.repo.category.CategoryRepository;
+import operation.repo.category.CategoryTemplate;
+import operation.service.box.BoxService;
+import operation.service.course.NewCourseService;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.group.GroupService;
+import operation.service.topics.TopicService;
+import operation.service.util.ObjCopyPropsService;
+
+import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.system_add_column_family;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+
+@Service
+@Component
+public class CategoryService {
+	@Autowired
+	public CategoryRepository categoryRepo;
+	@Autowired
+	public CategoryTemplate categoryTemplate;
+	@Autowired
+	private ObjCopyPropsService objCopyPropsService;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	private DrycargoService drycargoService;
+	@Autowired
+	private GroupService groupService;
+	@Autowired
+	private NewCourseService newCourseService;
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	@Autowired
+	private BoxService boxService;
+	
+	
+	@Value("${group.cate.supo}")
+	private String supo;
+	@Value("${group.cate.sec}")
+	private String sec;
+
+	/**
+	 * 创建一级分类
+	 * 
+	 * @param categoryName
+	 * @param logoUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category createPrimary(String categoryName, String logoUrl) throws XueWenServiceException {
+		if (StringUtil.isBlank(categoryName) || StringUtil.isBlank(logoUrl)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		return categoryRepo.save(new Category(categoryName, logoUrl));
+	}
+
+	/**
+	 * 创建二级分类
+	 * 
+	 * @param categoryName
+	 * @param logoUrl
+	 * @param parentId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category createSecond(String categoryName, String logoUrl, String parentId) throws XueWenServiceException {
+		if (StringUtil.isBlank(categoryName) || StringUtil.isBlank(logoUrl) || StringUtil.isBlank(parentId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		return categoryRepo.save(new Category(categoryName, logoUrl, parentId));
+	}
+
+	/**
+	 * 修改分类信息，只能修改分类的中文描述，和默认图片
+	 * 
+	 * @param category
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category update(Category category) throws XueWenServiceException {
+		if (category == null || StringUtil.isBlank(category.getId())) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		Category old = categoryRepo.findOne(category.getId());
+		if (old == null) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		objCopyPropsService.copyPropertiesInclude(category, old, new String[] { "categoryName", "logoUrl" });
+		return categoryRepo.save(old);
+	}
+
+	/**
+	 * 根据Id查询分类
+	 * 
+	 * @param id
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Category findOneCategoryById(String id) throws XueWenServiceException {
+		if (StringUtil.isBlank(id)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		return categoryRepo.findOne(id);
+	}
+
+	/**
+	 * 查询所有的一级分类
+	 * 
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Category> findAllPrimary() throws XueWenServiceException {
+		return categoryRepo.findByCategoryType(Config.CATEGORY_PRIMARY);
+	}
+
+	/**
+	 * 查询某一个一级分类下所有的二级分类
+	 * 
+	 * @param parentId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Category> findSecondByPrimaryId(String parentId) throws XueWenServiceException {
+		return categoryRepo.findByCategoryTypeAndParentId(Config.CATEGORY_SENCOND, parentId);
+	}
+
+	/**
+	 * 获取所有分类信息
+	 * 
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> findCategory() throws XueWenServiceException {
+		List<Category> primarys = findAllPrimary();
+		if (primarys != null && primarys.size() > 0) {
+			List<Object> objs = new ArrayList<Object>();
+			for (Category category : primarys) {
+				objs.add(formateCategory(category));
+			}
+			return objs;
+		} else {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+
+	}
+
+	/**
+	 * 格式化分类
+	 * 
+	 * @param category
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Object formateCategory(Category category)throws XueWenServiceException{
+		if(category == null){
+			return "";
+		}
+		if(category.getCategoryType().equals(Config.CATEGORY_PRIMARY)){
+			List<Category> childcategory=findSecondByPrimaryId(category.getId());
+			if(childcategory !=null ){
+				String[] exclude = {"parentId"};
+				Map<String,Object> addAndModifyMap=new HashMap<String, Object>();
+				addAndModifyMap.put("childCategory", childcategory);
+				return  YXTJSONHelper.getExObjectAttrJsonObject(category,addAndModifyMap,exclude);
+			}else{
+				String[] exclude = {"parentId"};
+				return  YXTJSONHelper.excludeAttrJsonObject(category,exclude);
+			}
+		}else{
+			return category;
+		}
+	}
+
+	/**
+	 * 格式化分一级类集合，增添各个一级分类下数据的统计
+	 * 
+	 * @param categorys
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> formatePrimaryList(List<Category> categorys, String type) throws XueWenServiceException {
+		if (categorys == null || StringUtil.isBlank(type)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		List<Object> objs = new ArrayList<Object>();
+		for (Category category : categorys) {
+			objs.add(formatePrimary(category, type));
+		}
+		return objs;
+	}
+
+	/**
+	 * 格式化分一级类，增添此分类下数据的统计
+	 * 
+	 * @param category
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Object formatePrimary(Category category, String type) throws XueWenServiceException {
+		if (category != null && category.getCategoryType().equals(Config.CATEGORY_PRIMARY)) {
+			// 根据type值添加相应的统计数据
+			int primaryCountNum = getPrimaryCountNumByType(type, category.getId());
+			Map<String, Object> addAndModifyMap = new HashMap<String, Object>();
+			addAndModifyMap.put("count", primaryCountNum);
+			return YXTJSONHelper.addAndModifyAttrJsonObject(category, addAndModifyMap);
+		} else {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+	}
+
+	/**
+	 * 格式化分二级类集合，增添各个二级分类下数据的统计
+	 * 
+	 * @param categorys
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> formateSecondList(List<Category> categorys, String type) throws XueWenServiceException {
+		if (categorys == null || StringUtil.isBlank(type)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		List<Object> objs = new ArrayList<Object>();
+		for (Category category : categorys) {
+			objs.add(formateSecond(category, type));
+		}
+		return objs;
+	}
+
+	/**
+	 * 格式化二级分类,增添此分类下数据的统计
+	 * 
+	 * @param category
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Object formateSecond(Category category, String type) throws XueWenServiceException {
+		if (category != null && category.getCategoryType().equals(Config.CATEGORY_SENCOND)) {
+			// 根据type值添加相应的统计数据
+			int secondCountNum = getSecondCountNumByType(type, category.getId());
+			Map<String, Object> addAndModifyMap = new HashMap<String, Object>();
+			addAndModifyMap.put("count", secondCountNum);
+			return YXTJSONHelper.addAndModifyAttrJsonObject(category, addAndModifyMap);
+		} else {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+	}
+
+	/**
+	 * 根据类型获取此一级分类下,此类型的数目统计
+	 * 
+	 * @param type
+	 * @param primaryCategoryId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int getPrimaryCountNumByType(String type, String primaryCategoryId) throws XueWenServiceException {
+		if (StringUtil.isBlank(type) || StringUtil.isBlank(primaryCategoryId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+		if (type.equals(Config.TYPE_TOPIC_GROUP)) {
+			// 群组话题(因为现在所有话题都是产生于群组，所以现在只需要根据一级分类Id统计出话题数目即可)
+			return topicService.countByCategoryId(primaryCategoryId);
+		} else if (type.equals(Config.TYPE_DRYCARGO_GROUP)) {
+			// 群组干货
+			//return drycargoService.countByCategoryId(0, primaryCategoryId);
+			return drycargoService.countByCategoryId(0, primaryCategoryId);
+		} else if (type.equals(Config.TYPE_XUANYE_GROUP)) {
+			// 群组炫页
+			return drycargoService.countByCategoryId(1, primaryCategoryId);
+		} else if (type.equals(Config.TYPE_XUANYE)) {
+			// 炫页池炫页
+			return 0;
+		} else if (type.equals(Config.TYPE_COURSE_GROUP)) {
+			// 群组课程
+			return newGroupCourseService.countByCategoryId(primaryCategoryId);
+		} else if (type.equals(Config.TYPE_COURSE)) {
+			// 课程池课程
+			return newCourseService.countCheckedCourseByCategoryId(primaryCategoryId);
+		} else if (type.equals(Config.TYPE_GROUP)) {
+			// 群组
+			return groupService.countByCategoryId(primaryCategoryId);
+		} else {
+			return 0;
+		}
+
+	}
+
+	/**
+	 * 根据类型获取此二级分类下,此类型的数目统计
+	 * 
+	 * @param type
+	 * @param primaryCategoryId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int getSecondCountNumByType(String type, String secondCategoryId) throws XueWenServiceException {
+        		if (StringUtil.isBlank(type) || StringUtil.isBlank(secondCategoryId)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201, null);
+		}
+    		if (type.equals(Config.TYPE_TOPIC_GROUP)) {
+			// 群组话题(因为现在所有话题都是产生于群组，所以现在只需要根据二级分类Id统计出话题数目即可)
+			return topicService.countByChildCategoryId(secondCategoryId);
+           		} else if (type.equals(Config.TYPE_DRYCARGO_GROUP)) {
+			return drycargoService.countByChildCategoryId(0, secondCategoryId);
+			// 群组干货
+		} else if (type.equals(Config.TYPE_XUANYE_GROUP)) {
+			// 群组炫页
+			return drycargoService.countByChildCategoryId(1, secondCategoryId);
+		} else if (type.equals(Config.TYPE_XUANYE)) {
+			// 炫页池炫页
+			return 0;
+		} else if (type.equals(Config.TYPE_COURSE_GROUP)) {
+			// 群组课程
+			return newGroupCourseService.countByChildCategoryId(secondCategoryId);
+		} else if (type.equals(Config.TYPE_COURSE)) {
+			// 课程池课程
+			return newCourseService.countCheckedCourseByChildCategoryId(secondCategoryId);
+		} else if (type.equals(Config.TYPE_GROUP)) {
+			// 群组
+			return groupService.countByChildCategoryId(secondCategoryId);
+		} else {
+			return 0;
+		}
+	}
+
+	/**
+	 * 根据分类的分类ID获取此分类的中文描述
+	 * 
+	 * @param primaryId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public String getCategoryNameById(String id) throws XueWenServiceException {
+		Category category = categoryTemplate.getCategoryNameById(id);
+		if (category != null) {
+			return category.getCategoryName();
+		} else {
+			return "";
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Title: getSuperCategory
+	 * @Description: 取一级目录 带分页
+	 * @param pageable
+	 * @return Page<Category>
+	 * @throws
+	 */
+	public Page<Category> getSuperCategory(Pageable pageable) {
+		Page<Category> cates = categoryRepo.findByCategoryType(Config.CATEGORY_PRIMARY, pageable);
+		if (cates.getContent().size() != 0) {
+			return cates;
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Title: getSuperCategory
+	 * @Description: 取一级目录 带分页
+	 * @param pageable
+	 * @return Page<Category>
+	 * @throws
+	 */
+	public Page<Category> getSecondCategory(Pageable pageable, String id) {
+		Page<Category> cates = categoryRepo.findByCategoryTypeAndParentId(Config.CATEGORY_SENCOND, id, pageable);
+		if (cates.getContent().size() != 0) {
+			return cates;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * 
+	 * @Title: getSuperCategory
+	 * @Description: 删除二级分类
+	 * @param pageable
+	 * @return Page<Category>
+	 * @throws
+	 */
+	public void deleteSecondCategory(String id) {
+		int secondCountNum=0;
+		
+		
+	if(id.equals(sec)){
+		return;
+	}
+	else {
+		try {
+ 			secondCountNum=secondCountNum+getSecondCountNumByType(Config.TYPE_TOPIC_GROUP,id)+getSecondCountNumByType(Config.TYPE_DRYCARGO_GROUP,id)+getSecondCountNumByType(Config.TYPE_XUANYE_GROUP,id)+getSecondCountNumByType(Config.TYPE_XUANYE,id)+getSecondCountNumByType(Config.TYPE_COURSE_GROUP,id)+getSecondCountNumByType(Config.TYPE_GROUP,id);
+		
+		if(secondCountNum>0){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_NOTEMAIL_202, null);
+		}
+		if(secondCountNum==0){
+			categoryRepo.delete(id);
+			 
+		}
+		
+		
+		} catch (XueWenServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		 
+	}
+				
+		
+		
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @Title: getSuperCategory
+	 * @Description: 替换二级分类
+	 * @param pageable
+	 * @return Page<Category>
+	 * @throws
+	 */
+	public void changeSecondCategory(String oldid, String newid) throws XueWenServiceException {
+
+		List<Topic> t = topicService.findBychildCategoryId(oldid);
+		List<Drycargo> d = drycargoService.findBychildCategoryId(0, oldid);
+		List<Drycargo> d2 = drycargoService.findBychildCategoryId(1, oldid);
+		List<NewGroupCourse> nc = newGroupCourseService.findbychildCategoryId(oldid);
+		List<XueWenGroup> xw = groupService.findAllBychildCategoryId(oldid);
+		if (t.size() > 0) {
+			for (Topic tt : t) {
+				tt.setChildCategoryId(newid);
+				topicService.savetopic(tt);
+			}
+		}
+		if (d.size() > 0) {
+			for (Drycargo dd : d) {
+				dd.setChildCategoryId(newid);
+				drycargoService.saveDrycargo(dd);
+			}
+
+		}
+		if (d2.size() > 0) {
+			for (Drycargo ddd : d2) {
+				ddd.setChildCategoryId(newid);
+				drycargoService.saveDrycargo(ddd);
+			}
+
+		}
+		if (nc.size() > 0) {
+			for (NewGroupCourse nn : nc) {
+				nn.setChildCategoryId(newid);
+				newGroupCourseService.saveGroupCourse(nn);
+			}
+
+		}
+		if (xw.size() > 0) {
+			for (XueWenGroup xww : xw) {
+				xww.setChildCategoryId(newid);
+				groupService.savegroup(xww);
+			}
+
+		}
+
+	}
+	
+
+	public List<Category> findByIdIn(List<Object> ids) {
+		return categoryRepo.findByIdIn(ids);
+	}
+
+	// 已经绑定的
+	public Object toBoxResponses(List<Box> boxs) throws XueWenServiceException {
+		List<Object> categorys = new ArrayList<Object>();
+		if (boxs != null && boxs.size() > 0) {
+			for (Box box : boxs) {
+				Category category = findOneCategoryById(box.getSourceId().toString());
+				if (category != null) {
+					// Map<String,Object> addAndModifyMap=new HashMap<String,
+					// Object>();
+					// addAndModifyMap.put("boxId", box.getId());
+					// String[] exclude =
+					// {"post","praiseResponse","position","tagName","group","categoryId","childCategoryId"};
+					categorys.add(category);
+				}
+			}
+		}
+		return categorys;
+	}
+
+	// 未绑定的
+	public Page<Category> findByBoxPostIdNotInBox(String boxPostId, Pageable pageable) throws XueWenServiceException {
+		List<Object> ids = boxService.getSourceIdsByBoxPostId(boxPostId);
+		return categoryRepo.findByIdNotInAndParentIdNotNull(ids, pageable);
+	}
+
+	// 搜索未绑定的
+	public List<Category> findByBoxPostIdNotInBoxForSearch(String boxPostId, String keyword) throws XueWenServiceException {
+		List<Object> ids = boxService.getSourceIdsByBoxPostId(boxPostId);
+		return categoryRepo.findByCategoryNameRegexAndIdNotInAndParentIdNotNull(keyword, ids);
+	}
+
+	public Category findById(String id) {
+		return categoryRepo.findOne(id);
+	}
+
+}

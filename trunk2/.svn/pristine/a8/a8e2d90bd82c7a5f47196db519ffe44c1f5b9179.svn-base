@@ -1,0 +1,223 @@
+package operation.service.course;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.cloudfile.Citem;
+import operation.pojo.course.Knowledge;
+import operation.pojo.course.Lesson;
+import operation.repo.course.LessonRepository;
+import operation.repo.course.LessonTemplate;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.DateUtil;
+
+import com.google.gson.JsonObject;
+
+/**
+ * 
+ * @ClassName: LessonService
+ * @Description: Lesson Service
+ * @author JackTang
+ * @date 2014年12月19日 上午9:14:48
+ *
+ */
+
+@Service
+public class LessonService {
+	@Autowired
+	private LessonRepository lessonRepository;
+	@Autowired
+	private LessonTemplate lessonTemplate;
+	@Autowired
+	private KnowledgeService knowledgeService;
+
+	/**
+	 * 
+	 * @Title: save
+	 * @Description: 插入课时
+	 * @param lesson
+	 *            void
+	 * @throws
+	 */
+	public void save(Lesson lesson) {
+		lessonRepository.save(lesson);
+	}
+
+	/**
+	 * 
+	 * @Title: save
+	 * @Description: 批量插入课时
+	 * @param lessons
+	 *            void
+	 * @throws
+	 */
+	public void save(List<Lesson> lessons) {
+		lessonRepository.save(lessons);
+	}
+
+	/**
+	 * @throws XueWenServiceException
+	 * 
+	 * @Title: json2Lesson
+	 * @Description: Json转Lessn Bean
+	 * @param obj
+	 * @return Lesson
+	 * @throws
+	 */
+	public Lesson json2Lesson(JsonObject obj) throws XueWenServiceException {
+		Lesson lesson = new Lesson();
+		if (!obj.get("Name").isJsonNull()) {
+			lesson.setTitle(obj.get("Name").getAsString());
+		}
+		// 课程简介
+		if (!obj.get("Summary").isJsonNull()) {
+			lesson.setIntro(obj.get("Summary").getAsString());
+		}
+		// 课程图片
+		if (!obj.get("ImageUrl").isJsonNull()) {
+			lesson.setLogoUrl(obj.get("ImageUrl").getAsString());
+		}
+		if (!obj.get("OrderIndex").isJsonNull()) {
+			// 课程序号
+			lesson.setOrder(obj.get("OrderIndex").getAsInt());
+		}
+		// 设置服务器存储地址;未转码前地址
+		if (!obj.get("KnowledgeFileUrl").isJsonNull()) {
+			String url = obj.get("KnowledgeFileUrl").getAsString();
+			lesson.setLocalUrl(url);
+
+		}
+		if (!obj.get("CoursewareItemType").isJsonNull()) {
+			// 设置类别
+			lesson.setType(obj.get("CoursewareItemType").getAsString());
+			// if ("Video".equals(lesson.getType())) {
+			//
+			// // 设置播放地址
+			// Map<String, String> payUrls = new HashMap<String, String>();
+			//
+			// // payUrls.put(url.substring(url.lastIndexOf(".")+1), url);
+			// String url = lesson.getLocalUrl();
+			// payUrls.put("mp4", url);
+			// payUrls.put("flv", url.substring(0, url.lastIndexOf(".") + 1)
+			// + "flv");
+			// // lesson.setPlayUrls(payUrls);
+			//
+			// }
+		}
+
+		// 设置文件大小
+		if (!obj.get("Bytes").isJsonNull()) {
+			lesson.setLength(obj.get("Bytes").getAsLong());
+		}
+		// 设置时长
+		if (!obj.get("FileSize").isJsonNull()) {
+			String timeString = obj.get("FileSize").getAsString();
+			if ("Video".equals(lesson.getType())) {
+
+				lesson.setTimer(DateUtil.time2Long(timeString));
+			} else {
+				timeString=timeString.replaceAll("页", "").trim();
+				timeString=timeString.replaceAll("码", "").trim();
+				lesson.setTimer(Integer.valueOf(timeString));
+			}
+
+		}
+
+		if (!obj.get("Bytes").isJsonNull()) {
+			lesson.setLength(obj.get("Bytes").getAsLong());
+		}
+		// 设置创建时间
+		if (!obj.get("CreateDate").isJsonNull()) {
+			String sdate = obj.get("CreateDate").getAsString()
+					.replaceAll("T", " ");
+			long ctime = DateUtil.Sdate2Long(sdate);
+			lesson.setCtime(ctime);
+		}
+
+		// 2014-12-23 修改knowledge
+		Knowledge knowledge = new Knowledge();
+		knowledge.setFurl(lesson.getLocalUrl());
+		knowledge.setName(lesson.getTitle());
+		knowledge.setLogoUrl(lesson.getLogoUrl());
+
+		List<Citem> citems = new ArrayList<Citem>();
+
+		if ("Video".equals(lesson.getType())) {
+
+			knowledge.setKngType(1);
+			knowledge.setDuration(lesson.getTimer());
+			Citem citem = new Citem();
+			citem.setFormat("mp4");
+			
+			citem.setFurl(lesson.getLocalUrl().replace("_enc.mp4", ".mp4"));
+			Citem citem1 = new Citem();
+			citem1.setFormat("flv");
+			citem1.setFurl(lesson.getLocalUrl().substring(0,
+					lesson.getLocalUrl().lastIndexOf(".") + 1)
+					+ "flv");
+			citems.add(citem1);
+			citems.add(citem);
+
+		} else {
+			// 文档 类 默认追加两个item
+			Citem citem = new Citem();
+			citem.setFormat("pdf");
+			citem.setCode(0);
+			citem.setFurl(lesson.getLocalUrl().substring(0,
+					lesson.getLocalUrl().lastIndexOf(".") + 1)
+					+ "pdf");
+
+			Citem citem1 = new Citem();
+			citem1.setFormat("swf");
+			citem1.setCode(0);
+			citem1.setFurl(lesson.getLocalUrl().substring(0,
+					lesson.getLocalUrl().lastIndexOf(".") + 1)
+					+ "swf");
+			citems.add(citem);
+			citems.add(citem1);
+
+			knowledge.setKngType(2);
+			knowledge.setPages(lesson.getTimer());
+
+		}
+		// 内容中心获取的知识 默认设置审核通过
+		knowledge.setStatus(Config.KNOWLEDGE_STAT_PASS);
+		knowledge.setCcode(0);
+		knowledge.setCitems(citems);
+		// 添加适合pc 和app端的citems
+		knowledgeService.addviewcitems(knowledge, citems);
+		knowledge.setLogoUrl(lesson.getLogoUrl());
+		knowledge.setCtime(lesson.getCtime());
+		knowledge.setUtime(System.currentTimeMillis());
+		knowledgeService.insert(knowledge);
+		lesson.setKnowledge(knowledge.getId());
+		return lesson;
+	}
+	
+	/**
+	 * 查询课时基本信息,包括（id,title,length,timer,logoUrl,order,localUrl,type）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Lesson findOneLessonBasicInfoById(String lessonId)throws XueWenServiceException{
+		return lessonTemplate.findOneLessonBasicInfoById(lessonId);
+	}
+	/**
+	 * 查询课时基本信息,包括（id,timer）
+	 * @author hjn
+	 * @param lessonId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Lesson findOneLessonByIdRspIdAndTimer(String lessonId)throws XueWenServiceException{
+		return lessonTemplate.findOneLessonByIdRspIdAndTimer(lessonId);
+	}
+
+}

@@ -1,0 +1,74 @@
+package operation.service.share;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.praise.Praise;
+import operation.pojo.share.Share;
+import operation.pojo.user.User;
+import operation.repo.share.ShareRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class ShareService {
+	
+	
+	@Autowired
+	public ShareRepository shareRepository;
+	
+	
+	public Share subjectShare(Share share)
+			throws XueWenServiceException {
+		
+		return shareRepository.save(share);
+	}
+	
+	
+	public ShareService() {
+
+	}
+
+	/**
+	 * 用户分享
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @throws XueWenServiceException
+	 */
+	public void addShare(User user,String appKey,String sourceId,String type,String toAddr)throws XueWenServiceException{
+		Share share=new Share();
+		share.setUserId(user.getId());
+		share.setUserName(user.getNickName());
+		share.setUserLogoUrl(user.getLogoURL());
+		share.setAppKey(appKey);
+		share.setSourceId(sourceId);
+		share.setType(type);
+		share.setToAddr(toAddr);
+		shareRepository.save(share);
+	}
+	
+	public void shareCouerse(User user,String appKey,String sourceId,String type)throws XueWenServiceException{
+		Share one = shareRepository.findByUserIdAndSourceIdAndType(user.getId(), sourceId, type);
+		if(one==null){
+			Share share=new Share();
+			share.setUserId(user.getId());
+			share.setUserName(user.getNickName());
+			share.setUserLogoUrl(user.getLogoURL());
+			share.setAppKey(appKey);
+			share.setSourceId(sourceId);
+			share.setType(type);
+			shareRepository.save(share);
+		}
+	}
+	
+	public int courseCount(String userId,String appKey,String type){
+		return shareRepository.countByUserIdAndTypeAndAppKey(userId, type, appKey);
+		
+	}
+	
+}

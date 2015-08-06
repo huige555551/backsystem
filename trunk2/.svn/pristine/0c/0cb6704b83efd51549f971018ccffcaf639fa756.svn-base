@@ -1,0 +1,200 @@
+package operation.service.openfire;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.security.sasl.SaslException;
+
+import operation.pojo.user.OpenFireUser;
+
+import org.jivesoftware.smack.AccountManager;
+import org.jivesoftware.smack.SmackException;
+import org.jivesoftware.smack.SmackException.NoResponseException;
+import org.jivesoftware.smack.SmackException.NotConnectedException;
+import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.XMPPException.XMPPErrorException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class OpenFireUserService implements InitializingBean{
+
+	@Autowired
+	public OpenFireConnection openFireConnection;
+
+	/**
+	 * 账户管理者
+	 */
+	public AccountManager accountManager ;
+
+	public OpenFireUserService() {
+		
+	}
+
+	/**
+	 * 创建一个新用户
+	 * 
+	 * @param openFireUser
+	 * @return
+	 */
+	public OpenFireUser create(OpenFireUser openFireUser) {
+		this.accountManager = AccountManager.getInstance(openFireConnection.getConnection());
+		Map<String,String> map = new HashMap<String,String>();
+		//map.put("email", openFireUser.getOpenFireEmail());
+		
+		try {
+			this.accountManager.createAccount(
+					openFireUser.getOpenFireUserName(),
+					openFireUser.getOpenFirePassWord());
+		/*	Collection<String> attributes = this.accountManager
+					.getAccountAttributes();
+			openFireUser.setOpenFireData(attributes);*/
+
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return openFireUser;
+	}
+
+	/**
+	 * 创建一个新用户(附带用户属性) name -- the user's name. first -- the user's first name.
+	 * last -- the user's last name. email -- the user's email address. city --
+	 * the user's city. state -- the user's state. zip -- the user's ZIP code.
+	 * phone -- the user's phone number. url -- the user's website. date -- the
+	 * date the registration took place. misc -- other miscellaneous information
+	 * to associate with the account. text -- textual information to associate
+	 * with the account. remove -- empty flag to remove account.
+	 * 
+	 * @param openFireUser
+	 * @param attributes
+	 * @return
+	 */
+	public boolean create(OpenFireUser openFireUser,
+			Map<String, String> attributes) {
+
+		try {
+			this.accountManager.createAccount(
+					openFireUser.getOpenFireUserName(),
+					openFireUser.getOpenFirePassWord(), attributes);
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return true;
+	}
+
+	/**
+	 * 删除当前用户
+	 * 
+	 * @param connection
+	 * @return
+	 * @throws IOException
+	 * @throws SmackException
+	 * @throws XMPPException
+	 * @throws SaslException
+	 */
+	public boolean delete(OpenFireUser openFireUser) {
+		try {
+			openFireConnection.getConnection().login(
+					openFireUser.getOpenFireUserName(),
+					openFireUser.getOpenFirePassWord());
+		} catch (SaslException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SmackException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			this.accountManager.deleteAccount();
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return true;
+	}
+
+	/**
+	 * 删除修改密码
+	 * 
+	 * @param connection
+	 * @return
+	 * @throws IOException
+	 * @throws SmackException
+	 * @throws XMPPException
+	 * @throws SaslException
+	 */
+	public boolean changePassword(OpenFireUser openFireUser, String passWord) {
+		try {
+			openFireConnection.getConnection().login(
+					openFireUser.getOpenFireUserName(),
+					openFireUser.getOpenFirePassWord());
+		} catch (SaslException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SmackException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			this.accountManager.changePassword(passWord);
+		} catch (NoResponseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMPPErrorException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotConnectedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return true;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// TODO Auto-generated method stub
+		this.accountManager = AccountManager.getInstance(openFireConnection.getConnection());
+	}
+	
+	
+}

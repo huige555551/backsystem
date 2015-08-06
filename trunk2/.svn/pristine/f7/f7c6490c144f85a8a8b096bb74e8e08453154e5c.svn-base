@@ -1,0 +1,69 @@
+package operation.service.live;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.live.Live;
+import operation.pojo.user.User;
+import operation.repo.live.LiveRepo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+/**
+ * 直播
+ * 
+ * @author nes
+ *
+ */
+@Service
+public class LiveService {
+	@Autowired
+	private LiveRepo liveRepo;
+	
+	/**
+	 * 创建直播
+	 * @param url
+	 * @param currUser
+	 * @param sourceId
+	 * @param groupName
+	 * @param groupLogoUrl
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Live create(String url, User currUser, String sourceId,String groupName, String groupLogoUrl) throws XueWenServiceException{
+		return null;
+	}
+	/**
+	 * 查询群组直播课
+	 * @param groupId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Live> findByGroupId(String groupId, Pageable pageable) throws XueWenServiceException{
+		return null;
+	}
+	/**
+	 * 修改直播课
+	 * @param activityId
+	 * @param currUser
+	 * @param live
+	 * @return
+	 */
+	public boolean update(String activityId, User currUser, Live live) throws XueWenServiceException{
+		return false;
+	}
+	/**
+	 * 分享直播
+	 * @param liveId
+	 * @param group
+	 * @param currUser
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean share(String liveId, String group, User currUser) throws XueWenServiceException{
+		return false;
+	}
+
+}

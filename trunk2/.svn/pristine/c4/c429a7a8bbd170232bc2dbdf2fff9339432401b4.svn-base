@@ -1,0 +1,189 @@
+package operation.controller.oss;
+
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.user.User;
+import operation.service.drycargo.DrycargoBeanService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.tags.TagService;
+import operation.service.user.UserService;
+
+import org.jsoup.helper.StringUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("/oss/tags")
+@Configuration
+public class OssTagsController extends OssController {
+
+	@Autowired
+	public DrycargoService drycargoService;
+	
+	@Autowired
+	public UserService userService;
+	
+	@Autowired
+	private TagService tagService;
+	
+	@Autowired
+	public DrycargoBeanService drycargoBeanService;
+
+	public OssTagsController() {
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * 查询干货详情（从小组课堂查看干货详情）
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getOneDry")
+	public @ResponseBody ResponseContainer getOneDry(HttpServletRequest request)
+			throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			Drycargo db = drycargoService.findOneById(dryCargoId);
+
+			return addResponse(Config.STATUS_200, Config.MSG_200, db,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+
+	/**
+	 * 存储干货
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/updateOne")
+	public @ResponseBody ResponseContainer updateOne(HttpServletRequest request)
+			throws XueWenServiceException {
+		try {
+			String dryCargoId = request.getParameter("dryid");
+			String fileUrl = request.getParameter("fileUrl");
+			
+			fileUrl = URLDecoder.decode(fileUrl,"utf-8");
+			
+			String message = request.getParameter("message");
+			
+			Drycargo db = drycargoService.findOneById(dryCargoId);
+			
+			db.setFileUrl(fileUrl);
+			db.setMessage(message);
+			
+			drycargoService.saveDrycargo(db);
+
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	
+	/**
+	 * 创建干货
+	 * 
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("uploadDrycargo")
+	public @ResponseBody ResponseContainer uploadDrycargo(
+			HttpServletRequest request, Drycargo drycargo) {
+		try {
+			String id = request.getParameter("id");
+			User currentUser = userService.findUser(id);
+			String tagName = request.getParameter("tagName");
+			// 非空校验
+			if (StringUtil.isBlank(drycargo.getUrl()) || currentUser == null) {
+				return addResponse(Config.STATUS_500, Config.MSG_500, false,
+						Config.RESP_MODE_10, "");
+			}
+			//干货增加回复流程
+			Drycargo db = drycargoBeanService.uploadDry(currentUser, drycargo,tagName);
+			return addResponse(Config.STATUS_200, Config.MSG_200, db,
+					Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 删除
+	 * 
+	 * @param request
+	 * @return
+	 * @throws
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/delete")
+	public @ResponseBody ResponseContainer create(HttpServletRequest request) {
+		try {
+			String dryCargoId = request.getParameter("dryCargoId");
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200, drycargoBeanService.deleteOneDry(dryCargoId), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false, Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: getTagsByType
+	 * @Description: 通过类型拿到热门标签
+	 * @param itemType
+	 * @param count
+	 * @param request
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/getTagsByType")
+	public ResponseContainer getTagsByType(String itemType,Integer count,HttpServletRequest request) {
+	        try {
+	        	String str =tagService.getTagsByType(Config.YXTDOMAIN, itemType, count);
+					return addResponse(Config.STATUS_200, Config.MSG_200, str,
+							Config.RESP_MODE_10, "");
+			}  catch (Exception e) {
+				return addResponse(Config.STATUS_505, Config.MSG_505, false,
+						Config.RESP_MODE_10, "");
+			}	
+	}
+
+}

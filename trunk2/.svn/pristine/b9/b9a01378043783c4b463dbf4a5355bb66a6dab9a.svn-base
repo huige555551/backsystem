@@ -1,0 +1,49 @@
+package operation.service.black;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.black.Black;
+import operation.repo.black.BlackRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+public class BlackService {
+
+	@Autowired
+	private BlackRepository blackRepository;
+
+	public BlackService() {
+
+	}
+
+	public void saveBlack(String blackName) throws XueWenServiceException {
+		List<Black> blackList = blackRepository.findAll();
+		List<String> blackNames = null;
+		Black black = null;
+		if (null == blackList || blackList.size() <= 0) {
+			blackList = new ArrayList<Black>();
+			blackNames = new ArrayList<String>();
+			black = new Black();
+			blackNames.add(blackName);
+			black.setBlackName(blackNames);
+			blackRepository.save(black);
+		} else {
+			black = blackList.get(0);
+			blackNames = black.getBlackName();
+			if (blackNames.contains(blackName)) {
+			} else {
+				blackNames.add(blackName);
+				black.setBlackName(blackNames);
+				blackRepository.save(black);
+			}
+		}
+
+	}
+
+}

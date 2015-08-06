@@ -1,0 +1,58 @@
+package operation.service.callpolice;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+import operation.pojo.ad.Ad;
+import operation.pojo.ad.AdSeller;
+import operation.pojo.callpolice.Callpolice;
+import operation.pojo.log.UserRegistLog;
+import operation.repo.ad.AdReposity;
+import operation.repo.callpolice.callpoliceReposity;
+import operation.service.log.UserRegistLogService;
+
+import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.add;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+
+@Service
+public class CallpoliceSevice {
+	@Autowired
+	private callpoliceReposity callpoliceReposity;
+	
+	
+	
+	public boolean save(Callpolice callpolice){
+		 try {
+			callpoliceReposity.save(callpolice);
+			return true;
+		} catch (Exception e) {
+			// TODO: handle exception
+			return false;
+		}
+		 
+	}
+	public Page<Callpolice> findcallpolice(String type,Pageable page){
+		
+		return callpoliceReposity.findAllByType(type, page);
+	}
+	public boolean delete(String id) {
+		 try {
+			callpoliceReposity.delete(id);
+			return true;
+		} catch (Exception e) {
+			// TODO: handle exception
+			return false;
+		}
+		
+	}
+
+}

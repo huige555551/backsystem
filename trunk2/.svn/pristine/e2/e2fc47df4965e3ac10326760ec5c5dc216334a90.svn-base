@@ -1,0 +1,13 @@
+package operation.repo.dynamic;
+
+import operation.pojo.dynamic.GroupDynamic;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface GroupDynamicRepository extends MongoRepository<GroupDynamic, String>{
+
+	Page<GroupDynamic> findByGroupIdAndCtimeGreaterThan(String groupId,long ctime,Pageable pageable);
+	Page<GroupDynamic> findByGroupIdAndCtimeLessThan(String groupId,long ctime,Pageable pageable);
+}

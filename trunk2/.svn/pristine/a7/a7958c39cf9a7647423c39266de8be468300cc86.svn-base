@@ -1,0 +1,59 @@
+package tools;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.junit.Test;
+
+import operation.exception.XueWenServiceException;
+
+/**
+ * 
+ * @ClassName: DateUtil
+ * @Description: 日期转换 net日期格式转long
+ * @author JackTang
+ * @date 2014年12月18日 下午12:59:37
+ *
+ */
+public class DateUtil {
+	/**
+	 * 
+	 * @Title: Sdate2Long
+	 * @Description: 日期转换 net日期格式转long
+	 * @param timestmap
+	 *            ://2014-12-04T15:04:19
+	 * @return long
+	 * @throws
+	 */
+	public static long Sdate2Long(String timestmap)
+			throws XueWenServiceException {
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		Date date = null;
+		try {
+			date = format.parse(timestmap);
+			return date.getTime();
+		} catch (ParseException e) {
+			throw new XueWenServiceException(Config.STATUS_504, Config.MSG_504,
+					null);
+		}
+
+	}
+	
+	public static Integer time2Long(String timestamp) throws XueWenServiceException{
+		String[] s=timestamp.split(":");
+		if(s.length==3){
+			return Integer.valueOf(s[0])*3600+Integer.valueOf(s[1])*60+Integer.valueOf(s[2]);
+		}
+		else{
+			throw new XueWenServiceException(Config.STATUS_504, Config.MSG_504,
+					null);	
+		}
+	}
+	@Test
+	public void test() throws XueWenServiceException{
+		Integer t=time2Long("00:28:37");
+		System.out.println(t);
+	
+	}
+}

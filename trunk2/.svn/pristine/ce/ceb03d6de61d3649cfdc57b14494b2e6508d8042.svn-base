@@ -1,0 +1,17 @@
+package operation.repo.praise;
+
+
+import operation.pojo.praise.Praise;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface PraiseRepository extends MongoRepository<Praise, String> {
+	Page<Praise> findByAppKeyAndSourceIdAndType(String appkey,String sourceId,String type,Pageable pageable);
+	Praise findByUserIdAndAppKeyAndSourceIdAndType(String userId,String appkey,String sourceId,String type);
+	int countByAppKeyAndSourceIdAndType(String appkey,String sourceId,String type);
+//	boolean existsByUserIdAndAppKeyAndSourceIdAndType(String userId,String appkey,String sourceId,String type);
+	Page<Praise> findByUserIdAndAppKeyAndType(String userId, String appKey,
+			String type, Pageable pageable);
+}

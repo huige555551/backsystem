@@ -1,0 +1,101 @@
+package operation.pojo.activity;
+
+import org.springframework.data.annotation.Id;
+
+
+public class NewActivityUser {
+	@Id
+	private String id;
+	private String activityId;//活动Id
+	private String userId;
+	private String name;//报名姓名
+	private String userLogoUrl;//头像
+	private String phone;//电话
+	private String groupId;//报名的所在群
+	private String groupName;//
+	private String groupLogoUrl;//
+	private NewActivity activity;//报名的活动
+	private long ctime;//报名时间
+	private String orderId;
+	
+	public NewActivityUser() {
+		this.ctime = System.currentTimeMillis();
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getActivityId() {
+		return activityId;
+	}
+	public void setActivityId(String activityId) {
+		this.activityId = activityId;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getPhone() {
+		return phone;
+	}
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+	
+	public long getCtime() {
+		return ctime;
+	}
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+	public String getGroupId() {
+		return groupId;
+	}
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+	public String getGroupName() {
+		return groupName;
+	}
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+	public String getGroupLogoUrl() {
+		return groupLogoUrl;
+	}
+	public void setGroupLogoUrl(String groupLogoUrl) {
+		this.groupLogoUrl = groupLogoUrl;
+	}
+	public NewActivity getActivity() {
+		return activity;
+	}
+	public void setActivity(NewActivity activity) {
+		this.activity = activity;
+	}
+	public String getUserId() {
+		return userId;
+	}
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+	public String getUserLogoUrl() {
+		return userLogoUrl;
+	}
+	public void setUserLogoUrl(String userLogoUrl) {
+		this.userLogoUrl = userLogoUrl;
+	}
+	public String getOrderId() {
+		return orderId;
+	}
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+	
+	
+	
+	
+}

@@ -1,0 +1,462 @@
+package operation.service.activity;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import love.cq.util.StringUtil;
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.NewActivity;
+import operation.pojo.activity.NewActivityUser;
+import operation.pojo.topics.Images;
+import operation.pojo.user.User;
+import operation.repo.activity.NewActivityRepo;
+import operation.repo.activity.NewActivityTemplate;
+import operation.repo.activity.NewActivityUserRepo;
+import operation.repo.activity.NewActivityUserTemplate;
+import operation.service.dynamic.GroupDynamicService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.JSON2ObjUtil;
+import tools.RestfulTemplateUtil;
+import tools.YXTJSONHelper;
+@Component
+@Service
+public class NewActivityService {
+	private static final Logger l=Logger.getLogger(NewActivityService.class);
+	@Autowired
+	private NewActivityRepo newActivityRepo;
+	@Autowired
+	private NewActivityUserTemplate  newActivityUserTemplate;
+	@Autowired
+	private NewActivityUserRepo  newActivityUserRepo;
+	@Autowired
+	private NewActivityTemplate  newActivityTemplate;
+	@Autowired
+	private GroupDynamicService groupDynamicService;
+	
+	@Value("${ztiao.pay.url}")
+	private String ztiaoPayUrl;
+	
+	/**
+	 * 创建活动
+	 * 
+	 * @param newActivity
+	 * @param image
+	 * @param user
+	 * @param groupId
+	 * @param lat
+	 * @param lng
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewActivity create(NewActivity newActivity, String image, User user,String groupId, String groupName,String groupLogoUrl,String lat, String lng)throws XueWenServiceException {
+		newActivity = this.changePicUrlToImage(newActivity, image);
+		newActivity.setCreateUser(user.getId());
+		newActivity.setCreateUserName(user.getNickName());
+		newActivity.setCreateUserLogoUrl(user.getLogoURL());
+		// 规划地理位置信息
+		if (null != lat && null != lng) {
+			double[] position = new double[] { Double.parseDouble(lng),
+					Double.parseDouble(lat) };
+			newActivity.setLng(Double.parseDouble(lng));
+			newActivity.setLat(Double.parseDouble(lat));
+			newActivity.setPosition(position);
+		}
+		List<JSONObject> groupList = new ArrayList<JSONObject>();
+		JSONObject group = new JSONObject();
+		group.put("groupId", groupId);
+		group.put("groupName",groupName);
+		group.put("groupLogoUrl",groupLogoUrl);
+		groupList.add(group);
+		newActivity.setGroup(groupList);
+		
+		newActivity=newActivityRepo.save(newActivity);
+		try {
+			//创建群组动态
+			this.createGroupDynamic(newActivity, groupId);
+		} catch (Exception e) {
+			l.error("======创建活动群组动态失败：========"+e);
+		}
+		return newActivity;
+	}
+
+	/**
+	 * 处理活动图片
+	 * 
+	 * @param newActivity
+	 * @param image
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewActivity changePicUrlToImage(NewActivity newActivity, String image)
+			throws XueWenServiceException {
+		// 如果image不为空，代表新版本创建
+		if (!StringUtil.isBlank(image)) {
+			List<Images> imageList = JSON2ObjUtil.getDTOList(image,Images.class);
+			Images images = null;
+			if (imageList != null && imageList.size() > 0) {
+				newActivity.setImages(imageList);
+			}
+			return newActivity;
+		}
+		return newActivity;
+	}
+	/**
+	 * 分享到我参与的群
+	 * @param activityId
+	 * @param sourceId
+	 * @return
+	 */
+	public boolean share(String activityId, String source,User user) throws XueWenServiceException {
+		NewActivity newActivity = newActivityRepo.findOne(activityId);
+		if(newActivity == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_NODATA_201,null);
+		}
+		List<JSONObject> newAddGroups=new ArrayList<JSONObject>();
+		if(!StringUtil.isBlank(source)){
+			List<JSONObject> groupList = JSON2ObjUtil.getDTOList(source,JSONObject.class);
+			newAddGroups=groupList;
+			List<JSONObject> oldGroup=newActivity.getGroup();
+			//取新增的群组
+			newAddGroups.removeAll(oldGroup); 
+			
+//			groupList.addAll(newActivity.getGroup());
+//			newActivity.setGroup(groupList);
+			newActivity.getGroup().addAll(newAddGroups);
+		}
+//		JSONArray array = JSONArray.fromObject(source);
+//		List group = newActivity.getGroup();
+//    	if(array!=null && array.size() > 0 ){
+//    	for(int i = 0; i < array.size();i++){
+//    		group.add(array.get(i));
+//    		newActivity.setGroup(group);
+//    		}
+//    	}
+    	newActivityRepo.save(newActivity);
+    	for(JSONObject obj:newAddGroups){
+    		try {
+    			//创建群组动态
+    			this.createGroupDynamic(newActivity, obj.getString("groupId"));
+    		} catch (Exception e) {
+    			l.error("======创建活动群组动态失败：========"+e);
+    		}
+    	}
+    	return true;
+	}
+	
+	/**
+	 * 修改活动
+	 * @param activityId
+	 * @param group
+	 * @param image
+	 * @param lat
+	 * @param lng
+	 * @param currUser
+	 * @return
+	 */
+	public boolean update(String activityId, String group, String image,String lat, String lng, User currUser,NewActivity activity) throws XueWenServiceException{
+		NewActivity newActivity = newActivityRepo.findOne(activityId);
+		if(newActivity == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_NODATA_201,null);
+		}
+		if (!StringUtil.isBlank(image)) { //如果图片不为空
+			List<Images> imageList = JSON2ObjUtil.getDTOList(image,Images.class);
+			newActivity.setImages(imageList);
+		}
+		if(!StringUtil.isBlank(group)){ //如果分享的群不为空
+			List<JSONObject> groupList = JSON2ObjUtil.getDTOList(group,JSONObject.class);
+			
+			newActivity.setGroup(groupList);
+		}
+		
+		// 规划地理位置信息
+		if (null != lat && null != lng) {
+			double[] position = new double[] { Double.parseDouble(lng),
+					Double.parseDouble(lat) };
+			newActivity.setLng(Double.parseDouble(lng));
+			newActivity.setLat(Double.parseDouble(lat));
+			newActivity.setPosition(position);
+		}
+		
+		if(!StringUtil.isBlank(activity.getName())){
+			newActivity.setName(activity.getName());
+		}
+		if(activity.getActivityStartTime()!=0){
+			newActivity.setActivityStartTime(activity.getActivityStartTime());
+		}
+		if(activity.getActivityEndTime()!=0){
+			newActivity.setActivityEndTime(activity.getActivityEndTime());
+		}
+		if(activity.getPriceModel()==0){
+			newActivity.setPriceModel(0);
+		}
+		if(activity.getPriceModel()==1){
+			newActivity.setPriceModel(1);
+		}
+		
+		if(activity.getApplyModel()==0){
+			newActivity.setApplyModel(0);
+		}
+		if(activity.getApplyModel()==1){
+			newActivity.setApplyModel(1);
+		}
+		
+		if(activity.getDeleMode()==0){
+			newActivity.setDeleMode(0);
+		}
+		if(activity.getDeleMode()==1){
+			newActivity.setDeleMode(1);
+		}
+		
+		if(activity.getReview()==0){
+			newActivity.setReview(0);
+		}
+		if(activity.getReview()==1){
+			newActivity.setReview(1);
+		}
+		if(!StringUtil.isBlank(activity.getIntro())){
+			newActivity.setIntro(activity.getIntro());
+		}
+		
+		if(activity.getOptionStartTime()!=0){
+			newActivity.setOptionStartTime(activity.getOptionStartTime());
+		}
+		if(activity.getOptionStartTime()!=0){
+			newActivity.setOptionStartTime(activity.getOptionStartTime());
+		}
+		if(!StringUtil.isBlank(activity.getAddress())){
+			newActivity.setAddress(activity.getAddress());
+		}
+		if(activity.getMaxCount()!=0){
+			newActivity.setMaxCount(activity.getMaxCount());
+		}
+		newActivityRepo.save(newActivity);
+		return true;
+	}
+	/**
+	 * 根据群组Id查询群组活动
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewActivity> findByGroupId(String groupId,Pageable able)throws XueWenServiceException{
+		return newActivityTemplate.findByGroupId(able, groupId);
+	}
+	/**
+	 * 查询我已报名的活动
+	 * @param userId
+	 * @param able
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewActivityUser> findMyApply(String userId,Pageable able)throws XueWenServiceException{
+		return newActivityUserRepo.findByUserId(userId, able);
+	}
+	/**
+	 * 查询我创建的活动
+	 * @param userId
+	 * @param able
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewActivity> findMyCreate(String userId,Pageable able)throws XueWenServiceException{
+		return newActivityRepo.findByCreateUser(userId, able); 
+	}
+	/**
+	 * 查询活动申请人列表
+	 * @param newActivityId
+	 * @param able
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewActivityUser> findApplyList(String newActivityId,Pageable able)throws XueWenServiceException{
+		return newActivityUserRepo.findByActivityId(newActivityId, able);
+	}
+	/**
+	 * 根据活动Id查询活动数据
+	 * @param newActivityId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public NewActivity getOneById(String newActivityId)throws XueWenServiceException{
+		if(StringUtil.isBlank(newActivityId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return newActivityRepo.findOne(newActivityId);
+	}
+	
+	
+	
+	/**
+	 * 根据活动ID和用户Id查询活动详情
+	 * @param userId
+	 * @param newActivityId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Object newActivityDetails(String userId,String newActivityId)throws XueWenServiceException{
+		
+		NewActivity a= getOneById(newActivityId);
+		if(a !=null){
+			Map<String, Object> addAndModifyMap =new HashMap<String, Object>();
+			addAndModifyMap.put("isApply", isApply(userId,newActivityId));
+			addAndModifyMap.put("isfull", isFull(a));
+			addAndModifyMap.put("isOwner", isOwner(userId,a));
+			return YXTJSONHelper.addAndModifyAttrJsonObject(a, addAndModifyMap);
+		}
+		return null;
+	}
+	/**
+	 * 判断是否为活动创建者
+	 * @param userId
+	 * @param a
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isOwner(String userId,NewActivity a)throws XueWenServiceException{
+		if(a == null || StringUtil.isBlank(userId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		if(userId.equals(a.getCreateUser())){
+			return true;
+		}
+		return false;
+		
+	}
+	/**
+	 * 判断报名人数是否已满
+	 * @param a
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isFull(NewActivity a)throws XueWenServiceException{
+		if(a == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		if(a.getMaxCount() == -1){
+			return false;
+		}
+		if(a.getMaxCount() == a.getRegistrationCount()){
+			return true;
+		}
+		return false;
+	}
+	/**
+	 * 根据用户Id和活动Id判断用户是否报名活动
+	 * @param userId
+	 * @param newActivityId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isApply(String userId,String newActivityId)throws XueWenServiceException{
+		if(StringUtil.isBlank(newActivityId) || StringUtil.isBlank(userId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		
+		return newActivityUserTemplate.isApply(userId, newActivityId);
+	}
+	/**
+	 * 报名校验
+	 * @param activityId
+	 * @param currUser
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean check(String activityId, User currUser) throws XueWenServiceException{
+		
+		NewActivity newActivity = this.getOneById(activityId);
+		boolean isApply = this.isApply(currUser.getId(), activityId);
+		if(isApply == true){//已经报名了
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_SIGNUPNOW_201,null);
+		}
+		long time = System.currentTimeMillis();//获得报名时间
+		boolean signUpTime = newActivityTemplate.isSignUpTime(activityId, time);
+		if(signUpTime == false){ //不在有效的报名时间内
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_SIGNUP_201,null);
+		}
+		boolean applyCount = this.isFull(newActivity);
+		if(applyCount == true){ //报名人数已满
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_SIGNUPMAX_201,null);
+		}
+		return true;
+	}
+	/**
+	 * 报名活动
+	 * @param activityId
+	 * @param token
+	 * @param groupId
+	 * @param groupName
+	 * @param groupLogoUrl
+	 * @param price
+	 * @param spbill_create_ip
+	 * @param channel
+	 * @param phoneNumber
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public JSONObject signup(String activityId, String token, String groupId,
+			String groupName, String groupLogoUrl, String price,
+			String spbill_create_ip, String channel, String phoneNumber,String openid) throws XueWenServiceException{
+		String url = ztiaoPayUrl+Config.ORDER_CREATE_URL;
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("activityId", activityId);
+		map.put("token", token);
+		map.put("groupId", groupId);
+		map.put("groupName", groupName);
+		map.put("groupLogoUrl", groupLogoUrl);
+		map.put("price", price);
+		map.put("spbill_create_ip", spbill_create_ip);
+		map.put("channel", channel);
+		map.put("phoneNumber", phoneNumber);
+		map.put("openId", openid);
+		JSONObject data = RestfulTemplateUtil.getRestApiData(url, map);
+		return data;
+	}
+	/**
+	 * 格式化活动申请人列表
+	 * @param content
+	 * @return
+	 */
+	public List<Object> formater(List<NewActivityUser> content) {
+		if(content!=null){
+			List<Object> objs=new ArrayList<Object>();
+			for(int i = 0 ; i< content.size() ; i++){
+				objs.add(formateActivity(content.get(i)));
+			}
+			return objs;
+		}
+		return null;
+	}
+
+	private Object formateActivity(NewActivityUser newActivityUser) {
+		String[] include = {"userId","name","userLogoUrl","phone"};
+		Map<String,Object> addAndModifyMap=new HashMap<String, Object>();
+		return  YXTJSONHelper.getInObjectAttrJsonObject(newActivityUser, addAndModifyMap,include);
+	}
+	/**
+	 * 创建活动群组动态
+	 * @param a
+	 * @param groupId
+	 * @throws XueWenServiceException
+	 */
+	public void createGroupDynamic(NewActivity a,String groupId)throws XueWenServiceException{
+		if(a !=null && !StringUtil.isBlank(groupId) ){
+			groupDynamicService.addGroupDynamic(groupId, "","",a.getId(), a.getName(), a.getIntro(),
+			"", a.getImages(),a.getCreateUser(), a.getCreateUserName(), a.getCreateUserLogoUrl(), Config.TYPE_ACTIVITY_GROUP,
+			a.getCtime());
+		}
+	}
+	
+	
+}

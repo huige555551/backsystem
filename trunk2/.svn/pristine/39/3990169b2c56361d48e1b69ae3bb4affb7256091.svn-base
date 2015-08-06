@@ -1,0 +1,34 @@
+package operation.repo.drycargo;
+
+import java.util.List;
+
+import operation.pojo.drycargo.Drycargo;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface DrycargoRepository extends MongoRepository<Drycargo, String>{
+
+	Page<Drycargo> findByGroup(String keywords,Pageable page);
+	
+	Page<Drycargo> findByGroupIn(List<Object> groupId,Pageable pageable);
+	List<Drycargo> findByIdIn(List<Object> dryids);
+	
+	int countByGroup(String group);
+	
+	List<Drycargo> findOneByUrl(String url);
+	
+	Drycargo findOneByUrlAndGroup(String url,String group);
+
+	Drycargo findOneById(String dryCargoId);
+	
+	Drycargo findByDrycargoIdAndGroup(String drycargoId,String group);
+	
+	Drycargo findOneByDrycargoId(String dryCargoId);
+	
+	Page<Drycargo> findByMessageRegex(String keywords,Pageable pageable);
+
+	Page<Drycargo> findByShareids(String shareId,Pageable pageable);
+  
+}

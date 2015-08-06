@@ -1,0 +1,86 @@
+package operation;
+
+import operation.pojo.user.User;
+import tools.Config;
+import tools.ReponseData;
+import tools.ResponseContainer;
+
+public class BaseController {
+
+	/**
+	 * ResponseContainer 对象多线程
+	 */
+	private ThreadLocal<ResponseContainer> resConLocal = new ThreadLocal<ResponseContainer>();
+	
+	
+    /**
+     * ReponseData 对象多线程管理
+     */
+	private ThreadLocal<ReponseData> rsDataLocal = new ThreadLocal<ReponseData>();
+
+	public ResponseContainer getResponseContainer() {
+
+		if (resConLocal.get() == null) {
+
+			ResponseContainer con = new ResponseContainer();
+			resConLocal.set(con);
+			return con;
+		} else {
+			return resConLocal.get();
+		}
+	}
+
+	public ReponseData getReponseData() {
+
+		if (rsDataLocal.get() == null) {
+			ReponseData rsdata = new ReponseData();
+			rsDataLocal.set(rsdata);
+			return rsdata;
+		} else {
+			return rsDataLocal.get();
+		}
+	}
+
+	public User getCurrentUser(String token) {
+		return Config.map.get(token);
+	}
+
+	public ResponseContainer addResponse(int status, String msg, Object obj,
+			int mode, String md5) {
+		ResponseContainer res = this.getResponseContainer();
+		ReponseData rsdata = this.getReponseData();
+		res.setStatus(status);
+		res.setMsg(msg);
+		rsdata.setResult(obj);
+		rsdata.resetPageInfo();// 清除分页相关信息
+		res.setData(rsdata);
+		res.setMode(mode);
+		res.setMd5(md5);
+		return res;
+	}
+
+	public ResponseContainer addPageResponse(int status, String msg,
+			ReponseData rspData, int mode, String md5) {
+		ResponseContainer res = this.getResponseContainer();
+		res.setStatus(status);
+		res.setMsg(msg);
+		res.setData(rspData);
+		res.setMode(mode);
+		res.setMd5(md5);
+		return res;
+	}
+	/*
+	 * public ResponseContainer reponse(Object rsData, int status){
+	 * this.responseContainer.setStatus(status); this.rsData.setResult(rsData);
+	 * this.responseContainer.setData(this.rsData);
+	 * this.responseContainer.setMode(Config.RESP_MODE_10);
+	 * this.responseContainer.setMd5(null); return this.responseContainer; }
+	 * public ResponseContainer reponse(Object rsData, int status, String msg){
+	 * this.responseContainer.setStatus(status);
+	 * this.responseContainer.setMsg(msg); this.rsData.setResult(rsData);
+	 * this.responseContainer.setData(this.rsData);
+	 * this.responseContainer.setMode(Config.RESP_MODE_10);
+	 * this.responseContainer.setMd5(null); return this.responseContainer; }
+	 */
+
+}

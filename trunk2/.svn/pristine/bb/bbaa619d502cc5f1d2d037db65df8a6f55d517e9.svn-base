@@ -1,0 +1,82 @@
+package operation.repo.topics;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.topics.Post;
+import operation.pojo.topics.SubPost;
+import operation.pojo.topics.Topic;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+/**
+ * 
+* @ClassName: TopicTemplate
+* @Description: TODO(这里用一句话描述这个类的作用)
+* @author shenb
+* @date 2014年12月18日 下午1:56:29
+*
+ */
+public class TopicTemplate {
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	
+	/**
+	 * 根据群组ID统计群组下话题数量
+	 * @param groupId
+	 * @return
+	 */
+	public long getCountsByGroupId(String groupId)throws XueWenServiceException{
+		Criteria criteria2 = Criteria.where("sourceId").is(groupId);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		return mongoTemplate.count(query, Topic.class);
+	}
+	
+	
+	/**
+	 * 根据来源Id 更新群组话题状态为已删除
+	 * @param sourceId
+	 */
+	public void updatePostIsDeleteBySourceId(String sourceId)throws XueWenServiceException{
+		mongoTemplate.updateMulti(new Query(Criteria.where("sourceId").is(sourceId)), new Update().set("isDeleted", true),Topic.class);
+	}
+	/**
+	 * 根据话题ID删除话题
+	 * @param topicId
+	 */
+	public void deleteById(String topicId)throws XueWenServiceException{
+		mongoTemplate.remove(new Query(Criteria.where("topicId").is(topicId)),Topic.class);
+	}
+	/**
+	 * 根据话题IDs删除话题
+	 * @param topicId
+	 */
+	public void deleteByIds(List<Object> topicIds)throws XueWenServiceException{
+		mongoTemplate.remove(new Query(Criteria.where("topicId").in(topicIds)),Topic.class);
+	}
+	/**
+	 * 递增回复数
+	 * @param topicId
+	 * @param inc
+	 * @throws XueWenServiceException
+	 */
+	public void increasingPostCountByTopicId(String topicId,int inc)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("topicId").is(topicId));
+		Topic topic = mongoTemplate.findOne(query, Topic.class);
+		if(topic.getReplyCount()!=0){
+			Update update=new Update();
+			update.inc("replyCount", inc);
+			mongoTemplate.updateMulti(query,update,Topic.class);
+		}
+	}
+}

@@ -1,0 +1,526 @@
+package operation.controller.oss;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.OssController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.box.Box;
+import operation.pojo.course.NewCourse;
+import operation.pojo.drycargo.Drycargo;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.topics.Topic;
+import operation.service.box.BoxPostService;
+import operation.service.box.BoxService;
+import operation.service.course.NewCourseService;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.group.GroupService;
+import operation.service.topics.TopicService;
+
+import org.jsoup.helper.StringUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseData;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+
+@RestController
+@RequestMapping("/oss/box")
+@Configuration
+public class OssBoxController extends OssController{
+	@Autowired
+	private NewCourseService newcourseservice;
+	@Autowired
+	private NewGroupCourseService newgroupcourseservice;
+	@Autowired
+	private BoxService boxService;
+	@Autowired
+	private BoxPostService boxPostService;
+	@Autowired
+	private DrycargoService drycargoService;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	public GroupService groupService;
+	
+	public OssBoxController(){
+		super();
+	}
+	
+	/**
+	 * 创建位置
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/addBoxPost")
+	public @ResponseBody ResponseContainer addBoxPost(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String chinaName=request.getParameter("chinaName");
+			String englishName=request.getParameter("englishName");
+			String local=request.getParameter("local");
+			String type=request.getParameter("type");
+			String size=request.getParameter("size");
+			return addResponse(Config.STATUS_200, Config.MSG_200, boxPostService.create(chinaName, englishName, local, type,Integer.valueOf(size)),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 根据类型获取位置信息
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/getBoxPostByType")
+	public @ResponseBody ResponseContainer getBoxPostByType(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String type=request.getParameter("type");
+			return addResponse(Config.STATUS_200, Config.MSG_200, boxPostService.findByType(type),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 将相应的数据添加到相应位置
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/addBoxInBoxPost")
+	public @ResponseBody ResponseContainer addBoxInBoxPost(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String boxPostId=request.getParameter("boxPostId");
+			String sourceType=request.getParameter("sourceType");
+			String sourceId=request.getParameter("sourceId");
+			return addResponse(Config.STATUS_200, Config.MSG_200, boxService.addInBoxPost(boxPostId, sourceType, sourceId),Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 删除位置中的对象
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/deleteBox")
+	public @ResponseBody ResponseContainer deleteBox(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String boxId=request.getParameter("boxId");
+			boxService.deleteByBoxId(boxId);
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 删除位置中的对象
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/deleteBoxBypostAndsource")
+	public @ResponseBody ResponseContainer deleteBoxBypostAndsource(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String postId=request.getParameter("postId");
+			String sourceId=request.getParameter("sourceId");
+			Box box=boxService.findByBoxPostIdAndSourceId(postId, sourceId);
+			boxService.deleteByBoxId(box.getId());
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 删除位置
+	 * @param request
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	@RequestMapping("/deleteBoxPost")
+	public @ResponseBody ResponseContainer deleteBoxPost(HttpServletRequest request) throws XueWenServiceException {
+		try {
+			String id=request.getParameter("id");
+			boxService.deleteById(id);
+			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 根据位置Id查询不在此位置的干货列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("drycargoListNotInBoxPost")
+	public @ResponseBody ResponseContainer drycargoListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			Page<Drycargo> dryCargoResult;
+			String dryFlag = request.getParameter("dryFlag");//0干货1炫页
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			if(StringUtil.isBlank(dryFlag)){
+				dryFlag = "0";
+			}
+			dryCargoResult = drycargoService.findByBoxPostId(Integer.parseInt(dryFlag),boxPostId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), dryCargoResult);
+			this.getReponseData().setResult((drycargoService.toResponeses(dryCargoResult.getContent(),"")));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 根据位置Id查询不在此位置的干货列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchDrycargoNotInBoxPost")
+	public @ResponseBody ResponseContainer searchDrycargoNotInBoxPost(HttpServletRequest request) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			 
+			List<Drycargo> dryCargoResult;
+			String dryFlag = request.getParameter("dryFlag");//0干货1炫页
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			String keyword = request.getParameter("keyword");//0干货1炫页
+			if(StringUtil.isBlank(dryFlag)){
+				dryFlag = "0";
+			}
+			dryCargoResult = drycargoService.findByNotInBoxPostId(Integer.parseInt(dryFlag),boxPostId,keyword);
+			 
+			this.getReponseData().setResult(dryCargoResult);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200,getReponseData() ,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 根据位置Id，获取此位置下的干活列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("drycargoInBox")
+	public @ResponseBody ResponseContainer drycargoInBox(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<Box> boxs = boxService.findByBoxPostId(boxPostId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), boxs);
+			this.getReponseData().setResult((drycargoService.formateDrycatgoList((boxs.getContent()))));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * 根据位置Id查询不在此位置的话题列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("topicListNotInBoxPost")
+	public @ResponseBody ResponseContainer topicListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<Topic> topics = topicService.findByBoxPostIdNotInBox(boxPostId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), topics);
+			this.getReponseData().setResult(topicService.toResponses(topics.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 根据位置Id查询不在此位置的话题列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchtopicListNotInBoxPost")
+	public @ResponseBody ResponseContainer searchtopicListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			String keyword = request.getParameter("keyword");
+			List<Topic> topics = topicService.findByBoxPostIdNotInBoxForSearch(boxPostId,keyword);
+			this.getReponseData().setResult(topics);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 根据位置Id，获取此位置下的话题列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("topicInBox")
+	public @ResponseBody ResponseContainer topicInBox(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<Box> boxs = boxService.findByBoxPostId(boxPostId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), boxs);
+			this.getReponseData().setResult(topicService.toBoxResponses(boxs.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 根据位置Id，获取此位置下的群组列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("groupInBox")
+	public @ResponseBody ResponseContainer groupInBox(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<Box> boxs = boxService.findByBoxPostId(boxPostId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), boxs);
+			this.getReponseData().setResult(groupService.toBoxResponses(boxs.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	/**
+	 * 根据位置Id查询不在此位置的话题列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("groupListNotInBoxPost")
+	public @ResponseBody ResponseContainer groupListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<XueWenGroup>  topics = groupService.findByBoxPostIdNotInBox(boxPostId,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), topics);
+			this.getReponseData().setResult(topics.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 根据位置Id查询不在此位置的群组列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchgroupListNotInBoxPost")
+	public @ResponseBody ResponseContainer searchgroupListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			String keyword = request.getParameter("keyword");
+			//List<Topic> topics = topicService.findByBoxPostIdNotInBoxForSearch(boxPostId,keyword);
+			List<XueWenGroup> XueWenGroup = groupService.findByBoxPostIdNotInBoxForSearch(boxPostId,keyword);
+			this.getReponseData().setResult(XueWenGroup);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 根据位置Id，获取此位置下的课程列表
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("courseInBox")
+	public @ResponseBody ResponseContainer courseInBox(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			Page<Box> boxs = boxService.findByBoxPostId(boxPostId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), boxs);
+			this.getReponseData().setResult(newcourseservice.toBoxResponses(boxs.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 根据位置Id查询不在此位置的课程列表(已经分享到群组的课程)
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("courseListNotInBoxPost")
+	public @ResponseBody ResponseContainer courseListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			List<Object> l=newgroupcourseservice.findGroupCourseNotInBox(boxPostId);
+			Page<NewCourse>  newcourse = newcourseservice.findByBoxPostIdNotInBox(l,pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), newcourse);
+			this.getReponseData().setResult(newcourse.getContent());
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	/**
+	 * 根据位置Id查询不在此位置的课程列表
+	 * 
+	 * @param request
+	 * @param dm
+	 * @return
+	 */
+	@RequestMapping("searchcourseListNotInBoxPost")
+	public @ResponseBody ResponseContainer searchcourseListNotInBoxPost(HttpServletRequest request,QueryModelMul dm) {
+		
+		try {
+			// 根据请求参数封装一个分页信息对象
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			
+			String boxPostId = request.getParameter("boxPostId");//0干货1炫页
+			String keyword = request.getParameter("keyword");
+			//List<Topic> topics = topicService.findByBoxPostIdNotInBoxForSearch(boxPostId,keyword);
+			List<NewCourse> NewCourse = newcourseservice.findByBoxPostIdNotInBoxForSearch(boxPostId,keyword);
+			this.getReponseData().setResult(NewCourse);
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	
+	 
+}

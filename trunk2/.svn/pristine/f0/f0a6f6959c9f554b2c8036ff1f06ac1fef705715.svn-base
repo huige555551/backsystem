@@ -1,0 +1,15 @@
+package operation.repo.course;
+
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import com.tencent.pojo.course.NewCourse;
+import com.tencent.pojo.course.UserBuyCourse;
+
+public interface UserBuyCourseRepository extends  MongoRepository<UserBuyCourse,String> {
+	
+	Page<UserBuyCourse> findAllByUserId(String userId,Pageable pageable);
+
+}

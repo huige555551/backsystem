@@ -1,0 +1,34 @@
+package operation.service.index;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.index.IndexBean;
+import operation.repo.index.IndexRespository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+@Service
+@Component
+@Configuration
+public class IndexService {
+
+	@Autowired
+	public IndexRespository indexRespository;
+	
+	/**
+	 * 查询首页
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<IndexBean> findIndex() throws XueWenServiceException {
+		return indexRespository.findAll();
+	}
+
+	
+
+}

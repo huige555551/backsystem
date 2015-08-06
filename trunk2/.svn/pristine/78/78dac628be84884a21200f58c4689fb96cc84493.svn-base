@@ -1,0 +1,284 @@
+package operation.pojo.subject;
+
+import java.util.List;
+
+import org.springframework.data.annotation.Id;
+
+public class Subject {
+	@Id
+	private String id;
+
+	private String groupId;
+
+	private String title;
+	private String description;
+
+	private Object author;
+
+	private long ctime;
+
+	private long utime;
+
+	private List<Object> wholiked;
+	private int likeCount;
+	private List<Object> whounliked;
+	private int unLikeCount;
+
+	private List<Object> whoShared;
+	private int shareCount;
+	private List<Object> whoTalked;
+	private int talkCount;
+
+	private List<SubjectChatMessage> chatMessage;
+	
+	private String attitude="0";// 0:无态度，1：赞，2：不赞
+	
+	
+	private int isAttention;  //是否被关注
+	
+	private List<Object> whoAttention;  //谁关注了
+	private int attentionCount;  //关注的数量
+	
+	private double [] position;
+	
+	 /**
+	   * 纬度
+	   */
+	private double lat;
+	  
+	  /**
+	   * 经度
+	   */
+	private double lng;
+	
+	/**
+	 * 增加话题讨论列表
+	 */
+	private List<Object> whojoind;
+	private int  joinCount;
+	private int temperature;
+	
+	public int getTemperature() {
+		return temperature;
+	}
+
+	public void setTemperature(int temperature) {
+		this.temperature = temperature;
+	}
+
+	public int getJoinCount() {
+		return joinCount;
+	}
+
+	public void setJoinCount(int joinCount) {
+		this.joinCount = joinCount;
+	}
+
+	private String groupName;
+	
+	
+	
+
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public List<Object> getWhojoind() {
+		return whojoind;
+	}
+
+	public void setWhojoind(List<Object> whojoind) {
+		this.whojoind = whojoind;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public Object getAuthor() {
+		return author;
+	}
+
+	public void setAuthor(Object author) {
+		this.author = author;
+	}
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public List<Object> getWholiked() {
+		return wholiked;
+	}
+
+	public void setWholiked(List<Object> wholiked) {
+		this.wholiked = wholiked;
+	}
+
+	public int getLikeCount() {
+		return likeCount;
+	}
+
+	public void setLikeCount(int likeCount) {
+		this.likeCount = likeCount;
+	}
+
+	public List<Object> getWhounliked() {
+		return whounliked;
+	}
+
+	public void setWhounliked(List<Object> whounliked) {
+		this.whounliked = whounliked;
+	}
+
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+
+	public List<Object> getWhoShared() {
+		return whoShared;
+	}
+
+	public void setWhoShared(List<Object> whoShared) {
+		this.whoShared = whoShared;
+	}
+
+	public int getShareCount() {
+		return shareCount;
+	}
+
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+
+	public List<Object> getWhoTalked() {
+		return whoTalked;
+	}
+
+	public void setWhoTalked(List<Object> whoTalked) {
+		this.whoTalked = whoTalked;
+	}
+
+	public int getTalkCount() {
+		return talkCount;
+	}
+
+	public void setTalkCount(int talkCount) {
+		this.talkCount = talkCount;
+	}
+
+	public List<SubjectChatMessage> getChatMessage() {
+		return chatMessage;
+	}
+
+	public void setChatMessage(List<SubjectChatMessage> chatMessage) {
+		this.chatMessage = chatMessage;
+	}
+
+	public int getIsAttention() {
+		return isAttention;
+	}
+
+	public void setIsAttention(int isAttention) {
+		this.isAttention = isAttention;
+	}
+
+	public List<Object> getWhoAttention() {
+		return whoAttention;
+	}
+
+	public void setWhoAttention(List<Object> whoAttention) {
+		this.whoAttention = whoAttention;
+	}
+
+	public int getAttentionCount() {
+		return attentionCount;
+	}
+
+	public void setAttentionCount(int attentionCount) {
+		this.attentionCount = attentionCount;
+	}
+
+	public String getAttitude() {
+		return attitude;
+	}
+
+	public void setAttitude(String attitude) {
+		this.attitude = attitude;
+	}
+
+	public double[] getPosition() {
+		return position;
+	}
+
+	public void setPosition(double[] position) {
+		this.position = position;
+	}
+
+	public double getLat() {
+		return lat;
+	}
+
+	public void setLat(double lat) {
+		this.lat = lat;
+	}
+
+	public double getLng() {
+		return lng;
+	}
+
+	public void setLng(double lng) {
+		this.lng = lng;
+	}
+	
+	
+
+}

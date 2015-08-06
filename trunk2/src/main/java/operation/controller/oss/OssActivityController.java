@@ -1,0 +1,89 @@
+package operation.controller.oss;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.activity.Activity;
+import operation.pojo.ad.AdSeller;
+import operation.pojo.ad.AdVo;
+import operation.pojo.pub.QueryModel;
+import operation.service.activity.ActivityService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+@RestController
+@RequestMapping("/oss/activity")
+public class OssActivityController extends BaseController {
+	@Autowired
+	private ActivityService activityService;
+	/**
+	 * 
+	 * @Title: activityPage
+	 * @Description: 活动分页
+	 * @param ctime
+	 * @param etime
+	 * @param qdId
+	 * @param qdName
+	 * @param request
+	 * @param dm
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping("/activityPage")
+	public @ResponseBody ResponseContainer activityPage(HttpServletRequest request, QueryModel dm,Long qctime,Long qetime,String city,String keywords) {
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		Page<Activity> activitys = activityService.searchActivity(qctime,qetime,city,pageable,keywords);
+		ReponseDataTools.getClientReponseData(getReponseData(), activitys);
+		return addPageResponse(Config.STATUS_200, Config.MSG_200,
+				getReponseData(), Config.RESP_MODE_10, "");
+	}
+	/**
+	 * 
+	 * @Title: create
+	 * @Description:创建渠道商
+	 * @param request
+	 * @param adSeller
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value="/create",method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer create(HttpServletRequest request,Activity activity){
+		String desImgsStr=request.getParameter("desImgsStr");
+		String optionsStr=request.getParameter("options");
+		activityService.add(activity,desImgsStr,optionsStr);
+		return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+
+	}
+	
+	/**
+	 * 
+	 * @Title: create
+	 * @Description:创建渠道商
+	 * @param request
+	 * @param adSeller
+	 * @return ResponseContainer
+	 * @throws
+	 */
+	@RequestMapping(value="/detail")
+	public @ResponseBody ResponseContainer detail(HttpServletRequest request,String id){
+		
+		try {
+			return addResponse(Config.STATUS_200, Config.MSG_200, activityService.findOne(id),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false, Config.RESP_MODE_10, "");
+		}
+
+	}
+
+}

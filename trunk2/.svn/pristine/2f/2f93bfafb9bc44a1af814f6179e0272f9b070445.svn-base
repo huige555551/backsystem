@@ -1,0 +1,102 @@
+package operation.repo.drycargo;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.drycargo.Drycargo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/** 
+* @ClassName: DrycargoTemplate
+* @Description: 干货分享查某个用户分享数量
+* @author yangquanliang
+* @date 2014年12月10日 下午2:53:56
+* 
+*/ 
+@Service
+@Component
+public class DrycargoTemplate {
+	
+	@Autowired
+	public MongoTemplate mongoTemplate;
+	
+	/** 
+	* @author yangquanliang
+	* @Description: 通过shareids查找用户分享了干货数量
+	* @param @param listkey
+	* @param @return
+	* @param @throws XueWenServiceException
+	* @return long
+	* @throws 
+	*/ 
+	public long getCountsByShareidsIn(List<String> listkey) {
+
+		Criteria criteria2 = Criteria.where("Shareids").in(listkey);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		
+		return mongoTemplate.count(query, Drycargo.class);
+
+	}
+	/**
+	 * 
+	 * @Title: getCountsByGroupId
+	 * @Description: 通过群组id获取干活的数量
+	 * @param groupId
+	 * @return long
+	 * @throws
+	 */
+	public long getCountsByGroupId(String groupId){
+		Criteria criteria2 = Criteria.where("group").is(groupId);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		return mongoTemplate.count(query, Drycargo.class);
+	}
+	/**
+	 * 根据群组ID删除该群组下的课程
+	 * @author hjn
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByGroupId(String groupId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("group").in(groupId));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+	
+	public long getCountsByDryFlagAndShareidsIn(List<String> listkey,int dryFlag) {
+
+		Criteria criteria2 = Criteria.where("Shareids").in(listkey).and("dryFlag").is(dryFlag);
+		Query query = new Query();
+		query.addCriteria(criteria2);
+		
+		return mongoTemplate.count(query, Drycargo.class);
+
+	}
+	
+	/**
+	 * 根据干货ID删除该群组下的干货
+	 * @author hjn
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByDrycargoId(String drycargoId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").is(drycargoId));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+	/**
+	 * 根据干货IDs删除该群组下的干货
+	 * @author shenb
+	 * @param groupCourseIds
+	 * @throws XueWenServiceException
+	 */
+	public void deleteByDrycargoIds(List<Object> drycargoIds)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("id").in(drycargoIds));
+		mongoTemplate.remove(query, Drycargo.class);
+	}
+}

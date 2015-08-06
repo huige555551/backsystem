@@ -1,0 +1,18 @@
+package operation.repo.activity;
+
+import operation.pojo.activity.Activity;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface ActivityRepo extends MongoRepository<Activity, String>{
+
+	Page<Activity> findByCity(String city, Pageable pageable);
+
+	Page<Activity> findByActivityStartTimeBetweenAndCity(Long ctime, Long etime,
+			String city, Pageable pageable);
+
+	Page<Activity> findByActivityStartTimeBetween(Long ctime, Long etime, Pageable pageable);
+ 
+}

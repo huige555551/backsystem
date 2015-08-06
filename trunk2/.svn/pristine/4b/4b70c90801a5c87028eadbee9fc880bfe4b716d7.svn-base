@@ -1,0 +1,163 @@
+package operation.service.user;
+
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.log.UserLoginLog;
+import operation.pojo.user.ResponsePcUser;
+import operation.pojo.user.User;
+import operation.repo.user.UserRepository;
+import operation.service.group.GroupService;
+import operation.service.log.UserLoginLogService;
+import operation.service.tags.TagService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.MD5Util;
+@Service
+@Component
+@EnableScheduling
+/**
+ * 
+* @ClassName: UserPcService
+* @Description: pc端的数据瘦身
+* @author shenb
+* @date 2014年12月17日 下午2:26:52
+*
+ */
+public class UserPcService {
+	private static final Logger logger=Logger.getLogger(UserPcService.class);
+	@Autowired
+	public UserRepository userRepo;
+	
+	@Autowired
+	public UserLoginLogService userLoginLogService;
+	
+	@Autowired
+	private TagService tagService;
+	
+	@Autowired
+	public UserNumService userNumService;
+	
+	@Autowired
+	private GroupService groupService;
+	
+
+	/**
+	 * 用户登录pc
+	 * 
+	 * @param user
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public ResponsePcUser loginPc(User user) throws XueWenServiceException {
+		// 通过用户名查询该用户
+		logger.info("======================查询用户");
+		User one = userRepo.findOneByUserNameAndPassWord(user.getUserName(),
+				user.getPassWord());
+		if (one != null) {
+			logger.info("==================用户查询成功=========");
+			Config.map.remove(one.getToken());
+			long time = System.currentTimeMillis();
+			one.setLogintime(time);
+			one.setExpireTime(time + 86400000 * 365);
+			one.setToken(MD5Util.MD5(one.getUdid() + one.getId()
+					+ String.valueOf(one.getLogintime())));
+			if (user.getUdid()==null) {
+					
+			} else {
+				one.setUdid(user.getUdid());
+			}
+			logger.info("==================更新用户信息========="+one.getToken()+"===="+one.getUdid());
+			one=userRepo.save(one);
+			logger.info("==================更新用户信息成功,放入数据后=========token："+one.getToken()+"-===udid:"+one.getUdid());
+			Config.map.put(one.getToken(), one);
+			logger.info("==================登陆成功后，将登陆用户写入登陆日志表");
+			UserLoginLog ull = new UserLoginLog();
+			ull.setLoginTime(time);
+			ull.setUserId(one.getId());
+			userLoginLogService.saveUserLoginLog(ull);
+			
+		} else {
+			throw new XueWenServiceException(Config.STATUS_404, Config.MSG_404,
+					null);
+		}
+		return new ResponsePcUser(one.getId(), one.getUserName(), one.getToken(), one.getUdid(), one.getNickName(), one.getLogoURL(), one.getTag(), one.getEmail(), one.getPhoneNumber(), one.getIntro());
+
+	}
+	/**
+	 * 
+	 * @Title: registPc
+	 * @Description: 注册
+	 * @param user
+	 * @return
+	 * @throws XueWenServiceException User
+	 * @throws
+	 */
+	public User registPc(User user) throws XueWenServiceException {
+		List<User> userList = userRepo.findByUserName(user.getUserName()
+				.toString());
+		if (userList.size() <= 0) {
+			long time=System.currentTimeMillis();
+			user.setCtime(time);// 获取系统时间戳
+			user.setUtime(time);
+			user.setNickName("云学堂童鞋");
+			user=userRepo.save(user);
+			//如果为邀请客户，需要将该用户加入到邀请群中，并修改邀请对象 操作为已操作
+			return user;
+		} else {
+			throw new XueWenServiceException(Config.STATUS_400, Config.MSG_400,
+					null);
+		}
+	}
+	/**
+	 * 根据用户ID查询用户信息pc
+	 * 
+	 * @return
+	 */
+	public ResponsePcUser findUserPc(String id) throws XueWenServiceException {
+		User userResult = userRepo.findOneById(id);
+		if (null != userResult) {
+			return new ResponsePcUser(userResult.getId(), userResult.getUserName(), userResult.getToken(), userResult.getUdid(), userResult.getNickName(), userResult.getLogoURL(), userResult.getTag(), userResult.getEmail(), userResult.getPhoneNumber(), userResult.getIntro());
+		} else {
+			throw new XueWenServiceException(Config.STATUS_404, Config.MSG_404,
+					null);
+		}
+	}
+	/**
+	 * 
+	 * @Title: registByGroupId
+	 * @Description: 与群组关联注册
+	 * @param user
+	 * @param groupId
+	 * @return
+	 * @throws XueWenServiceException User
+	 * @throws
+	 */
+	public User registByGroupId(User user,String groupId) throws XueWenServiceException {
+		List<User> userList = userRepo.findByUserName(user.getUserName()
+				.toString());
+		XueWenGroup group=groupService.findGroup(groupId);
+		if (userList.size() <= 0) {
+			long time=System.currentTimeMillis();
+			user.setCtime(time);// 获取系统时间戳
+			user.setUtime(time);
+			user.setNickName("云学堂童鞋");
+			user.setPhoneNumber(user.getUserName());
+			user=userRepo.save(user);
+			//将注册后的用户添加到群组
+			groupService.join(group, user.getId());
+			logger.info("==================加入群组成功=========");
+			return user;
+		} else {
+			throw new XueWenServiceException(Config.STATUS_400, Config.MSG_400,
+					null);
+		}
+	}
+}

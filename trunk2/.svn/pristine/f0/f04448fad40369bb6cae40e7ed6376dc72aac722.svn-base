@@ -1,0 +1,56 @@
+package operation.repo.user;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.user.ContactAdress;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+/**
+ * contactAdress实体 mongo template操作方法
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class ContactAdressTemplate {
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
+	
+	public ContactAdressTemplate(){
+		super();
+	}
+	
+	/**
+	 * 根据用户ID和好友手机号判断此条记录是否存在
+	 * @author hjn
+	 * @param userId
+	 * @param phoneNum
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByUserIdAndFriendPhoneNum(String userId,String phoneNum)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("userId").is(userId).and("phoneNumber").is(phoneNum));
+		return mongoTemplate.exists(query, ContactAdress.class);
+	}
+	
+	/**
+	 * 用户注册以后修改通讯录中的用户注册状态
+	 * @param phoneNum
+	 * @param userId
+	 * @throws XueWenServiceException
+	 */
+	public void updateByPhoneName(String phoneNum,String userId)throws XueWenServiceException{
+		Query query=new Query(Criteria.where("phoneNumber").is(phoneNum));
+		Update update=new Update();
+		update.set("friendUserId", userId);
+		update.set("type",1);
+		mongoTemplate.findAndModify(query,update,ContactAdress.class);
+	}
+}

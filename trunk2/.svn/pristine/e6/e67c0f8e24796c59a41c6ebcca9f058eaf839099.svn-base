@@ -1,0 +1,63 @@
+package operation;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.data.authentication.UserCredentials;
+import org.springframework.data.mongodb.MongoDbFactory;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.ServerAddress;
+
+@Configuration
+public class MongoConfiguration {
+	private static final Logger logger=Logger.getLogger(MongoConfiguration.class);
+	
+	@Value("${mongo.primary.host}")
+	private String mongoPrimaryHost;
+	@Value("${mongo.primary.port}")
+	private String mongoPrimaryPort;
+	@Value("${mongo.secend.host}")
+	private String mongoSecendHost;
+	@Value("${mongo.secend.port}")
+	private String mongoSecendPort;
+	@Value("${mongo.heart.host}")
+	private String mongoHeartHost;
+	@Value("${mongo.heart.port}")
+	private String mongoHeartPort;
+	@Value("${mongo.database.online}")
+	private String mongoDataBase;
+
+	@Inject Environment env;
+	@SuppressWarnings("deprecation")
+	public @Bean MongoDbFactory mongoDbFactory() throws Exception {
+//		logger.info("数据库服务地址："+env.getProperty("mongo.service")+"========数据库名"+ env.getProperty("mongo.database"));
+		//UserCredentials uc = new UserCredentials("yxt","yunxuetang");
+	//	return new SimpleMongoDbFactory(new Mongo("s1.of.yunxuetang.com"), "test");
+		MongoClientOptions neMo = new MongoClientOptions.Builder().connectionsPerHost(300).build();
+		ServerAddress address1 = new ServerAddress(mongoPrimaryHost, Integer.valueOf(mongoPrimaryPort));
+		ServerAddress address2 = new ServerAddress(mongoSecendHost, Integer.valueOf(mongoSecendPort));
+		ServerAddress address3 = new ServerAddress(mongoHeartHost, Integer.valueOf(mongoHeartPort));
+	//	ServerAddress address2 = new ServerAddress("192.168.3.111", 28014);
+		List<ServerAddress> addresses = new ArrayList<ServerAddress>();
+		addresses.add(address1);
+		addresses.add(address2);
+		addresses.add(address3);
+		MongoClient mongoClient5 = new MongoClient(addresses,neMo);
+		return new SimpleMongoDbFactory(mongoClient5, mongoDataBase);
+	}
+	public @Bean MongoTemplate mongoTemplate() throws Exception {
+	    return new MongoTemplate(mongoDbFactory());
+	}
+
+}

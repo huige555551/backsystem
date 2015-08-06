@@ -1,0 +1,167 @@
+package operation.service.redis;
+
+import java.util.concurrent.TimeUnit;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.user.User;
+
+import org.apache.log4j.Logger;
+import org.jsoup.helper.StringUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.JSON2ObjUtil;
+/**
+ * redis 缓存在线用户
+ * @author hjn
+ *
+ */
+@Service
+@Component
+public class OnlineUserRedisService {
+	
+	private static final Logger logger=Logger.getLogger(OnlineUserRedisService.class);
+	
+	private static final String KEY_TOKEN="online:userid:";
+	
+	private static final String KEY_USER="online:user:";
+
+	@Autowired
+	StringRedisTemplate stringRedisTemplate;
+	
+	public OnlineUserRedisService(){
+		super();
+	}
+	/**
+	 * 将在线用户缓存到redis和map
+	 * @param token
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addOnlineUser(String token ,User user)throws XueWenServiceException{
+		if(StringUtil.isBlank(token)  || user == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("token:"+token+"user："+user);
+		String keyOnlineUserId = KEY_TOKEN+token;
+		String keyOnlineUser = KEY_USER+user.getId();
+		String jsonUser=JSON2ObjUtil.getObjectToJsonString(user);
+		if(StringUtil.isBlank(jsonUser)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_NODATA_201,null);
+		}
+		
+		//存储token和userid
+		stringRedisTemplate.opsForValue().set(keyOnlineUserId,user.getId());
+		if(token.startsWith("PC")){
+			stringRedisTemplate.expire(keyOnlineUserId, 60, TimeUnit.SECONDS);
+		}
+		//存储userId和user obje
+		if(!isUserInRedis(user.getId())){
+			stringRedisTemplate.opsForValue().set(keyOnlineUser,jsonUser);
+		}
+		
+	}
+	/**
+	 * 根据token判断在线用户是否存在，存在true,不存在false
+	 * @param token
+	 * @param user
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean onlineUserExise(String token)throws XueWenServiceException{
+		if(StringUtil.isBlank(token)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("token:"+token);
+		String keyOnlineUserId = KEY_TOKEN+token;
+		return stringRedisTemplate.hasKey(keyOnlineUserId);
+		
+	}
+	/**
+	 * 根据token去掉redis缓存的在线用户
+	 * @param token
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public void removeOnlineUser(String token)throws XueWenServiceException{
+		if(StringUtil.isBlank(token)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("token:"+token);
+		//去掉redis缓存
+		String keyOnlineUser = KEY_TOKEN+token;
+		if(onlineUserExise(token)){
+			stringRedisTemplate.delete(keyOnlineUser);
+		}
+	}
+	/**
+	 * 根据token获取在线用户信息
+	 * @param token
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public User getOnlineUser(String token)throws XueWenServiceException{
+		if(StringUtil.isBlank(token)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("token:"+token);
+		String keyOnlineUserId = KEY_TOKEN+token;
+		//根据token获取userId
+		String userId=stringRedisTemplate.opsForValue().get(keyOnlineUserId);
+		if(StringUtil.isBlank(userId)){
+			throw new XueWenServiceException(Config.STATUS_203, Config.MSG_203,null);
+		}
+		logger.info("userId:"+userId);
+		//根据userId获取在线用户信息
+		String keyOnlineUser=KEY_USER+userId;
+		String userJson=stringRedisTemplate.opsForValue().get(keyOnlineUser);
+		if(StringUtil.isBlank(userId)){
+			removeOnlineUser(KEY_TOKEN+token);
+			throw new XueWenServiceException(Config.STATUS_203, Config.MSG_203,null);
+		}
+		User user=(User)JSON2ObjUtil.getDTO(userJson, User.class);
+		if(user == null || !(user instanceof User)){
+			removeOnlineUser(KEY_TOKEN+token);
+			throw new XueWenServiceException(Config.STATUS_203, Config.MSG_203,null);
+		}
+		return user;
+	}
+	/**
+	 * 判断用户是否已经存在于redis
+	 * @param userId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserInRedis(String userId)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("userId:"+userId);
+		String keyOnlineUser =KEY_USER +userId;
+		return stringRedisTemplate.hasKey(keyOnlineUser);
+	}
+	
+	/**
+	 * 修改在线用户信息
+	 * @param token
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addOrUpdateOnlineUser(String userId ,User user)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId)  || user == null){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		logger.info("token:"+userId+"user："+user);
+		String keyOnlineUser =KEY_USER+userId;
+		String jsonUser=JSON2ObjUtil.getObjectToJsonString(user);
+		if(StringUtil.isBlank(jsonUser)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_NODATA_201,null);
+		}
+		stringRedisTemplate.opsForValue().set(keyOnlineUser,jsonUser);
+	}
+	
+	
+}

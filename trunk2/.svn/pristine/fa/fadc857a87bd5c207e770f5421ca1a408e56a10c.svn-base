@@ -1,0 +1,637 @@
+package operation.service.group;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.cloudfile.AttachFile;
+import operation.pojo.group.OpenFireGroup;
+import operation.pojo.group.XueWenGroup;
+import operation.pojo.pub.QueryModel;
+import operation.pojo.tags.TagBean;
+import operation.pojo.user.OpenFireUser;
+import operation.pojo.user.User;
+import operation.repo.group.GroupMongoTemplate;
+import operation.repo.group.GroupRepository;
+import operation.service.cloudfile.AttachFileService;
+import operation.service.course.GroupCourseService;
+import operation.service.course.GroupShareKnowledgeService;
+import operation.service.course.NewCourseService;
+import operation.service.course.NewGroupCourseService;
+import operation.service.drycargo.DrycargoService;
+import operation.service.openfire.OpenFireGroupService;
+import operation.service.tags.TagService;
+import operation.service.topics.TopicService;
+import operation.service.util.ObjCopyPropsService;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.JSON2ObjUtil;
+import tools.PageRequestTools;
+import tools.StringUtil;
+import tools.YXTJSONHelper;
+
+/**
+ * 
+* @ClassName: GroupPcService
+* @Description:群组service层
+* @author shenb
+* @date 2014年12月18日 下午12:41:35
+*
+ */
+@Service
+@Configuration
+public class GroupPcService {
+	
+	private static final Logger logger=Logger.getLogger(GroupService.class);
+	
+	@Autowired
+	private GroupRepository groupRepo;
+	@Autowired
+	private DrycargoService drycargoService;
+	@Autowired
+	private TopicService topicService;
+	@Autowired
+	private GroupCourseService groupCourseService;
+	
+	@Autowired
+	private NewGroupCourseService newGroupCourseService;
+	@Autowired
+	private TagService tagService;
+	@Autowired
+	private MyGroupService myGroupService;
+	@Autowired
+	private OpenFireGroupService openFireGroupService;
+	@Autowired
+	private GroupNumService groupNumService;
+	@Autowired
+	private GroupMongoTemplate groupMongoTemplate;
+	@Autowired
+	private GroupService groupService;
+	@Autowired
+	private AttachFileService attachFileService;
+	
+	
+	//group service中用到的系统参数
+	@Value("${openfire.group.service}")
+	private String openfireGroupService;
+	@Value("${openfire.service}")
+	private String openfireService;
+	
+	@Value("${tag.service.url}")
+	private String tagServiceUrl;
+	
+	@Autowired
+	private ObjCopyPropsService objCopyPropsService;
+	
+	@Autowired
+	private GroupShareKnowledgeService gskService;
+	
+	@Autowired
+	private NewCourseService newCourseService;
+	
+	/**
+	 * 根据群组ID 获得群组信息
+	 * 
+	 * @return
+	 */
+	public JSONObject findGroup(String id,String userId)
+			throws XueWenServiceException {
+		
+		XueWenGroup one = groupRepo.findOneById(id);
+		if (null == one) {
+			throw new XueWenServiceException(Config.STATUS_200, Config.MSG_201,
+					null);
+		} else {
+			XueWenGroup x=groupRepo.findOneByIdAndAdminIn(id, userId);
+			XueWenGroup ox=groupRepo.findOneByIdAndOwnerIn(id, userId);
+			Map<String, Object> map=new HashMap<String, Object>();
+			if(x==null){
+				map.put("isAdmin", false);
+			}else{
+				map.put("isAdmin", true);
+			}
+			if(ox==null){
+				map.put("isOwner", false);
+			}else{
+				map.put("isOwner", true);
+			}
+			String[] includeKey = {"id","groupName","intro","logoUrl","memberCount","tagNames","groupNumber"};
+			return YXTJSONHelper.getInObjectAttrJsonObject(one, map, includeKey);
+		}
+
+	}
+	
+	/**
+	 * 根据群组ID 获得群组信息
+	 * 
+	 * @return
+	 */
+	public JSONObject findGroupNoToken(String id)
+			throws XueWenServiceException {
+		
+		XueWenGroup one = groupRepo.findOneById(id);
+		if (null == one) {
+			throw new XueWenServiceException(Config.STATUS_200, Config.MSG_201,
+					null);
+		} else {
+			Map<String, Object> map=new HashMap<String, Object>();
+			map.put("isAdmin", false);
+			map.put("isOwner", false);
+			String[] includeKey = {"id","groupName","intro","logoUrl","memberCount","tagNames","groupNumber"};
+			return YXTJSONHelper.getInObjectAttrJsonObject(one, map, includeKey);
+		}
+
+	}
+	
+//	public void chage(){
+//		List<XueWenGroup> list=groupRepository.findAll();
+//		for (XueWenGroup group : list) {
+//			SearchGroupVo vo=new SearchGroupVo();
+//			vo.setGroupId(group.getId());
+//			vo.setGroupName(group.getGroupName());
+//			vo.setGroupIntro(group.getIntro());
+//			vo.setGroupLogoUrl(group.getLogoUrl());
+//			vo.setGroupMemberNumber(group.getMember().size());
+//			vo.setTopicNumber(Integer.parseInt(String.valueOf(topicService.getCountsByGroupId(group.getId()))));
+//			vo.setNewCourseNumber(groupCourseService.getCourseCountByGroup(vo.getId()));
+//			vo.setDryCargoNumber(Integer.parseInt(String.valueOf(drycargoService.getCountsByGroupId(vo.getId()))));
+//			vo.setKngNumber(gskService.countByGroupId(group.getId()));
+//			searchGroupService.save(vo);
+//		}
+//	}
+	
+	/**
+	 * 
+	 * @Title: getGroupRecTagPc
+	 * @Description: 获取推荐的标签
+	 * @param groupName
+	 * @param intro
+	 * @param n   推荐一共最多n个
+	 * @param num  其中num个是根据群名字和简介获取
+	 * @return
+	 * @throws XueWenServiceException List<String>
+	 * @throws
+	 */
+	public List<String> getGroupRecTagPc(String groupName, String intro ,int n ,int num) throws XueWenServiceException {
+		List<String> tagNames = getGroupRecTagByName(groupName, intro, num);
+		String tagName = tagService.getTagsByType(Config.YXTDOMAIN, Config.TAG_TYPE_GROUP, n+tagNames.size());
+		if (StringUtils.isNotBlank(tagName)) {
+			String[] tagNamesAdd = tagName.split(",");
+			for (int i = 0; i < tagNamesAdd.length && tagNames.size()<=n; i++) {
+				String tag = tagNamesAdd[i];
+				if (!tagNames.contains(tag)) {
+					tagNames.add(tag);
+				}
+			}
+		}
+		return tagNames;
+	}
+	
+	/**
+	 * 
+	 * @Title: getGroupRecTagPc
+	 * @Description: 获取推荐的标签根据群名字和简介
+	 * @param groupName
+	 * @param intro
+	 * @param num 规定查出num个
+	 * @return
+	 * @throws XueWenServiceException List<String>
+	 * @throws
+	 */
+	private List<String> getGroupRecTagByName(String groupName, String intro, int num) throws XueWenServiceException {
+		if (StringUtils.isBlank(groupName)) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201, null);
+		}
+		List<String> groupNameWords = tagService.getWordsList(groupName);
+		//分词获取群标签 热度排行前3个
+		List<TagBean> tagBeans = tagService.getTagsByAnalysis(groupNameWords, num, Config.TAG_TYPE_GROUP);
+		List<String> list = new ArrayList<String>();
+		if (tagBeans != null) {
+			for (TagBean tagBean : tagBeans) {
+				list.add(tagBean.getTagName());
+			}
+		} 
+		//如果没到三个，就在摘要中找标签
+		int size = list.size();
+		List<String> introWords = null;
+		if (list.size() < num && !StringUtils.isBlank(intro)) {
+			introWords = tagService.getWordsList(intro);
+			tagBeans = tagService.getTagsByAnalysis(introWords, num - size, Config.TAG_TYPE_GROUP);
+			if (tagBeans != null) {
+				for (TagBean tagBean : tagBeans) {
+					list.add(tagBean.getTagName());
+				}
+			}
+		}
+		//如果组名，摘要中找标签没到三个，使用组名分词的信息填充
+		if (list.size() < num) {
+			for (String groupNameWord : groupNameWords) {
+				if (!list.contains(groupNameWord) && groupNameWord.length()>=2) {
+					list.add(groupNameWord);
+					if (list.size() >= num) {
+						break;
+					}
+				}
+			}
+		}
+		//如果还没到三个，使用摘要分词的信息填充
+		if (list.size() < num && introWords != null) {
+			for (String introWord : introWords) {
+				if (!list.contains(introWord) && introWord.length()>=2) {
+					list.add(introWord);
+					if (list.size() >= num) {
+						break;
+					}
+				}
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * 创建群组Pc
+	 * @author 
+	 * @param group
+	 * @return
+	 */
+	public XueWenGroup createGroupPc(XueWenGroup group, User user,String tagName)throws XueWenServiceException {
+		logger.info("====开始创建群组pc=====userId:"+user.getId());
+		if(StringUtil.isBlank(group.getGroupName())){
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_GROUPNAME_201, null);
+		}
+		if (!groupMongoTemplate.isGroupExi(group.getGroupName())) {
+			//群组名称未被使用，进行新群组的创建流程
+			if(null != group.getGroupName()){
+				if(!StringUtil.isEmpty(group.getGroupName().toString())){
+					try {
+						group.setGroupName(URLDecoder.decode(group.getGroupName(), "UTF-8"));
+					} catch (UnsupportedEncodingException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			if(null != group.getIntro()){
+				if(!StringUtil.isEmpty(group.getIntro())){
+					try {
+						group.setIntro(URLDecoder.decode(group.getIntro(),"UTF-8"));
+					} catch (UnsupportedEncodingException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
+			//1.生成群号
+			String groupNum=groupNumService.getGroupNum();
+			//2.先创建openfire群组,以便于进行群组的聊天等
+			OpenFireGroup openFireGroup = new OpenFireGroup();
+			openFireGroup.setGroupService(openfireGroupService);
+			List<String> list=new ArrayList<String>();
+			list.add(openfireService);
+			openFireGroup.setServerList(list);
+			openFireGroup.setGroupName(groupNum);
+			openFireGroup.setGroupDesc(group.getGroupName());
+			OpenFireUser ofu = new OpenFireUser();
+			ofu.setOpenFireUserName(user.getUserName());
+			ofu.setOpenFirePassWord(user.getPassWord());
+			openFireGroup.setGroupCreater(ofu);
+			openFireGroupService.create(openFireGroup);
+			//3.完善群组信息
+			group.setGroupNumber(Long.parseLong(groupNum));
+			group.setGroupMax(Config.GROUP_MAX);
+			//群组背景图片
+			group.setBgUrl(getBgUrl(tagName,"7", 1));
+			//组装群组成员，管理员，创建者等信息
+			List<Object> owner = new ArrayList<Object>();
+			owner.add(user.getId());
+			group.setOwner(owner);
+			group.setAdmin(owner);
+			group.setMember(owner);
+			//组装创建时间和更新时间
+			long loginTime = System.currentTimeMillis();
+			group.setCtime(loginTime);
+			group.setUtime(loginTime);
+			group.setOpenFireGroup(openFireGroup);
+			group.setGeoOpen(false);
+			String isOpen=group.getIsOpen();
+			//群组开关控制
+			if(isOpen==null || isOpen.equals("") || isOpen.equals("0")){
+				group.setIsOpen("0");
+			}else if(isOpen.equals("2")){
+				if(group.getPassWord()==null){
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_GROUPNOPWD_201, null);
+				}
+			}else if(!isOpen.equals("1")){
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_ISOPENERR_201, null);
+			}
+			//生成群组二维码并保存群信息入库
+			group=groupRepo.save(group);
+			group.setQrCodeUrl(groupService.createGroupQRCode(group));
+			group=groupRepo.save(group);
+			//将此群加入我的群组列表
+			myGroupService.addMyGroup(user.getId(), group.getId());
+			
+			if(tagName!=null){
+				tagService.tagForObj(user, tagName, "3", group.getId());
+				//推荐同标签的课程进入小组分享
+				groupCourseToSharesPc(group.getId(), tagName, user);
+			}
+			
+			//2015.1.14 加 groupVo Bean
+			//searchGroupService.create(group,tagName);
+			return group;
+		} else {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_CREATE_201, null);
+		}
+	}
+	
+	/**
+	 * 
+	 * @Title: updateGroupPc
+	 * @Description: shenb更新群组Pc
+	 * @param group
+	 * @param user
+	 * @return
+	 * @throws XueWenServiceException XueWenGroup
+	 * @throws
+	 */
+	public XueWenGroup updateGroupPc(XueWenGroup group, User user)throws XueWenServiceException {
+		String id = group.getId();
+		//判断当前用户是否有权限修改群组
+		groupService.isPermission(user, id);
+		//根据ID查找出数据库中得群组
+		XueWenGroup oldGroup = groupRepo.findOneById(id);
+		if (null == oldGroup) {
+			throw new XueWenServiceException(Config.STATUS_201,Config.MSG_UPDATENOUSER_201, null);
+		} else {
+			// 将修改的参数，复制到原群组对象
+			if(group !=null){
+//				objCopyPropsService.copyPropertiesInclude(group, oldGroup, new String[] { "tagNames", "passWord",
+//						"logoUrl", "intro", "groupName", "industryClass",
+//						"isOpen","bgUrl"});
+				oldGroup.setTagNames(group.getTagNames());
+				oldGroup.setLogoUrl(group.getLogoUrl());
+				oldGroup.setBgUrl(group.getBgUrl());
+				oldGroup.setGroupName(group.getGroupName());
+				oldGroup.setIntro(group.getIntro());
+				
+			}
+			oldGroup.setUtime(System.currentTimeMillis());
+			//判断群组的isopen
+			String isOpen=oldGroup.getIsOpen();
+			if(isOpen==null || isOpen.equals("") || isOpen.equals("0")){
+				oldGroup.setIsOpen("0");
+			}else if(isOpen.equals("2")){
+				if(oldGroup.getPassWord()==null){
+					throw new XueWenServiceException(Config.STATUS_201,Config.MSG_GROUPNOPWD_201, null);
+				}
+			}else if(!isOpen.equals("1")){
+				throw new XueWenServiceException(Config.STATUS_201,Config.MSG_ISOPENERR_201, null);
+			}
+//			if(tagName!=null){
+//				tagName = JSON2ObjUtil.getArrayFromString(tagName);
+//			}
+			if(!StringUtil.isBlank(group.getTagNames())){
+				tagService.updateItemTags(Config.YXTDOMAIN,group.getTagNames(), Config.TAG_TYPE_GROUP, user, oldGroup.getId());
+			}
+			oldGroup = groupRepo.save(oldGroup);
+		}
+		return oldGroup;
+	}
+	
+//	/**
+//	 * @throws XueWenServiceException 
+//	 * 
+//	 * @Title: findAllGroupRecommendPc
+//	 * @Description: 推荐的组Pc
+//	 * @return List<XueWenGroup>
+//	 * @throws
+//	 */
+//	public List<XueWenGroup> findAllGroupRecommendPc(String userId,String tagNames) throws XueWenServiceException{
+//		List<XueWenGroup> myGroups = groupService.findMyJoinedGroup(userId);
+//		List<String> groupIds = tagService.findItemIds(Config.YXTDOMAIN, tagNames, "3", 10+myGroups.size());
+//		for (XueWenGroup group : myGroups) {
+//			groupIds.remove(group.getId());
+//		}
+//		List<Object> list = new ArrayList<Object>();
+//		//返回最多n（n<=10）个结果
+//		int n = groupIds.size();
+//		if (n > 10) {
+//			n = 10;
+//		}
+//		for (int i = 0; i < n; i++) {
+//			list.add(groupIds.get(i));
+//		}
+//		return groupRepo.findByIdIn(list);
+//	}
+	
+	/**
+	 * 
+	 * @Title: groupCourseToSharesPc
+	 * @Description: 推荐多个同标签的课程进入小组分享  多个tag用,分割
+	 * @param groupId
+	 * @param tagName
+	 * @param user
+	 * @return
+	 * @throws XueWenServiceException List<String>
+	 * @throws
+	 */
+	private List<String> groupCourseToSharesPc(String groupId, String tagName, User user) throws XueWenServiceException {
+		List<String> courseIds = tagService.findItemIds(Config.YXTDOMAIN, tagName, "2", 1000);
+		//全部tag 分享的课程数
+		if (courseIds.size() == 0) {
+			//TODO
+		} else {
+			for (String courseId : courseIds) {
+				if (newCourseService.findOne(courseId) != null) {
+					newGroupCourseService.share(groupId, courseId, user.getId(), Config.APPKEY_PC);
+				}
+			}
+		}
+		return courseIds;
+	}
+	
+	public boolean isGroupMember(String gId,String uId){
+		XueWenGroup group=groupRepo.findOneByIdAndMemberIn(gId, uId);
+		if(group==null){
+			 return false;
+		}
+		else{
+			return true;
+		}
+		
+	}
+	/**
+	 * 
+	 * @Title: getBgUrl
+	 * @Description: 获取附件的furl
+	 * @param tagNames
+	 * @param itemType
+	 * @param count
+	 * @return
+	 * @throws XueWenServiceException String
+	 * @throws
+	 */
+	private String getBgUrl(String tagNames,String itemType,int count) throws XueWenServiceException{
+		List<String> idList=tagService.findItemIds(Config.YXTDOMAIN, tagNames, itemType, count);
+		String url="";
+		if(idList.size()!=0){
+			String id=idList.get(0);
+			AttachFile attachFile=attachFileService.viewAttachFileById(id);
+			url=attachFile.getFurl();
+		}
+		return url;
+		
+	}
+
+	/**
+	 * 
+	 * @Title: worthGroups
+	 * @Description: 值得加入的组
+	 * @return List<XueWenGroup>
+	 * @throws
+	 */
+	public List<JSONObject> worthGroups(int num) {
+		QueryModel dm = new QueryModel();
+		dm.setSort("memberCount");
+		dm.setMode("DESC");
+		dm.setN(0);
+		dm.setS(num);
+		Pageable pageable = PageRequestTools.pageRequesMake(dm);
+		List<XueWenGroup> groups = groupRepo.findAll(pageable).getContent();
+		//瘦身
+		List<JSONObject> jsonObjects = new ArrayList<JSONObject>();
+		String[] includeKey = {"id","logoUrl","groupName","memberCount","intro"};
+		for (XueWenGroup group : groups) {
+			jsonObjects.add(YXTJSONHelper.getInObjectAttrJsonObject(group, new HashMap<String, Object>(), includeKey));
+		}
+		return jsonObjects;
+	}
+	
+	/**
+	 * 
+	 * @Title: findMyAdminPageGroups
+	 * @Description: 标签搜索
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException Page<XueWenGroup>
+	 * @throws
+	 */
+	public Map<String, Object> findGroupsByTag(String tagName,Pageable pageable) throws XueWenServiceException {
+		Page<XueWenGroup> groups=null;
+		if(StringUtil.isBlank(tagName)){
+			groups=groupRepo.findAll(pageable);
+		}else {
+			groups = groupRepo.findByTagNamesLike(tagName,pageable);
+		}
+		List<JSONObject> jsonObjects=new ArrayList<JSONObject>();
+		String[] includeKey = {"id","groupName","intro","logoUrl","memberCount","tagNames"};
+		for (XueWenGroup xueWenGroup : groups) {
+			jsonObjects.add(YXTJSONHelper.includeAttrJsonObject(xueWenGroup, includeKey));
+		}
+		Map<String, Object> reMap=new HashMap<String, Object>();
+		reMap.put("list", jsonObjects);
+		reMap.put("page", groups);
+		return reMap;
+	}
+	
+	
+	/**
+	 * 
+	 * @Title: findGroupByKeywords
+	 * @Description: 搜索
+	 * @param userId
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException Page<XueWenGroup>
+	 * @throws
+	 */
+	public Map<String, Object> findGroupByKeywords(String keywords,Pageable pageable) throws XueWenServiceException {
+		Page<XueWenGroup> groups=null;
+		if(StringUtil.isBlank(keywords)){
+			groups=groupRepo.findAll(pageable);
+		}else {
+			groups = groupRepo.findByGroupNameLikeOrTagNamesLike(keywords, keywords, pageable);
+		}
+		List<JSONObject> jsonObjects=new ArrayList<JSONObject>();
+		String[] includeKey = {"id","groupName","intro","logoUrl","memberCount","tagNames"};
+		for (XueWenGroup xueWenGroup : groups) {
+			jsonObjects.add(YXTJSONHelper.includeAttrJsonObject(xueWenGroup, includeKey));
+		}
+		Map<String, Object> reMap=new HashMap<String, Object>();
+		reMap.put("list", jsonObjects);
+		reMap.put("page", groups);
+		return reMap;
+	}
+	/**
+	 * 
+	 * @Title: getTagByType
+	 * @Description:小组下热门标签
+	 * @return
+	 * @throws XueWenServiceException List<JSONObject>
+	 * @throws
+	 */
+	public List<JSONObject> getTagByType() throws XueWenServiceException{
+		List<JSONObject> jsonObjects=new ArrayList<JSONObject>();
+		JSONObject all=new JSONObject();
+		all.put("tagName", "全部");
+		all.put("count",groupRepo.count());
+		jsonObjects.add(all);
+
+		List<JSONObject> jsonObjects2=tagService.getTagsByTypeList(Config.YXTDOMAIN, Config.TAG_TYPE_GROUP, 1000);
+		int count=5;
+		for (int i = 1; i <=count; i++) {
+			if(jsonObjects2.size()-i>=0){
+				JSONObject jsonObject=new JSONObject();
+				jsonObject.put("count", jsonObjects2.get(jsonObjects2.size()-i).get("score"));
+				jsonObject.put("tagName", jsonObjects2.get(jsonObjects2.size()-i).get("value"));
+				jsonObjects.add(jsonObject);
+			}
+		}
+		return jsonObjects;
+	}
+	/**
+	 * 
+	 * @Title: countByTag
+	 * @Description: 根据标签名查出群组数量
+	 * @param tagName
+	 * @return
+	 * @throws XueWenServiceException int
+	 * @throws
+	 */
+	public int countByTag(String tagName) throws XueWenServiceException{
+		return tagService.findItemIds(Config.YXTDOMAIN, tagName, Config.TAG_TYPE_GROUP, 1000).size();
+	}
+//	/**
+//	 * @throws XueWenServiceException 
+//	 * 
+//	 * @Title: addMemberCount
+//	 * @Description: 
+//	 * @param group
+//	 * @param i void i=1 增加成员 i=-1删除成员
+//	 * @throws
+//	 */
+//	public void addMemberCount(XueWenGroup group,int i) throws XueWenServiceException{
+//		if(i==1||i==-1){
+//			group.setMemberCount(group.getMemberCount()+i);
+//		}else{
+//			throw new XueWenServiceException(Config.STATUS_201,"参数有误", null);
+//		}
+//		
+//		groupRepo.save(group);
+//	}
+}

@@ -1,0 +1,94 @@
+package operation.service.box;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.box.Box;
+import operation.repo.box.BoxRepository;
+import operation.repo.box.BoxTemplate;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+public class BoxService {
+
+	@Autowired
+	private BoxRepository boxRepository;
+	@Autowired
+	private BoxTemplate boxTemplate;
+	
+	public BoxService(){
+		super();
+	}
+	
+	/**
+	 * 添加对象到相应位置列表
+	 * @param boxPostId
+	 * @param sourceType
+	 * @param sourceId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Box addInBoxPost(String boxPostId,String sourceType,String sourceId)throws XueWenServiceException{
+		if(StringUtil.isBlank(boxPostId) || StringUtil.isBlank(sourceType) || StringUtil.isBlank(sourceId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		if(!isExiseByBoxPostIdAndSourceId(boxPostId,sourceId)){
+			return boxRepository.save(new Box(boxPostId, sourceId, sourceType));
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		
+	}
+	
+	/**
+	 * 根据PostId和sourceId判断数据条目是否存在
+	 * @param boxPostId
+	 * @param sourceId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isExiseByBoxPostIdAndSourceId(String boxPostId,String sourceId)throws XueWenServiceException{
+		if(StringUtil.isBlank(boxPostId)  || StringUtil.isBlank(sourceId)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_PROPERTIESERROR_201,null);
+		}
+		return boxTemplate.isExiseByBoxPostIdAndSourceId(boxPostId, sourceId);
+	}
+	
+	/**
+	 * 根据位置Id获取位置下所有的对象Id
+	 * @param boxPostId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> getSourceIdsByBoxPostId(String boxPostId)throws XueWenServiceException{
+		List<Box> boxs=boxTemplate.getSourceIdsByBoxPostId(boxPostId);
+		return getSourceIdsByBoxList(boxs);
+	}
+	
+	/**
+	 * 根据位置下所有对象集合，获取位置下所有的对象Id
+	 * @param boxs
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> getSourceIdsByBoxList(List<Box> boxs)throws XueWenServiceException{
+		if(boxs !=null){
+			List<Object> objs=new ArrayList<Object>();
+			for(Box box:boxs){
+				objs.add(box.getSourceId());
+			}
+			return objs;
+		}else{
+			return null;
+		}
+	} 
+	
+}

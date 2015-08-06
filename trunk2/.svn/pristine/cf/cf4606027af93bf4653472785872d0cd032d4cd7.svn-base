@@ -1,0 +1,384 @@
+package operation.pojo.drycargo;
+
+import org.springframework.data.annotation.Id;
+
+public class DrycargoResponse {
+	@Id
+	private String id;
+	private Object group;//群组（数据库存储群组ID）
+	private String groupName;//群名
+	private String groupLogoUrl;
+	private String url; //干货的源地址
+	private String fileUrl; //干货的关键图片或路径
+	private String message;//干货的内容
+	private String description;//干货信息
+	private long ctime;//创建时间
+	private long utime;//修改时间
+	private String authorId; // 创建人id
+	private String authorName; // 创建人名称
+	private String authorLogoUrl;//创建者图片
+
+	private int viewCount; //浏览量
+	
+	private Object drycargoTagName;
+	
+	
+	private int replyCount; // 回复数
+	private int likesCount; // 被点赞的次数
+	
+	private int unLikeCount;//不赞数量
+	
+	private int shareCount;
+	
+	private int importCount; //把干货分享至此小组课堂的人员统计
+	
+	private boolean like;//态度 0无态度 1赞
+	private boolean unlike; //态度 0无态度 1踩
+	
+	private int weightSort;//权重
+	
+	private int dryFlag;//干货0炫页1
+	
+	private boolean authority; //是否有权限回复 0无权限1有权限
+	
+	private int isFav; //收藏状态 0未收藏 1已收藏
+	
+	private Object categoryId;//一级分类id;
+	private Object childCategoryId;//二级分类Id
+	
+	private float picWidth;//图片宽度
+	private float picHeight;//图片高度
+	private String tagNames;
+	
+	private int favCount;//收藏人数统计
+	
+	private int isOriginal;//是否原创 0 转摘 1 原创
+	
+	private int displayOrder; // 1 置顶 0 取消置顶
+	
+	private long displayTime; // 置顶时间
+	
+	public DrycargoResponse(){
+		super();
+		
+	}
+	
+	public DrycargoResponse(Drycargo dry){
+		super();
+		this.setId(dry.getId());
+		this.setGroupName(dry.getGroupName());
+		this.setGroup(dry.getGroup());
+		this.setUrl(dry.getUrl());
+		this.setFileUrl(dry.getFileUrl());
+		this.setMessage(dry.getMessage());
+		this.setCtime(dry.getCtime());
+		this.setUtime(dry.getUtime());
+		this.setViewCount(dry.getViewCount());
+		this.setReplyCount(dry.getReplyCount());
+		this.setLikesCount(dry.getLikesCount());
+		this.setUnLikeCount(dry.getUnLikeCount());
+		this.setShareCount(dry.getShareCount());
+		this.setWeightSort(dry.getWeightSort());
+		this.setDescription(dry.getDescription());
+		this.setDryFlag(dry.getDryFlag());
+		this.setAuthorId(dry.getAuthorId());
+		this.setAuthorLogoUrl(dry.getAuthorLogoUrl());
+		this.setAuthorName(dry.getAuthorName());
+		this.setPicHeight(dry.getPicHeight());
+		this.setPicWidth(dry.getPicWidth());
+		this.setTagNames(dry.getDrycargoTagName());
+		this.setFavCount(dry.getFavCount());
+		this.setIsOriginal(dry.getIsOriginal());
+		this.setDisplayOrder(dry.getDisplayOrder());
+		this.setDisplayTime(dry.getDisplayTime());
+		this.setGroupLogoUrl(dry.getGroupLogoUrl());
+		
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public Object getGroup() {
+		return group;
+	}
+
+	public void setGroup(Object group) {
+		this.group = group;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getFileUrl() {
+		return fileUrl;
+	}
+
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public long getCtime() {
+		return ctime;
+	}
+
+	public void setCtime(long ctime) {
+		this.ctime = ctime;
+	}
+
+	public long getUtime() {
+		return utime;
+	}
+
+	public void setUtime(long utime) {
+		this.utime = utime;
+	}
+
+	public String getAuthorId() {
+		return authorId;
+	}
+
+	public void setAuthorId(String authorId) {
+		this.authorId = authorId;
+	}
+
+	public String getAuthorName() {
+		return authorName;
+	}
+
+	public void setAuthorName(String authorName) {
+		this.authorName = authorName;
+	}
+
+	public String getAuthorLogoUrl() {
+		return authorLogoUrl;
+	}
+
+	public void setAuthorLogoUrl(String authorLogoUrl) {
+		this.authorLogoUrl = authorLogoUrl;
+	}
+
+	public int getViewCount() {
+		return viewCount;
+	}
+
+	public void setViewCount(int viewCount) {
+		this.viewCount = viewCount;
+	}
+
+	public Object getDrycargoTagName() {
+		return drycargoTagName;
+	}
+
+	public void setDrycargoTagName(Object drycargoTagName) {
+		this.drycargoTagName = drycargoTagName;
+	}
+
+	public int getReplyCount() {
+		return replyCount;
+	}
+
+	public void setReplyCount(int replyCount) {
+		this.replyCount = replyCount;
+	}
+
+	public int getLikesCount() {
+		return likesCount;
+	}
+
+	public void setLikesCount(int likesCount) {
+		this.likesCount = likesCount;
+	}
+
+	public int getUnLikeCount() {
+		return unLikeCount;
+	}
+
+	public void setUnLikeCount(int unLikeCount) {
+		this.unLikeCount = unLikeCount;
+	}
+
+	public int getShareCount() {
+		return shareCount;
+	}
+
+	public void setShareCount(int shareCount) {
+		this.shareCount = shareCount;
+	}
+
+	public int getImportCount() {
+		return importCount;
+	}
+
+	public void setImportCount(int importCount) {
+		this.importCount = importCount;
+	}
+
+	public boolean isLike() {
+		return like;
+	}
+
+	public void setLike(boolean like) {
+		this.like = like;
+	}
+
+	public boolean isUnlike() {
+		return unlike;
+	}
+
+	public void setUnlike(boolean unlike) {
+		this.unlike = unlike;
+	}
+
+	public int getWeightSort() {
+		return weightSort;
+	}
+
+	public void setWeightSort(int weightSort) {
+		this.weightSort = weightSort;
+	}
+
+	public int getDryFlag() {
+		return dryFlag;
+	}
+
+	public void setDryFlag(int dryFlag) {
+		this.dryFlag = dryFlag;
+	}
+
+	public boolean isAuthority() {
+		return authority;
+	}
+
+	public void setAuthority(boolean authority) {
+		this.authority = authority;
+	}
+
+	public int getIsFav() {
+		return isFav;
+	}
+
+	public void setIsFav(int isFav) {
+		this.isFav = isFav;
+	}
+
+	public Object getCategoryId() {
+		return categoryId;
+	}
+
+	public void setCategoryId(Object categoryId) {
+		this.categoryId = categoryId;
+	}
+
+	public Object getChildCategoryId() {
+		return childCategoryId;
+	}
+
+	public void setChildCategoryId(Object childCategoryId) {
+		this.childCategoryId = childCategoryId;
+	}
+
+	public float getPicWidth() {
+		return picWidth;
+	}
+
+	public void setPicWidth(float picWidth) {
+		this.picWidth = picWidth;
+	}
+
+	public float getPicHeight() {
+		return picHeight;
+	}
+
+	public void setPicHeight(float picHeight) {
+		this.picHeight = picHeight;
+	}
+
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public String getTagNames() {
+		return tagNames;
+	}
+
+	public void setTagNames(String tagNames) {
+		this.tagNames = tagNames;
+	}
+
+	public int getFavCount() {
+		return favCount;
+	}
+
+	public void setFavCount(int favCount) {
+		this.favCount = favCount;
+	}
+
+
+	public int getDisplayOrder() {
+		return displayOrder;
+	}
+
+	public void setDisplayOrder(int displayOrder) {
+		this.displayOrder = displayOrder;
+	}
+
+	public long getDisplayTime() {
+		return displayTime;
+	}
+
+	public void setDisplayTime(long displayTime) {
+		this.displayTime = displayTime;
+	}
+
+	public void setIsOriginal(int isOriginal) {
+		this.isOriginal = isOriginal;
+	}
+
+	public int getIsOriginal() {
+		return isOriginal;
+	}
+
+	public String getGroupLogoUrl() {
+		return groupLogoUrl;
+	}
+
+	public void setGroupLogoUrl(String groupLogoUrl) {
+		this.groupLogoUrl = groupLogoUrl;
+	}
+
+	
+	
+
+
+
+}

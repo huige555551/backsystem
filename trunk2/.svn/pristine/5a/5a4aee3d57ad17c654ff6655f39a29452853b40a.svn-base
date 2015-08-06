@@ -1,0 +1,169 @@
+package operation.service.praise;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import operation.exception.XueWenServiceException;
+import operation.pojo.praise.Praise;
+import operation.pojo.praise.UserPraiseResponse;
+import operation.pojo.user.User;
+import operation.repo.praise.PraiseMongoTemplate;
+import operation.repo.praise.PraiseRepository;
+import operation.service.user.ContactUserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import tools.Config;
+import tools.StringUtil;
+
+@Service
+@Component
+public class PraiseService {
+
+	@Autowired
+	private PraiseRepository praiseRepository;
+	@Autowired
+	private PraiseMongoTemplate  praiseMongoTemplate;
+	@Autowired
+	private ContactUserService contactUserService;
+
+	public PraiseService() {
+
+	}
+
+	/**
+	 * 用户点赞
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @throws XueWenServiceException
+	 */
+	public void addPraise(User user,String appKey,String sourceId,String type)throws XueWenServiceException{
+		Praise praise=findOnePraiseByUserIdAndAppKeyAndSourceIdAndType(user.getId(),appKey,sourceId,type);
+		if(praise == null){
+			praise=new Praise();
+			praise.setAppKey(appKey);
+			praise.setSourceId(sourceId);
+			praise.setType(type);
+			praise.setUserId(user.getId());
+			praise.setUserLogoUrl(user.getLogoURL());
+			praise.setUserName(user.getNickName());
+			praiseRepository.save(praise);
+		}
+	}
+	/**
+	 * 用户点赞
+	 * @param praise
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void addPraise(Praise praise,User user)throws XueWenServiceException{
+		if(praise == null || StringUtil.isBlank(praise.getAppKey()) || StringUtil.isBlank(praise.getSourceId()) || StringUtil.isBlank(praise.getType())){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		if(!praiseMongoTemplate.existsByUserIdAndAppKeyAndSourceIdAndType(user.getId(),praise.getAppKey(),praise.getSourceId(),praise.getType())){
+			praise.setUserId(user.getId());
+			praise.setUserLogoUrl(user.getLogoURL());
+			praise.setUserName(user.getNickName());
+			long time=System.currentTimeMillis();
+			praise.setCtime(time);
+			praise.setUtime(time);
+			praiseRepository.save(praise);
+		}
+	}
+	
+	
+	/**
+	 * 用户是否点赞
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public boolean isUserPraise(String userId,String appKey,String sourceId,String type)throws XueWenServiceException{
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(appKey) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return praiseMongoTemplate.existsByUserIdAndAppKeyAndSourceIdAndType(userId,appKey,sourceId,type);
+	}
+	
+	/**
+	 * 根据用户ID和域Id和来源ID和类型，查找用户点赞对象,可为空
+	 * @param userId
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Praise findOnePraiseByUserIdAndAppKeyAndSourceIdAndType(String userId,String appKey,String sourceId,String type)throws XueWenServiceException{
+//		praiseRepository.exists(id)
+		if(StringUtil.isBlank(userId) || StringUtil.isBlank(appKey) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return praiseRepository.findByUserIdAndAppKeyAndSourceIdAndType(userId, appKey, sourceId, type);
+	}
+	/**
+	 * 根据域Id和来源ID和类型，查找用户点赞对象,可为空
+	 * @param appkey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 */
+	public Page<Praise> findOnePraiseByAppKeyAndSourceIdAndType(String appkey,String sourceId,String type,Pageable pageable)throws XueWenServiceException{
+		if( StringUtil.isBlank(appkey) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return praiseRepository.findByAppKeyAndSourceIdAndType(appkey, sourceId, type,pageable);
+	}
+	
+	/**
+	 * 统计一个项目的点赞数量
+	 * @param appKey
+	 * @param sourceId
+	 * @param type
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public int countByAppkeyAndSourceIdAndType(String appKey,String sourceId,String type)throws XueWenServiceException{
+		if(StringUtil.isBlank(appKey) || StringUtil.isBlank(sourceId) || StringUtil.isBlank(type) ){
+			throw new  XueWenServiceException(Config.STATUS_201,Config.MSG_201,null);
+		}
+		return praiseRepository.countByAppKeyAndSourceIdAndType(appKey, sourceId, type);
+	}
+	
+	public List<UserPraiseResponse> toResponeses(List<Praise> praises,String userId) throws XueWenServiceException{
+		List<UserPraiseResponse> uprs = new ArrayList<UserPraiseResponse>();
+		if(praises==null || praises.size()<=0){
+		}else{
+			for(int i = 0; i < praises.size(); i++){
+				uprs.add(toResponse(praises.get(i),userId));
+			}
+		}
+		return uprs;
+		
+	}
+	
+	public UserPraiseResponse toResponse(Praise praise,String userId)throws XueWenServiceException{
+		if (praise == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		}
+		UserPraiseResponse upr = new UserPraiseResponse(praise.getUserId(),praise.getUserName(),praise.getUserLogoUrl());
+		if(praise.getUserId().equals(userId)){
+			upr.setContactStatus(10);
+		}else{
+			upr.setContactStatus(contactUserService.contact(userId, praise.getUserId()));
+		}
+		return upr;
+	}
+	
+}

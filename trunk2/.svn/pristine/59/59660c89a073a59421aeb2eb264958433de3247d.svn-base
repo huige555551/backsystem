@@ -1,0 +1,286 @@
+package operation.controller.course;
+
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.GroupCourse;
+import operation.pojo.user.User;
+import operation.service.course.GroupCourseService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.ResponseContainer;
+import tools.StringUtil;
+
+
+@RestController
+@RequestMapping("/groupcourse")
+public class GroupCourseController extends BaseController{
+	private static final Logger logger=Logger.getLogger(GroupCourseController.class);
+
+	@Autowired
+	public GroupCourseService groupCourseService;
+	
+	/**
+	 * 小组课堂查看
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/{id}/courses")
+	public @ResponseBody ResponseContainer create(@PathVariable("id") String id, HttpServletRequest request) {
+
+		try {
+			
+			String pageNumber = request.getParameter("n");
+			String pageSize = request.getParameter("s");
+			String sort = request.getParameter("sort");
+			String mode = request.getParameter("mode");		
+			if (StringUtil.isEmpty(sort)) {
+				sort = "utime";
+			}
+			if (StringUtil.isEmpty(mode)) {
+				mode = "DESC";
+			}
+			Direction d = Direction.DESC;
+			if(mode.equalsIgnoreCase("ASC")){
+				d = Direction.ASC;
+			}
+			Sort st = new Sort(d,sort);
+			String token = request.getParameter("token");
+			User currentUser = this.getCurrentUser(token);
+			Page<GroupCourse> groupCourses = groupCourseService.getGroupCourses(pageNumber, pageSize,st,id);
+			if (groupCourses.getTotalElements() == 0) {
+				rsData.setCurr_page(groupCourses.getNumber());
+				int curr_rows=groupCourses.getNumber()*groupCourses.getSize();
+				if(curr_rows>groupCourses.getTotalElements()){
+					curr_rows=new Long(groupCourses.getTotalElements()).intValue();
+					rsData.setCurr_rows(curr_rows);
+				}else{
+					rsData.setCurr_rows(curr_rows);
+				}
+				
+			} else {
+				rsData.setCurr_page(groupCourses.getNumber() + 1);
+				int curr_rows=(groupCourses.getNumber()+1)*groupCourses.getSize();
+				if(curr_rows>groupCourses.getTotalElements()){
+					curr_rows=new Long(groupCourses.getTotalElements()).intValue();
+					rsData.setCurr_rows(curr_rows);
+				}else{
+					rsData.setCurr_rows(curr_rows);
+				}
+			}
+			rsData.setTotal_rows(groupCourses.getTotalElements());
+			rsData.setPage_rows(groupCourses.getTotalPages());
+			this.rsData.setResult(groupCourseService.toResponseGroupsCourseList(groupCourses.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+	
+	/**
+	 * 小组课堂查看
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/getGroupCourses")
+	public @ResponseBody ResponseContainer getGroupCourses(String id, HttpServletRequest request) {
+
+		try {
+			
+			String pageNumber = request.getParameter("n");
+			String pageSize = request.getParameter("s");
+			String sort = request.getParameter("sort");
+			String mode = request.getParameter("mode");		
+			if (StringUtil.isEmpty(sort)) {
+				sort = "utime";
+			}
+			if (StringUtil.isEmpty(mode)) {
+				mode = "DESC";
+			}
+			Direction d = Direction.DESC;
+			if(mode.equalsIgnoreCase("ASC")){
+				d = Direction.ASC;
+			}
+			Sort st = new Sort(d,sort);
+			Page<GroupCourse> groupCourses = groupCourseService.getGroupCourses(pageNumber, pageSize,st,id);
+			if (groupCourses.getTotalElements() == 0) {
+				rsData.setCurr_page(groupCourses.getNumber());
+				int curr_rows=groupCourses.getNumber()*groupCourses.getSize();
+				if(curr_rows>groupCourses.getTotalElements()){
+					curr_rows=new Long(groupCourses.getTotalElements()).intValue();
+					rsData.setCurr_rows(curr_rows);
+				}else{
+					rsData.setCurr_rows(curr_rows);
+				}
+				
+			} else {
+				rsData.setCurr_page(groupCourses.getNumber() + 1);
+				int curr_rows=(groupCourses.getNumber()+1)*groupCourses.getSize();
+				if(curr_rows>groupCourses.getTotalElements()){
+					curr_rows=new Long(groupCourses.getTotalElements()).intValue();
+					rsData.setCurr_rows(curr_rows);
+				}else{
+					rsData.setCurr_rows(curr_rows);
+				}
+			}
+			rsData.setTotal_rows(groupCourses.getTotalElements());
+			rsData.setPage_rows(groupCourses.getTotalPages());
+			this.rsData.setResult(groupCourseService.toResponseNewGroupsCourseList(groupCourses.getContent()));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, rsData,Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			e.printStackTrace();
+			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(e.getCode(), e.getMessage(), false,
+					Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+					Config.RESP_MODE_10, "");
+		}
+	}
+	
+	
+//
+//	/**
+//	 * 分享课程到小组课堂
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 */
+//	@RequestMapping("/{id}/share")
+//	public @ResponseBody ResponseContainer shareCourseToGroupClass(@PathVariable("id") String id, HttpServletRequest request) {
+//
+//		try {
+//			
+//			String courseId = request.getParameter("courseId");
+//			String token = request.getParameter("token");
+//			User currentUser = this.getCurrentUser(token);
+//			groupCourseService.shareCourseToGroupClass(id,courseId,currentUser);
+//			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(e.getCode(), e.getMessage(), false,
+//					Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+//					Config.RESP_MODE_10, "");
+//		}
+//	}
+//	
+//	/**
+//	 * 将课程分享到其他目的地址
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 */
+//	@RequestMapping("/{id}/share2other")
+//	public @ResponseBody ResponseContainer shareCourseToOthers(@PathVariable("id") String id, HttpServletRequest request) {
+//
+//		try {
+//			
+//			String courseId = request.getParameter("groupCoursId");
+//			String token = request.getParameter("token");
+//			User currentUser = this.getCurrentUser(token);
+//			groupCourseService.shareCourseToOthers(id,currentUser);
+//			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(e.getCode(), e.getMessage(), false,
+//					Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+//					Config.RESP_MODE_10, "");
+//		}
+//	} 
+//	
+//	/**
+//	 * 收藏小组课堂的课程
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 */
+//	@RequestMapping("/{id}/favcourse")
+//	public @ResponseBody ResponseContainer favCourse(@PathVariable("id") String id, HttpServletRequest request) {
+//
+//		try {
+//			
+//			String courseId = request.getParameter("groupCoursId");
+//			String token = request.getParameter("token");
+//			User currentUser = this.getCurrentUser(token);
+//			groupCourseService.favCourse(id,currentUser);
+//			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(e.getCode(), e.getMessage(), false,
+//					Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+//					Config.RESP_MODE_10, "");
+//		}
+//	}
+//	
+//	/**
+//	 * 学习此课程
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 */
+//	@RequestMapping("/{id}/studycourse")
+//	public @ResponseBody ResponseContainer studyCourse(@PathVariable("id") String id, HttpServletRequest request) {
+//
+//		try {
+//			
+//			String courseId = request.getParameter("groupCoursId");
+//			String token = request.getParameter("token");
+//			User currentUser = this.getCurrentUser(token);
+//			groupCourseService.studyCourse(id,currentUser);
+//			return addResponse(Config.STATUS_200, Config.MSG_200, true,Config.RESP_MODE_10, "");
+//		} catch (XueWenServiceException e) {
+//			e.printStackTrace();
+//			logger.error("==========业务错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(e.getCode(), e.getMessage(), false,
+//					Config.RESP_MODE_10, "");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			logger.error("==========未知错误，根据群组ID查询群成员列表失败============"+e);
+//			return addResponse(Config.STATUS_505, Config.MSG_505, false,
+//					Config.RESP_MODE_10, "");
+//		}
+//	}
+	
+}

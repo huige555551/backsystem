@@ -1,0 +1,42 @@
+package operation.repo.course;
+
+import java.util.List;
+
+import operation.pojo.course.Knowledge;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+
+public interface KnowledgeRepository extends MongoRepository<Knowledge, String> {
+	Knowledge findOneByCid(String cid);
+	
+	Knowledge findOneByIdAndStatus(String id,int status);
+	
+	List<Knowledge>findByIdInAndStatusAndCcode(List<String> ids,int status,int ccode);
+	
+	List<Knowledge> findByCcode(int ccode,Sort sort);
+	
+	List<Knowledge> findByKngTypeAndCcode(int kngType,int ccode);
+	
+	Page<Knowledge>findByCuser(String userId,Pageable pageable);
+	
+	Page<Knowledge>findByCuserAndNameLikeAndCtimeBetween(String userId,String name,long ctime,long ltime,Pageable pageable);
+	
+	Page<Knowledge>findByCuserAndNameLike(String userId,String name,Pageable pageable);
+
+	Page<Knowledge>findByCuserAndCtimeBetween(String userId,long ctime,long ltime,Pageable pageable);
+
+//	List<Knowledge> findByStatusAndCcode(int knowledgeStatPass,
+//			int knowledgeCcodeOk);
+	@Query("{'arc':{$gt:?0},'status':?1,'ccode':?2,'$or':[{'name':{'$regex':?3}},{'desc':{'$regex':?3}},{'tagNames':{'$regex':?3}}]}")
+	List<Knowledge> findByArcGreaterThanAndStatusAndCcodeAndNameRegexOrDescRegexOrTagNamesRegex(
+			int i, int knowledgeStatPass, int knowledgeCcodeOk,
+			String keyWords, String keyWords2, String keyWords3);
+
+	List<Knowledge> findByArcGreaterThanAndStatusAndCcode(int i,
+			int knowledgeStatPass, int knowledgeCcodeOk);
+
+}

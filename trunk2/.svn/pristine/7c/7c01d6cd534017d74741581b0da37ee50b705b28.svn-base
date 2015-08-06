@@ -1,0 +1,26 @@
+package operation.repo.course;
+
+
+
+import java.util.List;
+
+import operation.pojo.course.NewCourse;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface NewCourseRepository extends  MongoRepository<NewCourse,String> {
+		List<NewCourse> findBySourceId(String sourceId);
+		
+		List<NewCourse> findByChaptersIn(String id);
+
+		Page<NewCourse> findByTitleRegexOrIntroRegex(String keywords,String keywords2, Pageable pageable);
+
+		List<NewCourse> findByIdIn(List<Object> courseIds);
+
+		List<NewCourse> findByTitleRegexOrIntroRegex(String keyWords,
+				String keyWords2);
+		
+		
+}

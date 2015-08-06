@@ -1,0 +1,161 @@
+package operation.controller.live;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.live.Live;
+import operation.pojo.pub.QueryModelMul;
+import operation.pojo.user.User;
+import operation.service.live.LiveService;
+import operation.service.live.VhallWebinarService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.PageRequestTools;
+import tools.ReponseDataTools;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("/live")
+public class LiveController extends BaseController {
+	@Autowired
+	private LiveService liveService;
+	@Autowired
+	private VhallWebinarService vhallWebinarService;
+
+	/**
+	 * 创建直播
+	 * @param request
+	 * @param live
+	 * @return
+	 */
+	@RequestMapping(value = "/create", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer create(HttpServletRequest request,Live live) {
+		try {
+			String url = request.getParameter("url");// 直播地址
+			String sourceId = request.getParameter("sourceId");// 群Id
+			String groupName = request.getParameter("groupName");
+			String groupLogoUrl = request.getParameter("groupLogoUrl");
+			String token = request.getParameter("token");
+			User currUser = this.getCurrentUser(token);
+			Live result = liveService.create(url, currUser, sourceId, groupName,groupLogoUrl);
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200,result, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	/**
+	 * 查询直播列表
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value = "/list")
+	public @ResponseBody ResponseContainer share(HttpServletRequest request,QueryModelMul dm) {
+		try {
+			List<String> sort = new ArrayList<String>();
+			sort.add("liveStartTime");
+			dm.setSort(sort);
+			Pageable pageable = PageRequestTools.pageRequesMake(dm);
+			String groupId = request.getParameter("groupId");
+			Page<Live> live=liveService.findByGroupId(groupId, pageable);
+			ReponseDataTools.getClientReponseData(getReponseData(), live);
+			//this.getReponseData().setResult((newActivityService.formaterBase(as.getContent())));
+			return addPageResponse(Config.STATUS_200, Config.MSG_200, getReponseData(),Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	/**
+	 * 修改直播
+	 * @param request
+	 * @param live
+	 * @return
+	 */
+	@RequestMapping(value = "/update", method = RequestMethod.POST)
+	public @ResponseBody ResponseContainer update(HttpServletRequest request,Live live) {
+		try {
+			String liveId = request.getParameter("liveId");
+			String token = request.getParameter("token");
+			User currUser = this.getCurrentUser(token);
+			String image = request.getParameter("image");// 活动图片需要传数组对象
+			String group = request.getParameter("source");// 群Id数组包含群名称 logo
+			Live result = liveService.update(liveId,currUser,live,image,group);
+			return addResponse(Config.STATUS_200, Config.MSG_UPDATE_200,result, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+
+	}
+	/**
+	 * 分享直播
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value = "/share")
+	public @ResponseBody ResponseContainer share(HttpServletRequest request) {
+		try {
+			
+			String group = request.getParameter("source");// 群数组,包含图片 名称
+			String liveId = request.getParameter("liveId");//直播Id
+			String token = request.getParameter("token");
+			User currUser = this.getCurrentUser(token);
+			boolean result = liveService.share(liveId,group,currUser);
+			return addResponse(Config.STATUS_200, Config.MSG_SHARESUCESS_200,result, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+
+	}
+	/**
+	 * 删除直播
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value = "/delete")
+	public @ResponseBody ResponseContainer delete(HttpServletRequest request) {
+		try {
+			
+			String groupId = request.getParameter("groupId");// 群组id
+			String liveId = request.getParameter("liveId");//直播Id
+			String token = request.getParameter("token");
+			User currUser = this.getCurrentUser(token);
+			boolean result = liveService.delete(liveId,groupId,currUser);
+			return addResponse(Config.STATUS_200, Config.MSG_SHARESUCESS_200,result, Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+
+	}
+	
+	
+	
+	
+	
+	
+
+}

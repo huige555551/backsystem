@@ -1,0 +1,60 @@
+package operation.controller.ad;
+
+import javax.servlet.http.HttpServletRequest;
+
+import operation.BaseController;
+import operation.exception.XueWenServiceException;
+import operation.pojo.ad.ZtiaoAd;
+import operation.service.ad.ZtiaoAdService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import tools.Config;
+import tools.ResponseContainer;
+
+@RestController
+@RequestMapping("/category")
+public class ZtiaoAdController extends BaseController {
+
+	@Autowired
+	private ZtiaoAdService ztiaoAdService;
+	/**
+	 * 创建新的广告位条目
+	 * @param request
+	 * @param ztiaoAd
+	 * @return
+	 */
+	@RequestMapping("addNew")
+	public @ResponseBody ResponseContainer addNew(HttpServletRequest request,ZtiaoAd ztiaoAd) {
+		try {
+			
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200,
+					ztiaoAdService.addNew(ztiaoAd), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+	/**
+	 * APP首页获取广告信息
+	 * @param request
+	 * @param ztiaoAd
+	 * @return
+	 */
+	@RequestMapping("getAppIndexAd")
+	public @ResponseBody ResponseContainer getAppIndexAd(HttpServletRequest request,ZtiaoAd ztiaoAd) {
+		try {
+			
+			return addResponse(Config.STATUS_200, Config.MSG_CREATE_200,
+					ztiaoAdService.getAppIndexAd(), Config.RESP_MODE_10, "");
+		} catch (XueWenServiceException e) {
+			return addResponse(e.getCode(), e.getMessage(), false,Config.RESP_MODE_10, "");
+		} catch (Exception e) {
+			return addResponse(Config.STATUS_505, Config.MSG_505, false,Config.RESP_MODE_10, "");
+		}
+	}
+}

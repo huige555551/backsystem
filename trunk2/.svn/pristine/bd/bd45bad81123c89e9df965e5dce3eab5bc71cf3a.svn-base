@@ -1,0 +1,18 @@
+package operation.repo.course;
+
+import operation.pojo.course.UserGroupCourse;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface UserGroupCourseRepository extends MongoRepository<UserGroupCourse, String>{
+	Page<UserGroupCourse> findByGroupIdAndCourseAndStudyed(String groupId,String course,boolean studyed,Pageable pageable);
+	Page<UserGroupCourse> findByUserIdAndFavedAndStudyed(String userId,boolean faved,boolean studyed,Pageable pageable);
+	Page<UserGroupCourse> findByGroupIdAndCourseAndFaved(String groupId,String course,boolean faved,Pageable pageable);
+	UserGroupCourse findOneUserGroupCourseByUserIdAndGroupIdAndCourse(String userId,String groupId,String courseId);
+	UserGroupCourse findOneUserGroupCourseByUserIdAndGroupCourseId(String userId,String groupCourseId);
+	int countByUserIdAndFavedAndStudyed(String userId,boolean faved,boolean studyed);
+	
+}

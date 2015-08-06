@@ -1,0 +1,877 @@
+package operation.service.course;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import net.sf.json.JSONObject;
+import operation.exception.XueWenServiceException;
+import operation.pojo.course.Chapter;
+import operation.pojo.course.Course;
+import operation.pojo.course.Knowledge;
+import operation.pojo.course.Lesson;
+import operation.pojo.course.NewChapter;
+import operation.pojo.course.NewCourse;
+import operation.pojo.course.ResponseUserCourseCount;
+import operation.pojo.course.UserCourse;
+import operation.pojo.response.CourseDetailResponse;
+import operation.pojo.skill.SkillCourse;
+import operation.pojo.user.User;
+import operation.pojo.user.UserCourseChapter;
+import operation.repo.course.ChapterRepository;
+import operation.repo.course.CourseRepository;
+import operation.repo.course.NewCourseRepository;
+import operation.service.file.MyFileService;
+import operation.service.group.GroupService;
+import operation.service.share.ShareService;
+import operation.service.skill.SkillCourseService;
+import operation.service.user.UserCourseChapterService;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import tools.Config;
+import tools.FileUtil;
+import tools.MD5Util;
+import tools.MathTools;
+import tools.StringUtil;
+
+@Service
+@Component
+public class CourseService {
+
+	private static final Logger logger = Logger.getLogger(CourseService.class);
+
+	@Autowired
+	public CourseRepository courseRepository;
+
+	@Autowired
+	public MyFileService myFileService;
+
+	@Autowired
+	public UserCourseService userCourseService;
+
+	@Autowired
+	public GroupCourseService groupCourseService;
+	
+	
+	@Autowired
+	public ChapterRepository chapterRepository;
+	
+	@Autowired
+	public SkillCourseService skillCourseService;
+	
+	@Autowired
+	public 	ChapterService chapterService;
+	
+	@Autowired
+	public UserCourseChapterService userCourseChapterService;
+	
+	@Autowired
+	public ShareService shareService;
+	
+	@Autowired
+	public GroupService groupService;
+	
+	@Autowired
+	public NewCourseRepository newCourseRepository;
+	
+	@Autowired
+	public NewChapterService newChapterService;
+	
+	@Autowired
+	public KnowledgeService knowledgeService;
+	
+	public CourseService(){
+		super();
+	}
+
+	/**
+	 * 上传课程
+	 * 
+	 * @param user
+	 * @param course
+	 * @param file
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Course upload(User user, Course course, MultipartFile file,
+			MultipartFile logo) throws XueWenServiceException {
+		logger.info("语音文件上传======groupId:" + "=====user:" + user.getNickName());
+		if (user == null || file == null || file.isEmpty()) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,
+					null);
+		}
+		try {
+			// 得到file的MD5
+			String fileMD5 = MD5Util.getFileMD5(file.getBytes());
+			// 通过此MD5去数据库中查找是否有相同MD5的文件
+//			Course cs = courseRepository.findOneByMd5(fileMD5);
+			Course cs =null;
+			if (cs == null) {
+				logger.info("=======文件名====" + file.getOriginalFilename());
+
+				String dir = FileUtil
+						.idSpilt(MD5Util.MD5(course.getTitle()), 4);
+				myFileService.uploadFile(file, Config.COURSE + dir);
+				myFileService.uploadFile(logo, Config.COURSE + dir);
+				// 需要进行文件存储
+
+//				course.setMd5(fileMD5);
+//				course.setLocalUrl(Config.COURSE + dir + "/"
+//						+ file.getOriginalFilename());
+//				course.setPlayUrl(Config.contextPath + Config.COURSEURL + dir
+//						+ "/" + file.getOriginalFilename());
+//				course.setLogoUrl(Config.contextPath + Config.COURSEURL + dir
+//						+ "/" + logo.getOriginalFilename());
+//				course.setLength(file.getSize());
+				long time = System.currentTimeMillis();
+				course.setCtime(time);
+				course.setUtime(time);
+			}
+			return courseRepository.save(course);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_UPLOAD_201, null);
+		}
+	}
+
+	/**
+	 * 根据courseId寻找课程
+	 * 
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Course findShareCourse(String courseId) throws XueWenServiceException {
+
+		Course course = courseRepository.findOneById(courseId);
+		if (course == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		} else {
+			List<Object> chapter =  course.getChapters();
+			List<Object> chaperList = chapterService.findChapter(chapter);
+			course.setChapters(chaperList);
+			return course;
+		}
+	}
+	/**
+	 * 根据courseId寻找课程
+	 * 
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Course findCourse(String courseId) throws XueWenServiceException {
+
+		Course course = courseRepository.findOneById(courseId);
+		if (course == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		} else {
+			return course;
+		}
+	}
+	/**
+	 * 查询课程详情
+	 * @param userId
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public CourseDetailResponse findCourseDetails(String userId,String courseId,String groupId) throws XueWenServiceException{
+		
+		CourseDetailResponse ucr = new CourseDetailResponse();
+		ucr.setUserCourse(this.findStudyCourse(userId,courseId));
+		ucr.setUserCourseChapter(this.findNoStudyCourse(userId, courseId));
+		if(!StringUtil.isBlank(groupId)){
+			//判断该用户是否有回复权限（此人是否为该群）
+			ucr.setAuthority(groupService.findMember(groupId,userId)?true:false);
+		}
+		return ucr;
+		
+	}
+	/**
+	 * 查询课程章节基本信息及章节进度
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<UserCourseChapter> findNoStudyCourse(String userId,String courseId) throws XueWenServiceException{
+		//通过课程ID查询课程
+		Course course = this.findCourse(courseId);
+		//通过课程查询出下面的章节
+		List<Object> chapterIds = course.getChapters();
+		List<UserCourseChapter> userCourseChapterList = new ArrayList<UserCourseChapter>();
+		if(chapterIds != null){
+			for(int i = 0 ;i <chapterIds.size(); i++){
+				//通过userid courseid chapterId 查询 userCourseChapter
+				UserCourseChapter ucc = userCourseChapterService.findUserCourseChapter(userId,courseId,chapterIds.get(i).toString());
+				if(ucc != null){
+					ucc.setChapterId(chapterService.getChapter(chapterIds.get(i).toString()));
+					userCourseChapterList.add(ucc);
+				}else{
+					UserCourseChapter userCc = new UserCourseChapter(userId,courseId,chapterIds.get(i).toString());
+					userCc.setChapterId(chapterService.getChapter(chapterIds.get(i).toString()));
+					userCc.setMaxProessid(0);
+					userCourseChapterList.add(userCc);
+				}
+			}
+		}
+		return userCourseChapterList;
+	}
+	/**
+	 * 查询课程基本信息及课程进度
+	 * @return
+	 */
+	public UserCourse findStudyCourse(String userId,String courseId) throws XueWenServiceException{
+		UserCourse uc =	userCourseService.findUCByUserAndCousr(userId, courseId);
+		if(uc != null){
+			//获得一个课程ID 
+			String course = uc.getCourse().toString();
+			//通过课程ID查询一个课程
+			Course cou =courseRepository.findOne(course);
+			uc.setCourse(cou);
+			return uc;
+		}else{
+			//新建一个UserCourse
+			UserCourse  userCourse = new UserCourse(userId,courseId);
+			Course c =  courseRepository.findOneById(courseId);
+			userCourse.setCourse(c);	
+			userCourse.setProessid(0);
+			return userCourse;
+		}
+	
+		
+	}
+
+	/**
+	 * 查询某一技能下得所有课程
+	 * 
+	 * @param user
+	 * @param page
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserCourse> findCourceBySkill(String skillId, Pageable page,
+			String userId) throws XueWenServiceException {
+
+		Page<Course> courseListPage = courseRepository.findAll(page);
+		Page<UserCourse> userCoursePage = userCourseService.findCourseByUserId(
+				userId, page);
+		List<UserCourse> userCourseList = userCoursePage.getContent();
+		List<Course> courseList = courseListPage.getContent();
+		Course c = null;
+		UserCourse uc = null;
+		
+		if (courseListPage.getTotalElements() <= 0) {
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,
+					null);
+		} else {
+			for (int i = 0; i < courseList.size(); i++) {
+				c = courseList.get(i);
+				for (int j = 0; j < userCourseList.size(); j++) {
+					uc = userCourseList.get(j);
+					if (c.getId().equals(uc.getCourse().toString())) {
+						uc.setCourse(c);
+					}else{
+						//创建一个usrCourse
+						UserCourse uu = new UserCourse();
+						uu.setCourse(c);
+						userCourseList.add(uu);
+					}
+				}
+
+			}
+		}
+		return userCoursePage;
+
+	}
+	
+	
+
+	
+	/**
+	 * 根据用户ID和技能ID得到用户正在学习的课程
+	 * @param userId
+	 * @param skillId
+	 * @param pga
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserCourse> findStudying(String userId,String skillId,Pageable pga)throws XueWenServiceException{
+		return userCourseService.findUserStudyingCourseBySkillId(userId, skillId,pga);
+	}
+	
+	/**
+	 * 根据用户ID和技能ID得到用户学习完成的课程
+	 * @param userId
+	 * @param skillId
+	 * @param pga
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<UserCourse> findStudyed(String userId,String skillId,Pageable pga)throws XueWenServiceException{
+		Page<UserCourse> userCourse =  userCourseService.findUserStudyedCourseBySkillId(userId, skillId,pga);
+		return userCourse;
+	}
+	
+	
+	/**
+	 * 根据用户ID和技能ID得到用户未学习的课程
+	 * @param userId
+	 * @param skillId
+	 * @param pga
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<SkillCourse> findNoStudy(String userId,String skillId,Pageable pga)throws XueWenServiceException{
+		//首先要查询出用户已经学习的此技能下得课程
+		List<UserCourse>  ucs=userCourseService.findUserStudyCourseBySkillId(userId, skillId);
+		//拿到所有学习过的此技能课程ID
+		List<Object> courseIds=getCourseIdList(ucs);
+		return skillCourseService.findBySkillIdExcCourseIdList(skillId, courseIds, pga);
+	}
+	
+	
+	/**
+	 * 根据userCourse集合得到其中的courseId集合
+	 * @param list
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public List<Object> getCourseIdList(List<UserCourse> list)throws XueWenServiceException{
+		List<Object> courseIds=new ArrayList<Object>();
+		for(UserCourse uc:list){
+			courseIds.add(uc.getCourse());
+		}
+		return courseIds;
+	}
+	
+	
+	/**
+	 * 课程分享
+	 * 
+	 * @param fromGroupId
+	 * @param courseId
+	 * @param toGroupId
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void shareCourse(String fromGroupId, String courseId,
+			String toGroupId, User user) throws XueWenServiceException {
+		if (StringUtil.isBlank(fromGroupId) && !StringUtil.isBlank(toGroupId)) {
+			// 1.其他位置->小组课堂
+			groupCourseService.shareCourseToGroupClass(toGroupId, courseId,
+					user);
+			
+		} else if (!StringUtil.isBlank(fromGroupId)) {
+			// 2.小组课堂-->小组课堂 3.小组课堂-->其他位置
+			groupCourseService.shareCourseToOthers(fromGroupId, toGroupId,
+					courseId, user);
+		} else {
+			// 4.其他--->其他
+			countOperation(user.getId(), courseId, "share");
+		}
+		shareService.shareCouerse(user, "yxtapp", courseId, Config.TYPE_COURSE);
+	}
+
+	/**
+	 * 分享课程
+	 * 
+	 * @param fromGroupId
+	 * @param courseId
+	 * @param user
+	 * @throws XueWenServiceException
+	 */
+	public void favCourse(String fromGroupId, String courseId, User user)
+			throws XueWenServiceException {
+		if (StringUtil.isBlank(fromGroupId)) {
+			// 其他位置课程收藏
+			userCourseService.addFav(courseId, user.getId(),fromGroupId);
+		} else {
+			// 小组课堂课程收藏
+			groupCourseService.favCourse(fromGroupId, courseId, user);
+		}
+	}
+
+	public void studyCourse(String fromGroupId, String courseId, User user,
+			String jsonStr) throws XueWenServiceException {
+		Map<String, Integer> map = (Map<String, Integer>) JSONObject.toBean(
+				JSONObject.fromObject(jsonStr), Map.class);
+
+		Set<Map.Entry<String, Integer>> set = map.entrySet();
+		for (Iterator<Map.Entry<String, Integer>> it = set.iterator(); it
+				.hasNext();) {
+			Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) it
+					.next();
+			System.out.println(entry.getKey() + "--->" + entry.getValue());
+			if (StringUtil.isBlank(fromGroupId)) {
+				// 其他位置课程收藏
+//				userCourseService.addStudy(courseId, user.getId(),
+//						entry.getKey(), entry.getValue().toString());
+				
+				userCourseService.addStudy(courseId, user.getId(),
+						entry.getKey(), entry.getValue().toString());
+			} else {
+				// 小组课堂课程收藏
+//				groupCourseService.studyCourse(fromGroupId, courseId, user,
+//						entry.getKey(), entry.getValue().toString());
+			}
+		}
+
+	}
+	
+	public void studyCourseNew(String fromGroupId, String courseId, User user, String chapterId,
+			String jsonStr) throws XueWenServiceException {
+
+		if (StringUtil.isBlank(fromGroupId)) {
+			// 其他位置课程学习
+			userCourseService.addStudyNew(courseId, user.getId(),chapterId,jsonStr);
+		} else {
+			// 小组课堂课程学习
+			groupCourseService.studyCourse(fromGroupId, courseId, user,
+					jsonStr,chapterId);
+		}
+
+	}
+
+
+	/**
+	 * 课程的收藏，学习，分享记录
+	 * 
+	 * @param userId
+	 * @param courseId
+	 * @param operation
+	 * @throws XueWenServiceException
+	 */
+	public void countOperation(String userId, String courseId, String operation)
+			throws XueWenServiceException {
+
+		Course course = findCourse(courseId);
+		if (course == null) {
+			throw new XueWenServiceException(Config.STATUS_201,
+					Config.MSG_NODATA_201, null);
+		} else {
+			if (operation.equals("share")) {
+				Map<String, Long> whoShare = course.getWhoShare();
+				if (whoShare == null) {
+					whoShare = new LinkedHashMap<String, Long>();
+				}
+
+				if (!whoShare.containsKey(userId)) {
+					long time = System.currentTimeMillis();
+					whoShare.put(userId, time);
+					course.setWhoShare(whoShare);
+					course.setShareCount(course.getShareCount() + 1);
+				} else {
+					// 不增加分享人d，只增加分享数量
+					course.setShareCount(course.getShareCount() + 1);
+				}
+				courseRepository.save(course);
+			} else if (operation.equals("fav")) {
+				Map<String, Long> whoFav = course.getWhoFav();
+				if (whoFav == null) {
+					whoFav = new LinkedHashMap<String, Long>();
+				}
+
+				if (!whoFav.containsKey(userId)) {
+					long time = System.currentTimeMillis();
+					whoFav.put(userId, time);
+					course.setWhoFav(whoFav);
+					course.setFavCount(course.getFavCount() + 1);
+					courseRepository.save(course);
+				}
+//				else{
+//					throw new XueWenServiceException(Config.STATUS_201,
+//							Config.MSG_FAV_201, null);
+//				}
+			} else if (operation.equals("study")) {
+				Map<String, Long> whoStudy = course.getWhoStudy();
+				if (whoStudy == null) {
+					whoStudy = new LinkedHashMap<String, Long>();
+				}
+
+				if (!whoStudy.containsKey(userId)) {
+					long time = System.currentTimeMillis();
+					whoStudy.put(userId, time);
+					course.setWhoStudy(whoStudy);
+					course.setStudyCount(course.getStudyCount() + 1);
+					courseRepository.save(course);
+				}
+			} else {
+				throw new XueWenServiceException(Config.STATUS_201,
+						Config.MSG_NODATA_201, null);
+			}
+		}
+	}
+	
+	
+
+	/**
+	 * 生成视频缩略图
+	 * @param vedioUrl
+	 * @param imgUrl
+	 * @throws XueWenServiceException
+	 */
+	public void createVedioImag(String vedioUrl,String imgUrl)throws XueWenServiceException{
+		try {
+			String[] cmd=new String[]{"/usr/local/ffmpeg/bin/ffmpeg.sh",vedioUrl,imgUrl};
+			Process ps = Runtime.getRuntime().exec(cmd);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.info("=========生成缩略图错误："+e);
+		}
+	}
+	
+	
+	/**
+	 * 获取视频时长
+	 * @param vedioPath
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public String getVedioTimer(String vedioPath)throws XueWenServiceException{
+		String tmp="";
+		try {
+			InputStream in = null; 
+			String[] cmd=new String[]{"/usr/local/ffmpeg/bin/ffmpeg1.sh",vedioPath};
+			Process ps = Runtime.getRuntime().exec(cmd);
+			ps.waitFor();
+			in = ps.getInputStream(); 
+			BufferedReader read = new BufferedReader(new InputStreamReader(in));  
+			while ((tmp = read.readLine()) != null) {
+				
+				return tmp;
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.info("=========获取视频时间错误："+e);
+		}
+		return tmp;
+	}
+	
+	/**
+	 * 扫描course包下所有数据新建课程对象
+	 * @param fileDirPath
+	 * @throws XueWenServiceException
+	 */
+	public void createCourses(String fileDirPath)throws XueWenServiceException{
+		List<String> fileDirs=myFileService.getFileDir(fileDirPath);
+		for(String fileDir:fileDirs){
+			createCourseAndChapter(fileDir);
+		}
+	}
+	
+	/**
+	 * 遍历一个课程包，并新建课程对象以及创建课程的章节对象和保存课程的章节信息
+	 * @param fileDir
+	 * @throws XueWenServiceException
+	 */
+	public void createCourseAndChapter(String fileDir)throws XueWenServiceException{
+		//遍历一个课程包
+		List<File> files=myFileService.getFiles(fileDir);
+		if(!isHasCourseByTitle(files)){
+			logger.info("创建一个课程对象");
+			Course c=new Course();
+			long time=System.currentTimeMillis();
+			List<Object> chapters=new ArrayList<Object>();
+			for(File file:files){
+				if(myFileService.isImg(file.getName())){
+					//课程图片地址
+					String logoUrl=StringUtil.getHttpUrl(file.getAbsolutePath(), Config.contextPath, Config.IMAGESPath);
+					logger.info("====课程图片服务器地址："+logoUrl);
+					c.setLogoUrl(logoUrl);
+				}else if(myFileService.isText(file.getName())){
+					//课程title和课程intro
+					Map<String,String> info=myFileService.readFileByLines(file);
+					String title=info.get("title");
+					String intro=info.get("intro");
+					c.setIntro(intro);
+					c.setTitle(title);
+				}else if(myFileService.isVedio(file.getName())){
+					//课程章节
+					Chapter ch=createChapter(file);
+					chapters.add(ch.getId());
+				}
+			}
+			c.setChapters(chapters);
+			c.setFavCount(0);
+			c.setStudyCount(0);
+			c.setShareCount(0);
+			c.setCtime(time);
+			c.setUtime(time);
+			courseRepository.save(c);
+		}
+	}
+	
+	/**
+	 * 创建章节
+	 * @param file
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Chapter createChapter(File file)throws XueWenServiceException{
+		String md5=MD5Util.getFileMD5(file);
+		Chapter ch=chapterRepository.findOneByMd5(md5);
+		if(ch == null){
+			ch=new Chapter();
+			long time= System.currentTimeMillis();
+			ch.setCtime(time);
+			ch.setUtime(time);
+			ch.setIntro("");
+			ch.setTitle(file.getName());
+			ch.setMd5(md5);
+			ch.setLength(file.length());
+			ch.setLocalUrl(file.getAbsolutePath());
+			ch.setPlayUrl(StringUtil.getHttpUrl(file.getAbsolutePath(), Config.contextPath, Config.IMAGESPath));
+			ch.setTimer(StringUtil.vedioTimer(getVedioTimer(file.getAbsolutePath())));
+			return chapterRepository.save(ch);
+		}else {
+			return ch;
+		}
+	}
+	
+	/**
+	 * 根据课程名判断课程是否存在
+	 * @param files
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	private boolean isHasCourseByTitle(List<File> files)throws XueWenServiceException{
+		for(File file:files){
+			if(myFileService.isText(file.getName())){
+				//课程title和课程intro
+				Map<String,String> info=myFileService.readFileByLines(file);
+				String title=info.get("title");
+				if(courseRepository.findOneByTitle(title) == null){
+					return false;
+				}else{
+					return true;
+				}
+			}
+		}
+		return true;
+	}
+	
+	
+//	public void getVedioTimer(String vedioPath)throws XueWenServiceException{
+//		String result =    processFLV(vedioPath);  
+//		
+//		
+//		PatternCompiler compiler =new Perl5Compiler();  
+//		String regexDuration ="Duration: (.*?), start: (.*?), bitrate: (\\d*) kb\\/s";  
+//		String regexVideo ="Video: (.*?), (.*?), (.*?)[,\\s]";  
+//		String regexAudio ="Audio: (\\w*), (\\d*) Hz";  
+//		
+//		try {
+//			Pattern patternDuration = compiler.compile(regexDuration,Perl5Compiler.CASE_INSENSITIVE_MASK);  
+//			PatternMatcher matcherDuration = new Perl5Matcher();  
+//			if(matcherDuration.contains(result, patternDuration)){  
+//				MatchResult re = matcherDuration.getMatch();  
+//				
+//				logger.info("提取出播放时间  ===" +re.group(1));  
+//				logger.info("开始时间        =====" +re.group(2));  
+//				logger.info("bitrate 码率 单位 kb==" +re.group(3));  
+//			}
+//		} catch (MalformedPatternException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} 
+//	}
+	
+	
+////  ffmpeg能解析的格式：（asx，asf，mpg，wmv，3gp，mp4，mov，avi，flv等）  
+//    private  String processFLV(String inputPath) {  
+///* 
+//      if (!checkfile(inputPath)){ 
+//          _log.warn(inputPath+" is not file"); 
+//          return false; 
+//         } 
+//*/  
+//        List<String> commend=new java.util.ArrayList<String>();  
+//         
+//        commend.add("/usr/local/ffmpeg/bin/ffmpeg");//可以设置环境变量从而省去这行  
+////        commend.add("ffmpeg");  
+//        commend.add("-i");  
+//        commend.add(inputPath);  
+//        
+//        try {  
+//  
+//            ProcessBuilder builder = new ProcessBuilder();  
+//            builder.command(commend);  
+//            builder.redirectErrorStream(true);  
+//            Process p= builder.start();  
+//  
+//           //1. start  
+//            BufferedReader buf = null; // 保存ffmpeg的输出结果流  
+//            String line = null;  
+//          //read the standard output  
+//  
+//            buf = new BufferedReader(new InputStreamReader(p.getInputStream()));  
+//             
+//            StringBuffer sb= new StringBuffer();  
+//            while ((line = buf.readLine()) != null) {  
+//             System.out.println(line);  
+//             sb.append(line);  
+//             continue;  
+//                 }  
+//            int ret = p.waitFor();//这里线程阻塞，将等待外部转换进程运行成功运行结束后，才往下执行  
+//            //1. end  
+//            return sb.toString();  
+//        } catch (Exception e) {  
+////            System.out.println(e);  
+//            return null;  
+//        }  
+//    } 
+	
+	
+//	public List<Course> test(String chaptesId,Pageable page)throws XueWenServiceException{
+//		return courseRepository.findByChapters(chaptesId,page);
+//	}
+	/**
+	 * 通过用户ID和章节ID查询该章节进度及基本信息
+	 * @param userId
+	 * @param chapterId
+	 * @return
+	 */
+	public UserCourseChapter findChapterProcess(String userId,String courseId,String chapterId) throws XueWenServiceException{
+		UserCourseChapter ucc = userCourseChapterService.findChapterProcess(userId, chapterId);
+		Chapter chapter = chapterService.getChapter(chapterId);
+		if(ucc == null){
+			ucc = new UserCourseChapter(userId,courseId,chapterId);
+			ucc.setChapterId(chapter);
+		}else{
+			ucc.setChapterId(chapter);
+		}
+		return ucc;
+	}
+	
+	/**
+	 * 随机寻找课程
+	 * 
+	 * @param courseId
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<NewCourse> findRadomCourse(String courseId) throws XueWenServiceException {
+		
+		int countNum = (int) newCourseRepository.count();
+		int pageNumber = 2;
+		int pageSize = countNum/pageNumber;
+		int radom = MathTools.nextInt(0,pageSize);
+		
+		Pageable pageable = new PageRequest(radom,Integer.parseInt("2"));
+		Page<NewCourse> course = newCourseRepository.findByIdNotIn(courseId,pageable);
+		if(course.getTotalElements() > 0 ){
+			for(NewCourse courseObj:course){
+				List<Object> chapterIds = courseObj.getChapters();
+				//根据章节id（list）获取全部章节
+				List<Object> chapters = newChapterService.findChapter(chapterIds);
+				//搜索分享并放入章节中
+				for (Object obj : chapters) {
+					NewChapter chapter = (NewChapter)obj;
+					List<Lesson> lessons = chapter.getLessons();
+					for (Lesson lesson : lessons) {
+						Knowledge knowledge = knowledgeService.getById(lesson.getKnowledge().toString());
+						lesson.setKnowledge(knowledge);
+					}
+					chapter.setLessons(lessons);
+				}
+				courseObj.setChapters(chapters);
+			}
+		}
+		return course;
+	}
+	
+	/**
+	 * 根据用户ID和技能ID，与统计场景，统计出各场景下未学课程数量，正在学课程数量，已经学习完成课程数量（现有三个场景：1.岗位技能--》课程 2 收藏列表---》课程 3学习列表---》课程）
+	 * @param userId
+	 * @param skillId
+	 * @param countType
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public ResponseUserCourseCount getUserCourseCount(String userId,String skillId,String countType)throws XueWenServiceException{
+		if(StringUtil.isBlank(countType)){
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		ResponseUserCourseCount rucc=new ResponseUserCourseCount();
+		if(Config.COUNTCOURSE_TYPE_TREE.equals(countType)){
+			if(StringUtil.isBlank(skillId)){
+				throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+			}
+			int studyingCount=userCourseService.countUserStudyingSkillCourse(userId, skillId);
+			int studyedCount=userCourseService.countUserStudyedSkillCourse(userId, skillId);
+			int noStudyCount=skillCourseService.countSkillCourses(skillId)-studyingCount-studyedCount;
+			rucc.setNoStudyCount(noStudyCount);
+			rucc.setStudyingCount(studyingCount);
+			rucc.setStudyedCount(studyedCount);
+		}else if(Config.COUNTCOURSE_TYPE_FAV.equals(countType)){
+			rucc.setNoStudyCount(userCourseService.countUserFavNoStudyCourse(userId));
+			rucc.setStudyingCount(userCourseService.countUserFavStudyingCourse(userId));
+			rucc.setStudyedCount(userCourseService.countUserFavStudyedCourse(userId));
+		}else if(Config.COUNTCOURSE_TYPE_STUDY.equals(countType)){
+			rucc.setStudyingCount(userCourseService.countUserStudyingCourse(userId));
+			rucc.setStudyedCount(userCourseService.countUserStudyedCourse(userId));
+		}else{
+			throw new XueWenServiceException(Config.STATUS_201, Config.MSG_201,null);
+		}
+		return rucc;
+		
+	}
+	
+	/**
+	 * 分页获取课程列表
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Course> courseList(Pageable pageable)throws XueWenServiceException{
+		
+		return courseRepository.findAll(pageable);
+	}
+	/**
+	 * 获得某一客户分享课程的数量
+	 * @param userId
+	 * @return
+	 */
+	public int countShare(String userId){
+		return courseRepository.countByWhoShare(userId);
+	}
+	/**
+	 * 搜索课程
+	 * @param keywords
+	 * @param pageable
+	 * @return
+	 * @throws XueWenServiceException
+	 */
+	public Page<Course> search(String keywords,Pageable pageable)throws XueWenServiceException{
+		if(StringUtil.isBlank(keywords)){
+			return courseList(pageable);
+		}
+		return courseRepository.findByTitleRegexOrIntroRegex(keywords,keywords,pageable);
+	}
+	
+	
+	
+
+}

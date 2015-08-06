@@ -1,0 +1,16 @@
+package operation.repo.topics;
+
+import java.util.List;
+
+import operation.pojo.topics.SubPost;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface SubPostRepository extends MongoRepository<SubPost, String>{
+	Page<SubPost> findByParentId(String postId,Pageable pages);
+	List<SubPost> findByParentId(String postId);
+	Integer countByParentId(String postId);
+	List<SubPost> findByAuthorId(String uid);
+}

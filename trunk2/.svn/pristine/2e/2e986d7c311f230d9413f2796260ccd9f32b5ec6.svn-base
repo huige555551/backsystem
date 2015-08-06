@@ -1,0 +1,42 @@
+package operation.pojo.course;
+
+import java.util.List;
+
+public class UserChapter {
+
+	private Object chapter; //章节信息
+	private List<UserLesson> userLessones; //用户课时列表
+	private int lessonNum; //当前章节下课时总数
+	private int lessonStudyedNum;//用户学习完成的章节总数
+	private boolean studyed;//此章节是否学习完毕(lessonNum=lessonStudedNum时为true)
+	public Object getChapter() {
+		return chapter;
+	}
+	public void setChapter(Object chapter) {
+		this.chapter = chapter;
+	}
+	public List<UserLesson> getUserLessones() {
+		return userLessones;
+	}
+	public void setUserLessones(List<UserLesson> userLessones) {
+		this.userLessones = userLessones;
+	}
+	public int getLessonNum() {
+		return lessonNum;
+	}
+	public void setLessonNum(int lessonNum) {
+		this.lessonNum = lessonNum;
+	}
+	public int getLessonStudyedNum() {
+		return lessonStudyedNum;
+	}
+	public void setLessonStudyedNum(int lessonStudyedNum) {
+		this.lessonStudyedNum = lessonStudyedNum;
+	}
+	public boolean isStudyed() {
+		return studyed;
+	}
+	public void setStudyed(boolean studyed) {
+		this.studyed = studyed;
+	}
+}

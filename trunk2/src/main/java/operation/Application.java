@@ -1,0 +1,91 @@
+
+package operation;
+
+import javax.inject.Inject;
+import javax.servlet.MultipartConfigElement;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.context.embedded.FilterRegistrationBean;
+import org.springframework.boot.context.embedded.MultipartConfigFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
+import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+
+//@ComponentScan(value="service")
+@ComponentScan
+@EnableAutoConfiguration
+@Configuration
+@PropertySource("classpath:app.properties")
+public class Application extends WebMvcConfigurerAdapter{
+	
+	private static final Logger logger=Logger.getLogger(Application.class);
+	
+	@Autowired
+	UserSecurityInterceptor userSecurityInterceptor;
+	
+	@Inject Environment env;
+	@Bean
+    public MultipartConfigElement multipartConfigElement() {
+		logger.info("上传文件最大值："+env.getProperty("file.maxFileSize")+"=======上传文件请求最大值："+env.getProperty("file.maxRequestSize"));
+		MultipartConfigFactory factory = new MultipartConfigFactory();
+        factory.setMaxFileSize(env.getProperty("file.maxFileSize"));
+        factory.setMaxRequestSize(env.getProperty("file.maxRequestSize"));
+        return factory.createMultipartConfig();
+    }
+
+    public static void main(String[] args) {
+//		SpringApplication app = new SpringApplication(Application.class);
+//		app.setWebEnvironment(true);
+//		app.setShowBanner(false);
+//			        
+//        Set<Object> set = new HashSet<Object>();
+//        set.add("classpath:operation/log4j.xml");
+//        app.setSources(set);
+//		app.run(args);invite inviteUserJoinGroup inviteFriend  updateContacts
+    	
+    	SpringApplication.run(Application.class, args);
+    }
+    
+    public void addInterceptors(InterceptorRegistry registry) {  
+      registry.addInterceptor(userSecurityInterceptor)
+      				.excludePathPatterns("/group/worthGroups","/group/findGroupsByTag","/group/getTagByType","/cloudConfig/findAll","/contactUser/info","/contactUser/userFollowed","/contactUser/userFollower",
+      						"/group/findMyAdminPageGroupsById","/group/findMyMemberPageGroupsById","/topic/myCreatedTopicById","/user/getMyFavsById","/group/findMyMemberGroupById","/group/findMyAdminGroupsById",
+      						"/knowledge/getUserKnowledges","/group/findByGroupNumber","/drycargo/userDrycargo","/user/getNickName","/user/getUserByToken","/topic/updatePostCount","/drycargo/saveReplyCount")
+      				.addPathPatterns("/group/**","/user/one/**","/user/update/**","/user/message/**","/user/loginOut/**","/file/**","/space/**",
+    		  "/user/findCollectStudyed/**","/user/findCollectNoStudy/**","/user/findCollectStudying/**","/user/findStudy/**","/user/findStudying/**","/user/findStudyed/**","/user/deleCollect/**",
+    		  "/user/studyResult/**","/user/checkIsSetPassword/**","/user/isHasUserSamplePhone/**","/user/mergeUserAccount/**","/user/uploadContacts/**","/user/friendShip/**","/user/changePass/**",
+    		  "/user/friend/**","/user/invite/**","/user/inviteUserJoinGroup/**","/user/inviteFriend/**","/user/updateContacts/**","/user/tagUser/**","/user/findDryCollect/**","/user/deleDryCollect/**",
+    		  "/user/modify/**","/user/getUserByToken/**",
+    		  "/user/boundPhoneNumber/**","/course/**","/feedback/**","/find/**","/industry/**","/userjobskilltree/**","/fav/**","/like/**","/topic/**","/post/**","/drycargo/**","/contactUser/**",
+    		  "/tag/**","/userGroupCourse/**","/newGroupCourse/**","/ring/**","/explore/**"); 
+      
+      //只做日志输出 不验证身份
+      registry.addInterceptor(new UserLogInterceptor()).addPathPatterns("");
+    
+    }
+    /**
+     * 中文解码
+     * @return
+     */
+    @Bean
+    public FilterRegistrationBean filterRegistrationBean () {
+        
+    	CharacterEncodingFilter compressingFilter = new CharacterEncodingFilter();
+    	compressingFilter.setEncoding("UTF-8");
+    	compressingFilter.setForceEncoding(true);
+        
+        FilterRegistrationBean registrationBean = new FilterRegistrationBean();
+        
+        registrationBean.setFilter(compressingFilter);
+        
+        return registrationBean;
+    }
+}
